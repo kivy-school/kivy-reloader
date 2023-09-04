@@ -1,0 +1,11 @@
+.buildozer
+.DS_Store
+.dmypy.json
+.dmypy.json
+.env
+.mypy_cache
+.python-version
+.venv
+*.pyc
+__pycache__
+dmypy.json
