@@ -64,6 +64,9 @@ class RootScreen(F.Screen):
             print("Unpacking app")
             shutil.unpack_archive("app_copy.zip")
 
+            # Deleting the zip file
+            os.remove("app_copy.zip")
+
             print("App updated, exiting app for refresh")
             self.app.restart()
         except Exception as e:
