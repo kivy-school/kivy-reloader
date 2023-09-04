@@ -1,17 +1,13 @@
 import trio
 from kivy.core.window import Window
-from kivy.factory import Factory as F
 from kivy.lang import Builder
 from kivy.utils import platform
 
 from custom_reloader import BaseApp, RootScreen
 
-Window.softinput_mode = "below_target"
-
-
 if platform != "android":
-    Window.size = (1312 * 0.306777, 2460 * 0.306777)
-    Window._set_window_pos(4500, 100)
+    Window.size = (406, 762)
+    Window._set_window_pos(500, 100)
     Window.always_on_top = True
 
 
