@@ -12,7 +12,7 @@ from kivy.logger import Logger
 from kivy.utils import platform
 
 
-class RootScreen(F.Screen):
+class Reloader(F.Screen):
     def __init__(self):
         super().__init__()
         self.app = App.get_running_app()
@@ -198,3 +198,19 @@ else:
     class BaseApp(App):
         def build(self):
             return self.build_and_reload()
+
+        def restart(self):
+            print("Restarting the app on smartphone")
+
+            from jnius import autoclass
+
+            Intent = autoclass("android.content.Intent")
+            PythonActivity = autoclass("org.kivy.android.PythonActivity")
+            System = autoclass("java.lang.System")
+
+            activity = PythonActivity.mActivity
+            intent = Intent(activity.getApplicationContext(), PythonActivity)
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK)
+            activity.startActivity(intent)
+            System.exit(0)
