@@ -7,5 +7,6 @@
 .python-version
 .venv
 *.pyc
+app_copy.zip
 __pycache__
 dmypy.json
