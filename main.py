@@ -3,7 +3,7 @@ from kivy.core.window import Window
 from kivy.lang import Builder
 from kivy.utils import platform
 
-from custom_reloader import BaseApp, RootScreen
+from custom_reloader import BaseApp, Reloader
 
 if platform != "android":
     Window.size = (406, 762)
@@ -13,8 +13,8 @@ if platform != "android":
 
 # fmt: off
 kv = Builder.load_string("""
-<RootScreen>:
-    screen_manager: screen_manager.__self__
+<Reloader>:
+    screen_manager: screen_manager
     ScreenManager:
         id: screen_manager
 """
@@ -30,8 +30,8 @@ class MainApp(BaseApp):
         self.nursery = nursery
 
     def build_and_reload(self):
-        self.root_screen = RootScreen()
-        self.screen_manager = self.root_screen.screen_manager
+        self.reloader = Reloader()
+        self.screen_manager = self.reloader.screen_manager
         initial_screen = "Main Screen"
         try:
             self.change_screen(initial_screen)
@@ -39,7 +39,7 @@ class MainApp(BaseApp):
             print("Error while changing screen: \n")
             print(e)
             return False
-        return self.root_screen
+        return self.reloader
 
     def change_screen(self, screen_name, toolbar_title=None):
         if screen_name not in self.screen_manager.screen_names:
@@ -62,22 +62,6 @@ class MainApp(BaseApp):
         screen_object = eval(f"{screen_object_in_str}()")
 
         return screen_object
-
-    def restart(self):
-        print("Restarting the app on smartphone")
-
-        from jnius import autoclass
-
-        Intent = autoclass("android.content.Intent")
-        PythonActivity = autoclass("org.kivy.android.PythonActivity")
-        System = autoclass("java.lang.System")
-
-        activity = PythonActivity.mActivity
-        intent = Intent(activity.getApplicationContext(), PythonActivity)
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK)
-        activity.startActivity(intent)
-        System.exit(0)
 
 
 # Start kivy app as an asynchronous task
