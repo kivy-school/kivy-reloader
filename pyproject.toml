@@ -30,4 +30,3 @@ line_length = 79
 
 [tool.taskipy.tasks]
 lint = "isort . && black ."
-fix_warnings = "python scripts/replace_reflect.py && python scripts/replace_inotify.py" 
