@@ -11,3 +11,4 @@ app_copy.zip
 __pycache__
 dmypy.json
 bin
+temp
