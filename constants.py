@@ -1,5 +1,5 @@
 PHONE_IPS = ["192.168.100.200"]  # The IP address of your phone
-STREAM_USING = "WIFI"  # "USB" or "WIFI"
+STREAM_USING = "USB"  # "USB" or "WIFI"
 PORT = 5555
 
 WATCHED_FILES = [
