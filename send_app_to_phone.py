@@ -23,14 +23,15 @@ async def connect_to_server(IP):
 
 
 async def send_app():
+    print("*" * 50)
     print(green + "Connecting to smartphone...")
     for IP in PHONE_IPS:
         client_socket = await connect_to_server(IP)
         if not client_socket:
             print(yellow + "Couldn't connect to smartphone")
             return
-        print(green + f"Connected to smartphone: {client_socket}")
-
+        print(yellow + f"Phone connected successfully: ", IP)
+        print(f"\n{green}Sending app to smartphone...")
         CHUNK_SIZE = 4096
         with open(
             "app_copy.zip",
@@ -39,8 +40,10 @@ async def send_app():
             for chunk in iter(lambda: myzip.read(CHUNK_SIZE), b""):
                 print("Sending chunk")
                 await client_socket.send_all(chunk)
-        print(green + "Finished sending app")
-    print(green + f"Sent app to {len(PHONE_IPS)} smartphone(s)")
+        print(green + "Finished sending app!")
+    print("\n")
+    print(yellow + f"Sent app to {len(PHONE_IPS)} smartphone(s)")
+    print("*" * 50)
 
 
 trio.run(send_app)
