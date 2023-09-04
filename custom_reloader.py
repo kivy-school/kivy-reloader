@@ -47,6 +47,9 @@ class RootScreen(F.Screen):
             print(
                 "It was not possible to start the server, check if the phone is connected to the same network as the computer"
             )
+            print(
+                "Another possible cause is that the port is already in use by another app. Check if the port is free and try again"
+            )
             print(e)
 
     async def data_receiver(self, data_stream):
