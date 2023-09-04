@@ -1,0 +1,33 @@
+[tool.poetry]
+name = "kivy-reloader"
+version = "0.1.0"
+description = ""
+authors = ["filipemarch <filipe.marchesini@gmail.com>"]
+readme = "README.md"
+packages = [{include = "kivy_reloader"}]
+
+[tool.poetry.dependencies]
+python = "3.10.9"
+cython = "^0.29.34"
+kaki = "^0.1.8"
+trio = "^0.22.0"
+buildozer = {url = "https://github.com/kivy/buildozer/archive/master.zip"}
+plyer = "^2.1.0"
+
+[tool.poetry.group.dev.dependencies]
+black = "^23.3.0"
+icecream = "^2.1.3"
+isort = "^5.12.0"
+taskipy = "^1.10.3"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.isort]
+profile = "black"
+line_length = 79
+
+[tool.taskipy.tasks]
+lint = "isort . && black ."
+fix_warnings = "python scripts/replace_reflect.py && python scripts/replace_inotify.py" 
