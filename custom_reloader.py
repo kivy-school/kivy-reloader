@@ -1,6 +1,5 @@
 import os
 import shutil
-import socket
 import subprocess
 from shutil import copytree, ignore_patterns, rmtree
 
@@ -8,7 +7,6 @@ import trio
 from kivy.app import App
 from kivy.factory import Factory as F
 from kivy.lang import Builder
-from kivy.logger import Logger
 from kivy.utils import platform
 
 
@@ -26,13 +24,15 @@ class Reloader(F.Screen):
                 print("Deleting main.pyc")
                 os.remove("main.pyc")
                 print("Compiling main.py")
-                os.system("python -m compileall main.py")
+                subprocess.run("python -m compileall main.py", shell=True)
 
     def initialize_server(self):
         if platform == "android":
             self.app.nursery.start_soon(self.start_async_server)
 
     async def start_async_server(self):
+        import socket
+
         try:
             PORT = 8050
             self.s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -53,7 +53,7 @@ class Reloader(F.Screen):
             print(e)
 
     async def data_receiver(self, data_stream):
-        print("Server started")
+        print("Server started: receiving data from computer...")
 
         try:
             with open("app_copy.zip", "wb") as myzip:
@@ -70,7 +70,7 @@ class Reloader(F.Screen):
             # Deleting the zip file
             os.remove("app_copy.zip")
 
-            print("App updated, exiting app for refresh")
+            print("App updated, restarting app for refresh")
             self.app.restart()
         except Exception as e:
             print(f"Server: crashed: {e!r}")
@@ -80,6 +80,7 @@ if platform != "android":
     import logging
 
     from kaki.app import App
+    from kivy.logger import Logger
 
     logging.getLogger("watchdog").setLevel(logging.ERROR)
     from constants import (
@@ -166,9 +167,6 @@ if platform != "android":
             )
 
             # Zipping all files inside `temp` folder, except the `temp` folder itself
-            # os.system(f"cd {destination} && zip -r ../app_copy.zip ./* -x ./temp")
-
-            # Make the same zip command but using subprocess
             subprocess.run(
                 f"cd {destination} && zip -r ../app_copy.zip ./* -x ./temp",
                 shell=True,
