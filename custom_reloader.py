@@ -174,7 +174,13 @@ if platform != "android":
             )
 
             # Sending the zip file to the phone
-            os.system("python send_app_to_phone.py")
+            subprocess.run("python send_app_to_phone.py", shell=True)
+
+            # Deleting the temp folder
+            rmtree(destination)
+
+            # Deleting the zip file
+            os.remove(zip_file)
 
         def _filename_to_module(self, filename):
             rootpath = self.get_root_path()
