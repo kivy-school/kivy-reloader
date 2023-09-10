@@ -8,6 +8,8 @@ https://github.com/kivy-school/kivy-reloader/assets/23220309/9a7c33b4-3020-4b82-
 # Prerequisites
 Install `scrcpy` on your operating system: [Linux](https://github.com/Genymobile/scrcpy/blob/master/doc/linux.md), [Windows](https://github.com/Genymobile/scrcpy/blob/master/doc/windows.md) or [macOS](https://github.com/Genymobile/scrcpy/blob/master/doc/macos.md). You will be able to control your device from your computer.
 
+Install `kivy` on your operating system: choose your operating system on [Kivy School Tutorial](https://kivyschool.com/installation/).
+
 # Installing the project
 
 Clone this project, open the folder on terminal and type: 
