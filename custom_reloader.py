@@ -63,13 +63,14 @@ class Reloader(F.Screen):
             print(e)
 
     async def data_receiver(self, data_stream):
+        print("************** SERVER **************")
         print("Server started: receiving data from computer...")
 
         try:
             with open("app_copy.zip", "wb") as myzip:
                 async for data in data_stream:
                     print(f"Server: received data")
-                    print(f"Data type: {type(data)}, size {len(data)}")
+                    print(f"Data size: {len(data)}")
                     print(f"Server: connection closed")
                     myzip.write(data)
 
@@ -81,7 +82,8 @@ class Reloader(F.Screen):
             os.remove("app_copy.zip")
 
             print("App updated, restarting app for refresh")
-            self.app.restart()
+            print("************** END SERVER **************")
+            self.app.reload_kv()
         except Exception as e:
             print(f"Server: crashed: {e!r}")
 
