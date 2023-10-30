@@ -103,6 +103,7 @@ if platform != "android":
         WATCHED_FOLDERS_RECURSIVELY,
     )
 
+    # Desktop BaseApp
     class BaseApp(App):
         DEBUG = 1
 
@@ -210,12 +211,15 @@ if platform != "android":
             return module
 
 else:
+    # Android BaseApp
+    import hashlib
 
     class BaseApp(App):
         def build(self):
+            self.initial_hash = self.get_hash_of_file("main.py")
             return self.build_and_reload()
 
-        def restart(self):
+        def restart_app_on_android(self):
             print("Restarting the app on smartphone")
 
             from jnius import autoclass
@@ -230,3 +234,11 @@ else:
             intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK)
             activity.startActivity(intent)
             System.exit(0)
+
+        def get_hash_of_file(self, file_name):
+            """
+            Returns the hash of the file
+            """
+
+            with open(file_name, "rb") as f:
+                return hashlib.md5(f.read()).hexdigest()
