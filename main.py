@@ -1,6 +1,7 @@
 import trio
 from kivy.clock import Clock
 from kivy.core.window import Window
+from kivy.factory import Factory as F
 from kivy.lang import Builder
 from kivy.utils import platform
 
@@ -13,8 +14,6 @@ else:
     import importlib
     import os
     import sys
-
-    from kivy.factory import Factory as F
 
 
 class MainApp(BaseApp):
