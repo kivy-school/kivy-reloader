@@ -21,11 +21,12 @@ kv = Builder.load_string("""
 
 
 class Reloader(F.Screen):
-    def __init__(self):
+    def __init__(self, initialize_server=True):
         super().__init__()
         self.app = App.get_running_app()
-        self.initialize_server()
-        self.recompile_main()
+        if initialize_server and platform == "android":
+            self.initialize_server()
+            self.recompile_main()
 
     def recompile_main(self):
         if platform == "android":
@@ -37,8 +38,7 @@ class Reloader(F.Screen):
                 subprocess.run("python -m compileall main.py", shell=True)
 
     def initialize_server(self):
-        if platform == "android":
-            self.app.nursery.start_soon(self.start_async_server)
+        self.app.nursery.start_soon(self.start_async_server)
 
     async def start_async_server(self):
         import socket
