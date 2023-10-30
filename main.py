@@ -1,4 +1,5 @@
 import trio
+from kivy.clock import Clock
 from kivy.core.window import Window
 from kivy.lang import Builder
 from kivy.utils import platform
@@ -6,6 +7,12 @@ from kivy.utils import platform
 from custom_reloader import BaseApp, Reloader
 
 if platform != "android":
+    import importlib
+    import os
+    import sys
+
+    from kivy.factory import Factory as F
+
     Window.size = (406, 762)
     Window.always_on_top = True
 
@@ -17,8 +24,8 @@ class MainApp(BaseApp):
         super().__init__()
         self.nursery = nursery
 
-    def build_and_reload(self):
-        self.reloader = Reloader()
+    def build_and_reload(self, initialize_server=True):
+        self.reloader = Reloader(initialize_server)
         self.screen_manager = self.reloader.screen_manager
         initial_screen = "Main Screen"
         try:
