@@ -88,6 +88,23 @@ class MainApp(BaseApp):
         for name in set(to_remove):
             del F.classes[name]
 
+    def reload_kv(self, *args):
+        """
+        Hot reloading kv files on Android
+        """
+
+        if self.get_hash_of_file("main.py") != self.initial_hash:
+            # `main.py` changed, restarting app
+            self.restart_app_on_android()
+            return
+
+        Builder.unload_file("screens/main_screen.kv")
+        Builder.load_file("screens/main_screen.kv")
+        self.root.clear_widgets()
+        root = self.build_and_reload(initialize_server=False)
+        self.root.add_widget(root)
+        root.do_layout()
+
 
 # Start kivy app as an asynchronous task
 async def main() -> None:
