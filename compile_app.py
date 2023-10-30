@@ -123,7 +123,9 @@ class Compilation:
             return
 
     def livestream():
-        time.sleep(3)
+        if STREAM_USING == "WIFI":
+            time.sleep(3)
+
         for proc in psutil.process_iter():
             try:
                 if proc.name() == "scrcpy":
