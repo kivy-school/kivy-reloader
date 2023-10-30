@@ -3,7 +3,7 @@ Hot reload your Kivy app on multiple phones and computer in real-time.
 
 This tool allows you to instantly update your Kivy app on multiple devices simultaneously by pressing `Ctrl+S`, saving your precious development time and effort. 
 
-https://github.com/kivy-school/kivy-reloader/assets/23220309/9a7c33b4-3020-4b82-ba7d-b16c7cc90355
+https://github.com/kivy-school/kivy-reloader/assets/23220309/f1459d7e-ca53-4ed6-b4d1-980cdae4ce16
 
 # Prerequisites
 Install `scrcpy` on your operating system: [Linux](https://github.com/Genymobile/scrcpy/blob/master/doc/linux.md), [Windows](https://github.com/Genymobile/scrcpy/blob/master/doc/windows.md) or [macOS](https://github.com/Genymobile/scrcpy/blob/master/doc/macos.md). You will be able to control your device from your computer.
