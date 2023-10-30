@@ -7,14 +7,14 @@ from kivy.utils import platform
 from custom_reloader import BaseApp, Reloader
 
 if platform != "android":
+    Window.size = (406, 762)
+    Window.always_on_top = True
+else:
     import importlib
     import os
     import sys
 
     from kivy.factory import Factory as F
-
-    Window.size = (406, 762)
-    Window.always_on_top = True
 
 
 class MainApp(BaseApp):
