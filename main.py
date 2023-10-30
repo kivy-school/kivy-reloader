@@ -34,7 +34,13 @@ class MainApp(BaseApp):
             print("Error while changing screen: \n")
             print(e)
             return False
+
+        Clock.schedule_once(self.set_window_pos)
         return self.reloader
+
+    def set_window_pos(self, *args):
+        if platform != "android":
+            Window._set_window_pos(4650, 500)
 
     def change_screen(self, screen_name, toolbar_title=None):
         if screen_name not in self.screen_manager.screen_names:
