@@ -43,11 +43,10 @@ class MainApp(BaseApp):
             Window._set_window_pos(4650, 500)
 
     def change_screen(self, screen_name, toolbar_title=None):
+        # print(f"Changing screen to {screen_name}")
         if screen_name not in self.screen_manager.screen_names:
             screen_object = self.get_screen_object_from_screen_name(screen_name)
-            # print("Screen object: ", screen_object)
             self.screen_manager.add_widget(screen_object)
-            # print("Screen names: ", self.screen_manager.screen_names)
 
         self.screen_manager.current = screen_name
 
@@ -55,6 +54,17 @@ class MainApp(BaseApp):
         # Parsing module 'my_screen.py' and object 'MyScreen' from screen_name 'My Screen'
         screen_module_in_str = "_".join([i.lower() for i in screen_name.split()])
         screen_object_in_str = "".join(screen_name.split())
+
+        if platform == "android":
+            if f"screens.{screen_module_in_str}" in sys.modules:
+                # Module already imported, reloading
+                filename = os.path.join(
+                    os.getcwd(), "screens", f"{screen_module_in_str}.py"
+                )
+                F.unregister_from_filename(filename)
+                module = f"screens.{screen_module_in_str}"
+                self._unregister_factory_from_module(module)
+                importlib.reload(sys.modules[module])
 
         # Importing screen object
         exec(f"from screens.{screen_module_in_str} import {screen_object_in_str}")
