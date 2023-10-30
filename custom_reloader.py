@@ -9,6 +9,16 @@ from kivy.factory import Factory as F
 from kivy.lang import Builder
 from kivy.utils import platform
 
+# fmt: off
+kv = Builder.load_string("""
+<Reloader>:
+    screen_manager: screen_manager
+    ScreenManager:
+        id: screen_manager
+"""
+)
+# fmt: on
+
 
 class Reloader(F.Screen):
     def __init__(self):

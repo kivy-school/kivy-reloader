@@ -7,19 +7,7 @@ from custom_reloader import BaseApp, Reloader
 
 if platform != "android":
     Window.size = (406, 762)
-    Window._set_window_pos(500, 100)
     Window.always_on_top = True
-
-
-# fmt: off
-kv = Builder.load_string("""
-<Reloader>:
-    screen_manager: screen_manager
-    ScreenManager:
-        id: screen_manager
-"""
-)
-# fmt: on
 
 
 class MainApp(BaseApp):
