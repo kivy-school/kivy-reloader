@@ -1,8 +1,6 @@
 import trio
 from kivy.clock import Clock
 from kivy.core.window import Window
-from kivy.factory import Factory as F
-from kivy.lang import Builder
 from kivy.utils import platform
 
 from custom_reloader import BaseApp, Reloader
@@ -10,10 +8,6 @@ from custom_reloader import BaseApp, Reloader
 if platform != "android":
     Window.size = (406, 762)
     Window.always_on_top = True
-else:
-    import importlib
-    import os
-    import sys
 
 
 class MainApp(BaseApp):
@@ -39,7 +33,7 @@ class MainApp(BaseApp):
 
     def set_window_pos(self, *args):
         if platform != "android":
-            Window._set_window_pos(4650, 500)
+            Window._set_window_pos(4410, 470)
 
     def change_screen(self, screen_name, toolbar_title=None):
         # print(f"Changing screen to {screen_name}")
@@ -55,15 +49,7 @@ class MainApp(BaseApp):
         screen_object_in_str = "".join(screen_name.split())
 
         if platform == "android":
-            if f"screens.{screen_module_in_str}" in sys.modules:
-                # Module already imported, reloading
-                filename = os.path.join(
-                    os.getcwd(), "screens", f"{screen_module_in_str}.py"
-                )
-                F.unregister_from_filename(filename)
-                module = f"screens.{screen_module_in_str}"
-                self._unregister_factory_from_module(module)
-                importlib.reload(sys.modules[module])
+            self.unload_python_files_on_android(screen_module_in_str)
 
         # Importing screen object
         exec(f"from screens.{screen_module_in_str} import {screen_object_in_str}")
@@ -72,23 +58,6 @@ class MainApp(BaseApp):
         screen_object = eval(f"{screen_object_in_str}()")
 
         return screen_object
-
-    def reload_kv(self, *args):
-        """
-        Hot reloading kv files on Android
-        """
-
-        if self.get_hash_of_file("main.py") != self.initial_hash:
-            # `main.py` changed, restarting app
-            self.restart_app_on_android()
-            return
-
-        Builder.unload_file("screens/main_screen.kv")
-        Builder.load_file("screens/main_screen.kv")
-        self.root.clear_widgets()
-        root = self.build_and_reload(initialize_server=False)
-        self.root.add_widget(root)
-        root.do_layout()
 
 
 # Start kivy app as an asynchronous task
