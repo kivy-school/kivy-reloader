@@ -73,20 +73,6 @@ class MainApp(BaseApp):
 
         return screen_object
 
-    def _unregister_factory_from_module(self, module):
-        to_remove = [x for x in F.classes if F.classes[x]["module"] == module]
-
-        # check class name
-        for x in F.classes:
-            cls = F.classes[x]["cls"]
-            if not cls:
-                continue
-            if getattr(cls, "__module__", None) == module:
-                to_remove.append(x)
-
-        for name in set(to_remove):
-            del F.classes[name]
-
     def reload_kv(self, *args):
         """
         Hot reloading kv files on Android
