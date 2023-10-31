@@ -7,7 +7,7 @@ readme = "README.md"
 packages = [{include = "kivy_reloader"}]
 
 [tool.poetry.dependencies]
-python = "3.10.9"
+python = "^3.10"
 cython = "^0.29.34"
 kaki = "^0.1.8"
 trio = "^0.22.0"
