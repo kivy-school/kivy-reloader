@@ -138,15 +138,19 @@ if platform != "android":
                 if not self.DEBUG and self.RAISE_ERROR:
                     raise
 
+        def clear_temp_folder_and_zip_file(self, folder, zip_file):
+            if os.path.exists(folder):
+                rmtree(folder)
+            if os.path.exists(zip_file):
+                os.remove(zip_file)
+
         def send_app_to_phone(self):
             # Creating a copy of the files on `temp` folder
             source = os.getcwd()
             destination = os.path.join(os.getcwd(), "temp")
             zip_file = os.path.join(os.getcwd(), "app_copy.zip")
-            if os.path.exists(destination):
-                rmtree(destination)
-            if os.path.exists(zip_file):
-                os.remove(zip_file)
+
+            self.clear_temp_folder_and_zip_file(destination, zip_file)
 
             copytree(
                 source,
@@ -166,11 +170,8 @@ if platform != "android":
             # Sending the zip file to the phone
             subprocess.run("python send_app_to_phone.py", shell=True)
 
-            # Deleting the temp folder
-            rmtree(destination)
-
-            # Deleting the zip file
-            os.remove(zip_file)
+            # Deleting the temp folder and the zip file
+            self.clear_temp_folder_and_zip_file(destination, zip_file)
 
         def _filename_to_module(self, filename):
             rootpath = self.get_root_path()
