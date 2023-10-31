@@ -1,6 +1,8 @@
+import importlib
 import os
 import shutil
 import subprocess
+import sys
 from shutil import copytree, ignore_patterns, rmtree
 
 import trio
@@ -94,42 +96,17 @@ if platform != "android":
     from kaki.app import App
     from kivy.logger import Logger
 
+    from constants import FOLDERS_AND_FILES_TO_EXCLUDE_FROM_PHONE
+    from utils import get_auto_reloader_paths, get_kv_files_paths
+
     logging.getLogger("watchdog").setLevel(logging.ERROR)
-    from constants import (
-        FOLDERS_AND_FILES_TO_EXCLUDE_FROM_PHONE,
-        KV_FILES_FOLDERS,
-        WATCHED_FILES,
-        WATCHED_FOLDERS,
-        WATCHED_FOLDERS_RECURSIVELY,
-    )
 
     # Desktop BaseApp
     class BaseApp(App):
         DEBUG = 1
-
         should_send_app_to_phone = True
-
-        AUTORELOADER_PATHS = (
-            [
-                (os.path.join(os.getcwd(), x), {"recursive": False})
-                for x in WATCHED_FILES
-            ]
-            + [
-                (os.path.join(os.getcwd(), x), {"recursive": True})
-                for x in WATCHED_FOLDERS_RECURSIVELY
-            ]
-            + [
-                (os.path.join(os.getcwd(), x), {"recursive": False})
-                for x in WATCHED_FOLDERS
-            ]
-        )
-
-        KV_FILES = [
-            os.path.join(os.getcwd(), f"{folder}/{kv_file}")
-            for folder in KV_FILES_FOLDERS
-            for kv_file in os.listdir(folder)
-            if kv_file.endswith(".kv")
-        ]
+        AUTORELOADER_PATHS = get_auto_reloader_paths()
+        KV_FILES = get_kv_files_paths()
 
         def build_app(self):
             return self.build_and_reload()
