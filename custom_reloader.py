@@ -37,7 +37,8 @@ class Reloader(F.Screen):
                 print("Deleting main.pyc")
                 os.remove("main.pyc")
                 print("Compiling main.py")
-                subprocess.run("python -m compileall main.py", shell=True)
+                main_py_path = os.path.join(os.getcwd(), "main.py")
+                subprocess.run(f"python -m compileall {main_py_path}", shell=True)
 
     def initialize_server(self):
         self.app.nursery.start_soon(self.start_async_server)
@@ -196,7 +197,11 @@ else:
 
     class BaseApp(App):
         def build(self):
-            self.main_py_hash = self.get_hash_of_file("main.py")
+            main_py_file_path = os.path.join(os.getcwd(), "main.py")
+            if os.path.exists(main_py_file_path):
+                self.main_py_hash = self.get_hash_of_file(main_py_file_path)
+            else:
+                self.main_py_hash = None
             self.kv_files_hashes = {
                 file_name: self.get_hash_of_file(file_name)
                 for file_name in get_kv_files_paths()
@@ -246,11 +251,13 @@ else:
             """
             Hot reloading kv files on Android
             """
+            main_py_file_path = os.path.join(os.getcwd(), "main.py")
 
-            if self.get_hash_of_file("main.py") != self.main_py_hash:
-                # `main.py` changed, restarting app
-                self.restart_app_on_android()
-                return
+            if os.path.exists(main_py_file_path):
+                if self.get_hash_of_file(main_py_file_path) != self.main_py_hash:
+                    # `main.py` changed, restarting app
+                    self.restart_app_on_android()
+                    return
 
             # Reload only the kv files that changed
             current_kv_files_hashes = {
