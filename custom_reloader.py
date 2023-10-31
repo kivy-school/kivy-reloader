@@ -192,9 +192,16 @@ else:
     # Android BaseApp
     import hashlib
 
+    from utils import get_kv_files_paths
+
     class BaseApp(App):
         def build(self):
-            self.initial_hash = self.get_hash_of_file("main.py")
+            self.main_py_hash = self.get_hash_of_file("main.py")
+            self.kv_files_hashes = {
+                file_name: self.get_hash_of_file(file_name)
+                for file_name in get_kv_files_paths()
+            }
+
             return self.build_and_reload()
 
         def restart_app_on_android(self):
@@ -234,3 +241,46 @@ else:
 
             for name in set(to_remove):
                 del F.classes[name]
+
+        def reload_kv(self, *args):
+            """
+            Hot reloading kv files on Android
+            """
+
+            if self.get_hash_of_file("main.py") != self.main_py_hash:
+                # `main.py` changed, restarting app
+                self.restart_app_on_android()
+                return
+
+            # Reload only the kv files that changed
+            current_kv_files_hashes = {
+                file_name: self.get_hash_of_file(file_name)
+                for file_name in get_kv_files_paths()
+            }
+
+            if current_kv_files_hashes != self.kv_files_hashes:
+                kv_files_that_changed = [
+                    file_name
+                    for file_name in current_kv_files_hashes
+                    if current_kv_files_hashes[file_name]
+                    != self.kv_files_hashes.get(file_name, None)
+                ]
+
+                for file_name in kv_files_that_changed:
+                    Builder.unload_file(file_name)
+                    Builder.load_file(file_name)
+            self.root.clear_widgets()
+            root = self.build_and_reload(initialize_server=False)
+            self.root.add_widget(root)
+            root.do_layout()
+
+        def unload_python_files_on_android(self, screen_module_in_str):
+            if f"screens.{screen_module_in_str}" in sys.modules:
+                # Module already imported, reloading
+                filename = os.path.join(
+                    os.getcwd(), "screens", f"{screen_module_in_str}.py"
+                )
+                F.unregister_from_filename(filename)
+                module = f"screens.{screen_module_in_str}"
+                self._unregister_factory_from_module(module)
+                importlib.reload(sys.modules[module])
