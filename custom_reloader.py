@@ -70,7 +70,8 @@ class Reloader(F.Screen):
         print("Server started: receiving data from computer...")
 
         try:
-            with open("app_copy.zip", "wb") as myzip:
+            zip_file_path = os.path.join(os.getcwd(), "app_copy.zip")
+            with open(zip_file_path, "wb") as myzip:
                 async for data in data_stream:
                     print(f"Server: received data")
                     print(f"Data size: {len(data)}")
@@ -79,10 +80,19 @@ class Reloader(F.Screen):
 
             print("Finished receiving all files from computer")
             print("Unpacking app")
-            shutil.unpack_archive("app_copy.zip")
+
+            # first print the size of the zip file
+            zip_file_size = os.path.getsize(zip_file_path)
+            print(f"Zip file size: {zip_file_size}")
+
+            shutil.unpack_archive(zip_file_path)
 
             # Deleting the zip file
-            os.remove("app_copy.zip")
+            os.remove(zip_file_path)
+
+            # Recompiling main.py
+            # print("Recompiling main.py")
+            # self.recompile_main()
 
             print("App updated, restarting app for refresh")
             print("************** END SERVER **************")
