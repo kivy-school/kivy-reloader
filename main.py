@@ -1,9 +1,11 @@
 import trio
-from kivy.clock import Clock
+from kivy.clock import Clock, mainthread
 from kivy.core.window import Window
 from kivy.utils import platform
 
 from custom_reloader import BaseApp, Reloader
+
+Window.softinput_mode = "below_target"
 
 if platform != "android":
     Window.size = (406, 762)
@@ -33,7 +35,7 @@ class MainApp(BaseApp):
 
     def set_window_pos(self, *args):
         if platform != "android":
-            Window._set_window_pos(4410, 470)
+            Window._set_window_pos(3550, 470)
 
     def change_screen(self, screen_name, toolbar_title=None):
         # print(f"Changing screen to {screen_name}")
@@ -58,6 +60,17 @@ class MainApp(BaseApp):
         screen_object = eval(f"{screen_object_in_str}()")
 
         return screen_object
+
+    def on_resume(self):
+        Clock.schedule_once(self.update_viewport)
+        return True
+
+    @mainthread
+    def update_viewport(self, *args):
+        Window.update_viewport()
+
+    def on_pause(self):
+        return True
 
 
 # Start kivy app as an asynchronous task
