@@ -8,13 +8,9 @@ from shutil import copytree, ignore_patterns, rmtree
 
 import trio
 from kivy.app import App
-from kivy.core.window import Window
 from kivy.factory import Factory as F
 from kivy.lang import Builder
 from kivy.utils import platform
-
-if platform != "android":
-    Window.always_on_top = True
 
 # fmt: off
 kv = Builder.load_string("""
@@ -25,6 +21,8 @@ kv = Builder.load_string("""
 """
 )
 # fmt: on
+
+print("PLEASE APPEAR SOMETHING")
 
 
 class Reloader(F.Screen):
@@ -127,6 +125,10 @@ if platform != "android":
         def __init__(self, *args, **kwargs):
             print("Run async app")
             super().__init__(*args, **kwargs)
+            from kivy.core.window import Window
+
+            if platform != "android":
+                Window.always_on_top = True
             try:
                 trio.run(self.main)
             except Exception as e:
@@ -229,13 +231,35 @@ if platform != "android":
             return module
 
 else:
+    print("HELPPPPPPPPPPPPP")
     # Android BaseApp
     import hashlib
 
-    from utils import get_kv_files_paths
+    print("aiejiuaeuahue")
+    from .utils import get_kv_files_paths
+
+    print("aiejiuaeuahue1w312312321312321")
 
     class BaseApp(App):
+        def __init__(self, *args, **kwargs):
+            print("Run async appXXXXX")
+            super().__init__(*args, **kwargs)
+            try:
+                trio.run(self.main)
+            except Exception as e:
+                print("Error: ", e)
+
+        async def main(self) -> None:
+            async with trio.open_nursery() as nursery:
+                print("Starting the server")
+                server = self
+                server.nursery = nursery
+                await server.async_run("trio")
+
         def build(self):
+            print("Run async app asdjhbasd jkhbasdkhbj asdkjh gasdkhgads")
+            self.reloader = Reloader()
+            self.screen_manager = self.reloader.screen_manager
             main_py_file_path = os.path.join(os.getcwd(), "main.py")
             if os.path.exists(main_py_file_path):
                 self.main_py_hash = self.get_hash_of_file(main_py_file_path)
@@ -245,8 +269,12 @@ else:
                 file_name: self.get_hash_of_file(file_name)
                 for file_name in get_kv_files_paths()
             }
+            print("Run async app???????????????")
 
             return self.build_and_reload()
+
+        def build_and_reload(self):
+            pass
 
         def restart_app_on_android(self):
             print("Restarting the app on smartphone")
