@@ -22,87 +22,6 @@ kv = Builder.load_string("""
 )
 # fmt: on
 
-print("PLEASE APPEAR SOMETHING")
-
-
-class Reloader(F.Screen):
-    def __init__(self, initialize_server=True):
-        super().__init__()
-        self.app = App.get_running_app()
-        if initialize_server and platform == "android":
-            self.initialize_server()
-            self.recompile_main()
-
-    def recompile_main(self):
-        if platform == "android":
-            files = os.listdir()
-            if "main.pyc" in files and "main.py" in files:
-                print("Deleting main.pyc")
-                os.remove("main.pyc")
-                print("Compiling main.py")
-                main_py_path = os.path.join(os.getcwd(), "main.py")
-                subprocess.run(f"python -m compileall {main_py_path}", shell=True)
-
-    def initialize_server(self):
-        self.app.nursery.start_soon(self.start_async_server)
-
-    async def start_async_server(self):
-        import socket
-
-        try:
-            PORT = 8050
-            self.s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            self.s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            self.s.connect(("8.8.8.8", 80))
-
-            IP = self.s.getsockname()[0]
-            print(f"Smartphone IP: {IP}")
-
-            await trio.serve_tcp(self.data_receiver, PORT)
-        except Exception as e:
-            print(
-                "It was not possible to start the server, check if the phone is connected to the same network as the computer"
-            )
-            print(
-                "Another possible cause is that the port is already in use by another app. Check if the port is free and try again"
-            )
-            print(e)
-
-    async def data_receiver(self, data_stream):
-        print("************** SERVER **************")
-        print("Server started: receiving data from computer...")
-
-        try:
-            zip_file_path = os.path.join(os.getcwd(), "app_copy.zip")
-            with open(zip_file_path, "wb") as myzip:
-                async for data in data_stream:
-                    print(f"Server: received data")
-                    print(f"Data size: {len(data)}")
-                    print(f"Server: connection closed")
-                    myzip.write(data)
-
-            print("Finished receiving all files from computer")
-            print("Unpacking app")
-
-            # first print the size of the zip file
-            zip_file_size = os.path.getsize(zip_file_path)
-            print(f"Zip file size: {zip_file_size}")
-
-            shutil.unpack_archive(zip_file_path)
-
-            # Deleting the zip file
-            os.remove(zip_file_path)
-
-            # Recompiling main.py
-            # print("Recompiling main.py")
-            # self.recompile_main()
-
-            print("App updated, restarting app for refresh")
-            print("************** END SERVER **************")
-            self.app.reload_kv()
-        except Exception as e:
-            print(f"Server: crashed: {e!r}")
-
 
 if platform != "android":
     import logging
@@ -123,7 +42,6 @@ if platform != "android":
         KV_FILES = get_kv_files_paths()
 
         def __init__(self, *args, **kwargs):
-            print("Run async app")
             super().__init__(*args, **kwargs)
             from kivy.core.window import Window
 
@@ -142,9 +60,7 @@ if platform != "android":
                 await server.async_run("trio")
 
         def build_app(self):
-            self.reloader = Reloader(True)
-            self.screen_manager = self.reloader.screen_manager
-            return self.build_and_reload() or self.reloader
+            return self.build_and_reload()
 
         def build_and_reload(self):
             pass
@@ -231,18 +147,18 @@ if platform != "android":
             return module
 
 else:
-    print("HELPPPPPPPPPPPPP")
     # Android BaseApp
     import hashlib
 
-    print("aiejiuaeuahue")
-    from .utils import get_kv_files_paths
-
-    print("aiejiuaeuahue1w312312321312321")
+    from .utils import (
+        WATCHED_FILES,
+        WATCHED_FOLDERS,
+        WATCHED_FOLDERS_RECURSIVELY,
+        get_kv_files_paths,
+    )
 
     class BaseApp(App):
         def __init__(self, *args, **kwargs):
-            print("Run async appXXXXX")
             super().__init__(*args, **kwargs)
             try:
                 trio.run(self.main)
@@ -257,9 +173,6 @@ else:
                 await server.async_run("trio")
 
         def build(self):
-            print("Run async app asdjhbasd jkhbasdkhbj asdkjh gasdkhgads")
-            self.reloader = Reloader()
-            self.screen_manager = self.reloader.screen_manager
             main_py_file_path = os.path.join(os.getcwd(), "main.py")
             if os.path.exists(main_py_file_path):
                 self.main_py_hash = self.get_hash_of_file(main_py_file_path)
@@ -269,7 +182,8 @@ else:
                 file_name: self.get_hash_of_file(file_name)
                 for file_name in get_kv_files_paths()
             }
-            print("Run async app???????????????")
+            self.initialize_server()
+            self.recompile_main()
 
             return self.build_and_reload()
 
@@ -343,18 +257,114 @@ else:
                 for file_name in kv_files_that_changed:
                     Builder.unload_file(file_name)
                     Builder.load_file(file_name)
+
             self.root.clear_widgets()
             root = self.build_and_reload(initialize_server=False)
-            self.root.add_widget(root)
             root.do_layout()
+            self.root.add_widget(root)
 
-        def unload_python_files_on_android(self, screen_module_in_str):
-            if f"screens.{screen_module_in_str}" in sys.modules:
-                # Module already imported, reloading
-                filename = os.path.join(
-                    os.getcwd(), "screens", f"{screen_module_in_str}.py"
-                )
-                F.unregister_from_filename(filename)
-                module = f"screens.{screen_module_in_str}"
+        def unload_python_file(self, filename, module):
+            if module in sys.modules:
+                full_path = os.path.join(os.getcwd(), filename)
+                F.unregister_from_filename(full_path)
                 self._unregister_factory_from_module(module)
                 importlib.reload(sys.modules[module])
+
+        def unload_python_files_on_android(self):
+            for folder in WATCHED_FOLDERS_RECURSIVELY:
+                for root, _, files in os.walk(folder):
+                    for file in files:
+                        if file.endswith(".py"):
+                            filename = os.path.join(root, file)
+                            module = filename.replace("/", ".")[:-3]
+                            self.unload_python_file(filename, module)
+
+            for folder in WATCHED_FOLDERS:
+                for file in os.listdir(folder):
+                    if file.endswith(".py"):
+                        filename = os.path.join(folder, file)
+                        module = filename.replace("/", ".")[:-3]
+                        self.unload_python_file(filename, module)
+
+            for file in WATCHED_FILES:
+                filename = os.path.join(os.getcwd(), file)
+                module = filename.replace("/", ".")[:-3]
+                self.unload_python_file(filename, module)
+
+        def recompile_main(self):
+            if platform == "android":
+                files = os.listdir()
+                if "main.pyc" in files and "main.py" in files:
+                    print("Deleting main.pyc")
+                    os.remove("main.pyc")
+                    print("Compiling main.py")
+                    main_py_path = os.path.join(os.getcwd(), "main.py")
+                    subprocess.run(f"python -m compileall {main_py_path}", shell=True)
+
+        def initialize_server(self):
+            self.nursery.start_soon(self.start_async_server)
+
+        async def start_async_server(self):
+            import socket
+
+            try:
+                PORT = 8050
+                self.s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                self.s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                self.s.connect(("8.8.8.8", 80))
+
+                IP = self.s.getsockname()[0]
+                print(f"Smartphone IP: {IP}")
+
+                await trio.serve_tcp(self.data_receiver, PORT)
+            except Exception as e:
+                print(
+                    "It was not possible to start the server, check if the phone is connected to the same network as the computer"
+                )
+                print(
+                    "Another possible cause is that the port is already in use by another app. Check if the port is free and try again"
+                )
+                print(e)
+
+        async def data_receiver(self, data_stream):
+            print("************** SERVER **************")
+            print("Server started: receiving data from computer...")
+
+            try:
+                zip_file_path = os.path.join(os.getcwd(), "app_copy.zip")
+                with open(zip_file_path, "wb") as myzip:
+                    async for data in data_stream:
+                        print(f"Server: received data")
+                        print(f"Data size: {len(data)}")
+                        print(f"Server: connection closed")
+                        myzip.write(data)
+
+                print("Finished receiving all files from computer")
+                print("Unpacking app")
+
+                # first print the size of the zip file
+                zip_file_size = os.path.getsize(zip_file_path)
+                print(f"Zip file size: {zip_file_size}")
+
+                shutil.unpack_archive(zip_file_path)
+
+                # Deleting the zip file
+                os.remove(zip_file_path)
+
+                # Recompiling main.py
+                # print("Recompiling main.py")
+                # self.recompile_main()
+
+                print("App updated, restarting app for refresh")
+                print("************** END SERVER **************")
+                self.unload_python_files_on_android()
+                self.reload_kv()
+            except Exception as e:
+                import traceback
+
+                print(f"Server: crashed: {e!r}")
+
+                print(
+                    "full exception",
+                    "".join(traceback.format_exception(*sys.exc_info())),
+                )
