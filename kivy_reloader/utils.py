@@ -49,7 +49,7 @@ def get_auto_reloader_paths():
     based on the constants.py file
     """
     return (
-        [(os.path.join(base_dir, x), {"recursive": False}) for x in WATCHED_FILES]
+        [(os.path.join(base_dir, x), {"recursive": True}) for x in WATCHED_FILES]
         + [
             (os.path.join(base_dir, x), {"recursive": True})
             for x in WATCHED_FOLDERS_RECURSIVELY
