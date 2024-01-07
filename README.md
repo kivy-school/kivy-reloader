@@ -3,6 +3,20 @@ Hot reload your Kivy app on multiple phones and computer in real-time.
 
 This tool allows you to instantly update your Kivy app on multiple devices simultaneously by pressing `Ctrl+S`, saving your precious development time and effort. 
 
+## How to use 
+
+```python
+from kivy_reloader import App
+
+class MainApp(App):
+    def build_and_reload(self, initialize_server=False, *args):
+        from screens.main_screen import MainScreen
+
+        return MainScreen(name="Main Screen")
+
+MainApp()
+```
+
 https://github.com/kivy-school/kivy-reloader/assets/23220309/f1459d7e-ca53-4ed6-b4d1-980cdae4ce16
 
 # Prerequisites
