@@ -6,6 +6,9 @@ authors = ["filipemarch <filipe.marchesini@gmail.com>"]
 readme = "README.md"
 packages = [{include = "kivy_reloader"}]
 
+[tool.poetry.urls]
+"Homepage" = "https://github.com/kivy-school/kivy-reloader"
+
 [tool.poetry.dependencies]
 python = "^3.10"
 cython = "^0.29.34"
