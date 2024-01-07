@@ -68,7 +68,3 @@ FOLDERS_AND_FILES_TO_EXCLUDE_FROM_PHONE = [
     ".gitignore",
     "README.md",
 ]
-
-assert (
-    len(WATCHED_FILES) + len(WATCHED_FOLDERS) + len(WATCHED_FOLDERS_RECURSIVELY) > 0
-), "No files or folders to watch"

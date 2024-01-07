@@ -11,7 +11,7 @@ python = "^3.10"
 cython = "^0.29.34"
 kaki = "^0.1.8"
 trio = "^0.22.0"
-buildozer = {url = "https://github.com/kivy/buildozer/archive/master.zip"}
+buildozer = "1.5.0"
 plyer = "^2.1.0"
 
 [tool.poetry.group.dev.dependencies]

@@ -8,7 +8,7 @@ from colorama import Fore, init
 from icecream import ic
 from kivy.utils import platform
 
-from constants import PHONE_IPS, PORT, STREAM_USING
+from .constants import PHONE_IPS, PORT, STREAM_USING
 
 if platform in ["linux", "macosx"]:
     from plyer import notification
@@ -142,7 +142,11 @@ class Compilation:
                 os.system(f"{command} -e")
 
 
-if __name__ == "__main__":
+def start():
     print(f"{yellow} Choose an option:")
     option = input("1 - Compile, debug and livestream\n2 - Debug and livestream\n")
     Compilation.start(option)
+
+
+if __name__ == "__main__":
+    start()
