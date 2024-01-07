@@ -30,15 +30,19 @@ if platform != "android":
     from kivy.logger import Logger
 
     from .constants import FOLDERS_AND_FILES_TO_EXCLUDE_FROM_PHONE
-    from .utils import get_auto_reloader_paths, get_kv_files_paths
+    from .utils import (
+        HOT_RELOAD_ON_PHONE,
+        get_auto_reloader_paths,
+        get_kv_files_paths,
+    )
 
     logging.getLogger("watchdog").setLevel(logging.ERROR)
 
     # Desktop BaseApp
     class BaseApp(App):
         DEBUG = 1
-        should_send_app_to_phone = True
         AUTORELOADER_PATHS = get_auto_reloader_paths()
+        HOT_RELOAD_ON_PHONE = HOT_RELOAD_ON_PHONE
         KV_FILES = get_kv_files_paths()
 
         def __init__(self, *args, **kwargs):
@@ -79,7 +83,7 @@ if platform != "android":
                 self.approot = self.build_app()
                 self.set_widget(self.approot)
                 self.apply_state(self.state)
-                if self.should_send_app_to_phone:
+                if self.HOT_RELOAD_ON_PHONE:
                     self.send_app_to_phone()
             except Exception as e:
                 import traceback
