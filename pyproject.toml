@@ -16,10 +16,10 @@ kaki = "^0.1.8"
 trio = "^0.22.0"
 buildozer = "1.5.0"
 plyer = "^2.1.0"
+icecream = "^2.1.3"
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.3.0"
-icecream = "^2.1.3"
 isort = "^5.12.0"
 taskipy = "^1.10.3"
 
