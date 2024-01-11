@@ -20,13 +20,13 @@ WATCHED_FILES = ["main.py"]
 # Add the folders you want to watch recursively here, i.e., if **ANY FILE** inside them changes, the app will be reloaded
 WATCHED_FOLDERS_RECURSIVELY = []
 
-# Watched folders but not recursively, i.e., **ANY FILE** inside the first level of the folder
-WATCHED_FOLDERS = []
-
 # Add the folders where you have your .kv files here
 # If you don't put them here, the .kv files won't be reloaded
 # this is recursive, i.e., it will watch all folders inside the folders you put here
 WATCHED_KV_FOLDERS_RECURSIVELY = []
+
+# Watched folders but not recursively, i.e., **ANY FILE** inside the first level of the folder
+WATCHED_FOLDERS = []
 
 # Add the folders where you have your .kv files here
 # If you don't put them here, the .kv files won't be reloaded
