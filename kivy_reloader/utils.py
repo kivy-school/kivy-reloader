@@ -41,6 +41,9 @@ if "settings.py" in files_in_base_dir:
         "STAY_AWAKE",
         "TURN_SCREEN_OFF",
         "ALWAYS_ON_TOP",
+        "WINDOW_X",
+        "WINDOW_Y",
+        "WINDOW_WIDTH",
     ]
     for constant in constants_to_import:
         try:
@@ -110,6 +113,9 @@ else:
         WATCHED_KV_FOLDERS,
         WATCHED_KV_FOLDERS_RECURSIVELY,
         WINDOW_TITLE,
+        WINDOW_WIDTH,
+        WINDOW_X,
+        WINDOW_Y,
     )
 
 if not "buildozer.spec" in files_in_base_dir:
