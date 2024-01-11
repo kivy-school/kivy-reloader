@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "kivy-reloader"
-version = "0.1.5"
+version = "0.1.6"
 description = ""
 authors = ["filipemarch <filipe.marchesini@gmail.com>"]
 readme = "README.md"
