@@ -10,6 +10,7 @@ import trio
 from kivy.app import App
 from kivy.factory import Factory as F
 from kivy.lang import Builder
+from kivy.logger import Logger
 from kivy.utils import platform
 
 # fmt: off
@@ -27,7 +28,6 @@ if platform != "android":
     import logging
 
     from kaki.app import App
-    from kivy.logger import Logger
 
     from .constants import FOLDERS_AND_FILES_TO_EXCLUDE_FROM_PHONE
     from .utils import (
@@ -58,7 +58,7 @@ if platform != "android":
 
         async def main(self) -> None:
             async with trio.open_nursery() as nursery:
-                print("Starting the server")
+                Logger.info("Starting Async Kivy app - Kivy Reloader")
                 server = self
                 server.nursery = nursery
                 await server.async_run("trio")
@@ -171,7 +171,7 @@ else:
 
         async def main(self) -> None:
             async with trio.open_nursery() as nursery:
-                print("Starting the server")
+                Logger.info("Starting Async Kivy app - Kivy Reloader")
                 server = self
                 server.nursery = nursery
                 await server.async_run("trio")
@@ -263,7 +263,7 @@ else:
                     Builder.load_file(file_name)
 
             self.root.clear_widgets()
-            root = self.build_and_reload(initialize_server=False)
+            root = self.build_and_reload()
             root.do_layout()
             self.root.add_widget(root)
 
