@@ -91,8 +91,17 @@ Clone this project, open the folder on terminal and type:
 
 1. `poetry shell`
 2. `poetry install`
-3. Update `settings.py` with your phone IP, and set **HOT_RELOAD_ON_PHONE** to True.
+3. `python main.py`
+4. `python compile.py` and press 1, enter.
+5. Wait the compilation to finish on your phone.
+6. Enjoy the Kivy Reloader!
+
+### I am too impatient, I want to see it working RIGHT NOW!
+
+Clone this project, open the folder on terminal and type:
+
+1. `poetry shell`
+2. `poetry install`
+3. `adb install bin/kivy_super_reloader-0.1-armeabi-v7a_arm64-v8a-debug.apk`
 4. `python main.py`
-5. `python compile.py` and press 1, enter.
-6. Wait the compilation to finish on your phone.
-7. Enjoy the Kivy Reloader!
+5. Keep calm and enjoy the Kivy Reloader! 😄
