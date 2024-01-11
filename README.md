@@ -1,4 +1,4 @@
-# kivy-reloader
+# Kivy Reloader
 
 Hot reload your Kivy app on multiple phones and computer in real-time.
 
@@ -38,7 +38,7 @@ I recommend you to use `poetry` to install `kivy-reloader`.
 
 `pip install kivy-reloader`
 
---------------------------------------------------
+---
 
 # Configure the constants
 
@@ -51,11 +51,12 @@ Just press enter. This will create a file called `settings.py` on your project f
 ![image](https://github.com/kivy-school/kivy-reloader/assets/23220309/adad51b4-c005-448f-a1b6-930abea2e0e5)
 
 Every line has an explanation above. The most important constants on this file are:
-1) **PHONE_IPS**: Put the IP of your phone here. You can find the IP of your Android phone on: Settings > About phone > Status > IP Address.
-![image](https://github.com/kivy-school/kivy-reloader/assets/23220309/afd354fc-1894-4d99-b09d-8ef11ab4d763)
-2) **HOT_RELOAD_ON_PHONE**: Set it to True to hot heload on your phone when you press `Ctrl+S`
-3) **WATCHED_FOLDERS_RECURSIVELY**: This is a list of folder names, for example `["screens", "components"]. If _any_ file inside these folders change, your Kivy app will reload.
-4) **WATCHED_KV_FOLDERS_RECURSIVELY**: This is a list of folder names, for example `["screens", "components"]`. This is where the Reloader will find your `.kv` files to reload them every time you press `Ctrl+S`.
+
+1. **PHONE_IPS**: Put the IP of your phone here. You can find the IP of your Android phone on: Settings > About phone > Status > IP Address.
+   ![image](https://github.com/kivy-school/kivy-reloader/assets/23220309/afd354fc-1894-4d99-b09d-8ef11ab4d763)
+2. **HOT_RELOAD_ON_PHONE**: Set it to True to hot heload on your phone when you press `Ctrl+S`
+3. **WATCHED_FOLDERS_RECURSIVELY**: This is a list of folder names, for example `["screens", "components"]. If _any_ file inside these folders change, your Kivy app will reload.
+4. **WATCHED_KV_FOLDERS_RECURSIVELY**: This is a list of folder names, for example `["screens", "components"]`. This is where the Reloader will find your `.kv` files to reload them every time you press `Ctrl+S`.
 
 Open the file `settings.py` and explore the other constants.
 
@@ -65,22 +66,24 @@ This message will also appear for you on the first time you use Kivy Reloader.
 
 Just press enter. This will create a file called `buildozer.spec` on your project folder.
 
---------------------------------------------------
+---
 
 # How to use:
 
 1. Connect your phone to the computer using a USB cable.
 2. Create a script `compile.py` with the following code:
+
 ```python
 from kivy_reloader import compile_app
 
 compile_app.start()
 ```
+
 3. Run on the terminal `python compile.py`, type `1` and press enter. Buildozer will compile the app and deploy on your phone.
    ![image](https://github.com/kivy-school/kivy-reloader/assets/23220309/81f6689e-e8bb-4fe5-a91c-dd88f187616f)
 4. Once the app is on your phone, run `python main.py` and the hot reload will be already working. Just press `Ctrl+S` in any file inside `screens` folder or `main.py` and your app will be updated on computer and phone at the same time.
 
---------------------------------------------------
+---
 
 ### Do you want to test directly from this repo?
 
