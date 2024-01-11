@@ -1,14 +1,7 @@
 import os
 import sys
 
-from colorama import Fore, init
 from kivy.lang import Builder
-
-yellow = Fore.YELLOW
-green = Fore.GREEN
-red = Fore.RED
-
-init(autoreset=True)
 
 script_path = os.path.abspath(sys.argv[0])
 base_dir = (
@@ -127,6 +120,14 @@ def get_kv_files_paths():
 from kivy.utils import platform
 
 if platform not in ["android", "ios"]:
+    from colorama import Fore, init
+
+    yellow = Fore.YELLOW
+    green = Fore.GREEN
+    red = Fore.RED
+
+    init(autoreset=True)
+
     current_file_path = os.path.abspath(__file__)
     current_file_dir = os.path.dirname(current_file_path)
 
