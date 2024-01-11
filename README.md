@@ -55,7 +55,7 @@ Every line has an explanation above. The most important constants on this file a
 1. **PHONE_IPS**: Put the IP of your phone here. You can find the IP of your Android phone on: Settings > About phone > Status > IP Address.
    ![image](https://github.com/kivy-school/kivy-reloader/assets/23220309/afd354fc-1894-4d99-b09d-8ef11ab4d763)
 2. **HOT_RELOAD_ON_PHONE**: Set it to True to hot heload on your phone when you press `Ctrl+S`
-3. **WATCHED_FOLDERS_RECURSIVELY**: This is a list of folder names, for example `["screens", "components"]. If _any_ file inside these folders change, your Kivy app will reload.
+3. **WATCHED_FOLDERS_RECURSIVELY**: This is a list of folder names, for example `["screens", "components"]`. If _any_ file inside these folders change, your Kivy app will reload.
 4. **WATCHED_KV_FOLDERS_RECURSIVELY**: This is a list of folder names, for example `["screens", "components"]`. This is where the Reloader will find your `.kv` files to reload them every time you press `Ctrl+S`.
 
 Open the file `settings.py` and explore the other constants.
