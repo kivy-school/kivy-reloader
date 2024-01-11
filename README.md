@@ -96,6 +96,8 @@ Clone this project, open the folder on terminal and type:
 5. Wait the compilation to finish on your phone.
 6. Enjoy the Kivy Reloader!
 
+---
+
 ### I am too impatient, I want to see it working RIGHT NOW!
 
 Clone this project, open the folder on terminal and type:
