@@ -13,6 +13,11 @@ from kivy.lang import Builder
 from kivy.logger import Logger
 from kivy.utils import platform
 
+
+class Reloader(F.Screen):
+    pass
+
+
 # fmt: off
 kv = Builder.load_string("""
 <Reloader>:
@@ -22,7 +27,6 @@ kv = Builder.load_string("""
 """
 )
 # fmt: on
-
 
 if platform != "android":
     import logging
