@@ -14,6 +14,7 @@ from .utils import (
     ALWAYS_ON_TOP,
     PHONE_IPS,
     PORT,
+    SERVICE_NAMES,
     SHOW_TOUCHES,
     STAY_AWAKE,
     STREAM_USING,
@@ -135,7 +136,13 @@ def run_logcat(IP=None, *args):
     """
     Runs logcat for debugging.
     """
-    logcat_command = "adb logcat | grep 'I python'"
+    watch = "'I python"
+    for service in SERVICE_NAMES:
+        watch += f"\|{service}"
+    else:
+        watch += "'"
+
+    logcat_command = f"adb logcat | grep {watch}"
 
     if IP:
         subprocess.run(["adb", "connect", f"{IP}"])
