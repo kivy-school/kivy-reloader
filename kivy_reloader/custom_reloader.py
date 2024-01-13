@@ -159,6 +159,8 @@ else:
     import hashlib
 
     from .utils import (
+        SERVICE_FILES,
+        SERVICE_NAMES,
         WATCHED_FILES,
         WATCHED_FOLDERS,
         WATCHED_FOLDERS_RECURSIVELY,
@@ -189,6 +191,10 @@ else:
             self.kv_files_hashes = {
                 file_name: self.get_hash_of_file(file_name)
                 for file_name in get_kv_files_paths()
+            }
+            self.service_files_hashes = {
+                file_name: self.get_hash_of_file(file_name)
+                for file_name in SERVICE_FILES
             }
             self.initialize_server()
             self.recompile_main()
@@ -240,7 +246,40 @@ else:
             """
             Hot reloading kv files on Android
             """
+            print("Reloading kv files")
             main_py_file_path = os.path.join(os.getcwd(), "main.py")
+
+            # reload the service files
+            should_restart_app_on_android = False
+            for service_name, file_name in zip(SERVICE_NAMES, SERVICE_FILES):
+                if (
+                    self.get_hash_of_file(file_name)
+                    != self.service_files_hashes[file_name]
+                ):
+                    print(f"Service {service_name} has been updated")
+                    if os.path.exists(f"{file_name}c"):
+                        # remove the compiled service file
+                        os.remove(f"{file_name}c")
+
+                    # recopiling the service file
+                    subprocess.run(f"python -m compileall {file_name}", shell=True)
+
+                    # stop the service
+                    print(f"Stopping service {service_name}")
+                    from jnius import autoclass
+
+                    mActivity = autoclass("org.kivy.android.PythonActivity").mActivity
+                    context = mActivity.getApplicationContext()
+                    SERVICE_NAME = (
+                        str(context.getPackageName()) + ".Service" + service_name
+                    )
+                    service = autoclass(SERVICE_NAME)
+                    service.stop(mActivity)
+                    should_restart_app_on_android = True
+
+            if should_restart_app_on_android:
+                self.restart_app_on_android()
+                return
 
             if os.path.exists(main_py_file_path):
                 if self.get_hash_of_file(main_py_file_path) != self.main_py_hash:
