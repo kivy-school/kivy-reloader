@@ -33,6 +33,14 @@ WATCHED_FOLDERS = []
 # this is not recursive, i.e., it will only watch the first level of the folders you put here
 WATCHED_KV_FOLDERS = []
 
+# If you want to logcat services, put here the name of each service
+# For example, ["MyService", "MyOtherService"]
+SERVICE_NAMES = []
+
+# If you want to hotreload your services, put the name of the service files here
+# For example, ["service.py", "service2.py"]
+SERVICE_FILES = []
+
 # If you want to exclude some files or folders, from being copied to the phone, add them here
 FOLDERS_AND_FILES_TO_EXCLUDE_FROM_PHONE = [
     "*.pyc",
