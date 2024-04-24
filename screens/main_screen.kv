@@ -1,8 +1,28 @@
 <MainScreen>:
     name: 'Main Screen'
     app: app
+    slider: slider
 
     BoxLayout:
         orientation: 'vertical'
+
         Button:
-            text: 'Welcome to Kivy Reloader!'
+            text: 'Start service'
+            on_release: root.start_service()
+        Button:
+            text: 'Stop service'
+            on_release: root.stop_service()
+        Button:
+            text: 'Start OSC Server/Client'
+            on_release: root.start_osc()
+        Button:
+            text: 'Play Music'
+            on_release: root.play_music()
+        Slider:
+            id: slider
+            min: 0
+            max: 100
+            value: 0
+        Label:
+            text: root.music_lyrics
+            text_size: root.width - dp(20), root.height/6
