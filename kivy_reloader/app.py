@@ -1,17 +1,14 @@
-import importlib
-import inspect
 import os
-import shutil
 import subprocess
-import sys
-from shutil import copytree, ignore_patterns, rmtree
 
 import trio
-from kivy.app import App
 from kivy.factory import Factory as F
 from kivy.lang import Builder
 from kivy.logger import Logger
 from kivy.utils import platform
+
+from .config import config
+from .utils import get_kv_files_paths
 
 
 class Reloader(F.Screen):
@@ -29,45 +26,44 @@ kv = Builder.load_string("""
 # fmt: on
 
 if platform != "android":
+    import inspect
     import logging
+    from shutil import copytree, ignore_patterns, rmtree
 
     from kaki.app import App
+    from kivy.core.window import Window
 
-    from .constants import FOLDERS_AND_FILES_TO_EXCLUDE_FROM_PHONE
-    from .utils import (
-        HOT_RELOAD_ON_PHONE,
-        get_auto_reloader_paths,
-        get_kv_files_paths,
-    )
+    from .utils import get_auto_reloader_paths
 
+    Window.always_on_top = True
     logging.getLogger("watchdog").setLevel(logging.ERROR)
 
-    # Desktop BaseApp
-    class BaseApp(App):
-        DEBUG = 1
-        AUTORELOADER_PATHS = get_auto_reloader_paths()
-        HOT_RELOAD_ON_PHONE = HOT_RELOAD_ON_PHONE
-        KV_FILES = get_kv_files_paths()
+    # from .constants import FOLDERS_AND_FILES_TO_EXCLUDE_FROM_PHONE
 
+    # Desktop BaseApp
+    class App(App):
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
-            from kivy.core.window import Window
 
-            if platform != "android":
-                Window.always_on_top = True
-            try:
-                trio.run(self.main)
-            except Exception as e:
-                print("Error: ", e)
+            self.DEBUG = 1
+            self.AUTORELOADER_PATHS: list = get_auto_reloader_paths()
+            self.HOT_RELOAD_ON_PHONE: bool = config.HOT_RELOAD_ON_PHONE
+            self.KV_FILES: list = get_kv_files_paths()
 
         async def main(self) -> None:
+            """
+            Starts the async Kivy app
+            """
             async with trio.open_nursery() as nursery:
-                Logger.info("Starting Async Kivy app - Kivy Reloader")
+                Logger.info("Reloader: Starting Async Kivy app")
                 server = self
                 server.nursery = nursery
                 await server.async_run("trio")
 
         def build_app(self):
+            """
+            Used internally by Kaki
+            """
             return self.build_and_reload()
 
         def build_and_reload(self):
@@ -115,7 +111,7 @@ if platform != "android":
                 source,
                 destination,
                 ignore=ignore_patterns(
-                    *FOLDERS_AND_FILES_TO_EXCLUDE_FROM_PHONE,
+                    *config.FOLDERS_AND_FILES_TO_EXCLUDE_FROM_PHONE,
                 ),
             )
 
@@ -139,7 +135,7 @@ if platform != "android":
             # Deleting the temp folder and the zip file
             self.clear_temp_folder_and_zip_file(destination, zip_file)
 
-        def _filename_to_module(self, filename):
+        def _filename_to_module(self, filename: str):
             rootpath = self.get_root_path()
             if filename.startswith(rootpath):
                 filename = filename[len(rootpath) :]
@@ -157,24 +153,13 @@ if platform != "android":
 else:
     # Android BaseApp
     import hashlib
+    import importlib
+    import shutil
+    import sys
 
-    from .utils import (
-        SERVICE_FILES,
-        SERVICE_NAMES,
-        WATCHED_FILES,
-        WATCHED_FOLDERS,
-        WATCHED_FOLDERS_RECURSIVELY,
-        get_kv_files_paths,
-    )
+    from kivy.app import App
 
-    class BaseApp(App):
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
-            try:
-                trio.run(self.main)
-            except Exception as e:
-                print("Error: ", e)
-
+    class App(App):
         async def main(self) -> None:
             async with trio.open_nursery() as nursery:
                 Logger.info("Starting Async Kivy app - Kivy Reloader")
@@ -194,7 +179,7 @@ else:
             }
             self.service_files_hashes = {
                 file_name: self.get_hash_of_file(file_name)
-                for file_name in SERVICE_FILES
+                for file_name in config.SERVICE_FILES
             }
             self.initialize_server()
             self.recompile_main()
@@ -205,7 +190,7 @@ else:
             pass
 
         def restart_app_on_android(self):
-            print("Restarting the app on smartphone")
+            Logger.info("Restarting the app on smartphone")
 
             from jnius import autoclass
 
@@ -222,9 +207,8 @@ else:
 
         def get_hash_of_file(self, file_name):
             """
-            Returns the hash of the file
+            Returns the hash of the file using md5 hash
             """
-
             with open(file_name, "rb") as f:
                 return hashlib.md5(f.read()).hexdigest()
 
@@ -246,17 +230,19 @@ else:
             """
             Hot reloading kv files on Android
             """
-            print("Reloading kv files")
+            Logger.info("Reloading kv files")
             main_py_file_path = os.path.join(os.getcwd(), "main.py")
 
             # reload the service files
             should_restart_app_on_android = False
-            for service_name, file_name in zip(SERVICE_NAMES, SERVICE_FILES):
+            for service_name, file_name in zip(
+                config.SERVICE_NAMES, config.SERVICE_FILES
+            ):
                 if (
                     self.get_hash_of_file(file_name)
                     != self.service_files_hashes[file_name]
                 ):
-                    print(f"Service {service_name} has been updated")
+                    Logger.info(f"Service {service_name} has been updated")
                     if os.path.exists(f"{file_name}c"):
                         # remove the compiled service file
                         os.remove(f"{file_name}c")
@@ -265,7 +251,7 @@ else:
                     subprocess.run(f"python -m compileall {file_name}", shell=True)
 
                     # stop the service
-                    print(f"Stopping service {service_name}")
+                    Logger.info(f"Stopping service {service_name}")
                     from jnius import autoclass
 
                     mActivity = autoclass("org.kivy.android.PythonActivity").mActivity
@@ -318,7 +304,7 @@ else:
                 importlib.reload(sys.modules[module])
 
         def unload_python_files_on_android(self):
-            for folder in WATCHED_FOLDERS_RECURSIVELY:
+            for folder in config.WATCHED_FOLDERS_RECURSIVELY:
                 for root, _, files in os.walk(folder):
                     for file in files:
                         if file.endswith(".py"):
@@ -326,14 +312,14 @@ else:
                             module = filename.replace("/", ".")[:-3]
                             self.unload_python_file(filename, module)
 
-            for folder in WATCHED_FOLDERS:
+            for folder in config.WATCHED_FOLDERS:
                 for file in os.listdir(folder):
                     if file.endswith(".py"):
                         filename = os.path.join(folder, file)
                         module = filename.replace("/", ".")[:-3]
                         self.unload_python_file(filename, module)
 
-            for file in WATCHED_FILES:
+            for file in config.WATCHED_FILES:
                 filename = os.path.join(os.getcwd(), file)
                 module = filename.replace("/", ".")[:-3]
                 self.unload_python_file(filename, module)
@@ -342,16 +328,23 @@ else:
             if platform == "android":
                 files = os.listdir()
                 if "main.pyc" in files and "main.py" in files:
-                    print("Deleting main.pyc")
+                    Logger.info("Deleting main.pyc")
                     os.remove("main.pyc")
-                    print("Compiling main.py")
+                    Logger.info("Compiling main.py")
                     main_py_path = os.path.join(os.getcwd(), "main.py")
                     subprocess.run(f"python -m compileall {main_py_path}", shell=True)
 
         def initialize_server(self):
+            """
+            Starts the server
+            """
             self.nursery.start_soon(self.start_async_server)
 
         async def start_async_server(self):
+            """
+            The android server keeps listening
+            expecting the computer to send data to it
+            """
             import socket
 
             try:
@@ -361,37 +354,43 @@ else:
                 self.s.connect(("8.8.8.8", 80))
 
                 IP = self.s.getsockname()[0]
-                print(f"Smartphone IP: {IP}")
+                Logger.info(f"Smartphone IP: {IP}")
 
                 await trio.serve_tcp(self.data_receiver, PORT)
             except Exception as e:
-                print(
+                Logger.info(
                     "It was not possible to start the server, check if the phone is connected to the same network as the computer"
                 )
-                print(
+                Logger.info(
                     "Another possible cause is that the port is already in use by another app. Check if the port is free and try again"
                 )
-                print(e)
+                Logger.info(e)
 
         async def data_receiver(self, data_stream):
-            print("************** SERVER **************")
-            print("Server started: receiving data from computer...")
+            """
+            When data is received from the computer
+            it is saved in a zip file
+            and then unpacked
+            and the app is reloaded
+            """
+            Logger.info("Reloader: ************** SERVER **************")
+            Logger.info("Reloader: Server started: receiving data from computer...")
 
             try:
                 zip_file_path = os.path.join(os.getcwd(), "app_copy.zip")
                 with open(zip_file_path, "wb") as myzip:
                     async for data in data_stream:
-                        print(f"Server: received data")
-                        print(f"Data size: {len(data)}")
-                        print(f"Server: connection closed")
+                        Logger.info("Reloader: Server: received data")
+                        Logger.info(f"Reloader: Data size: {len(data)}")
+                        Logger.info("Reloader: Server: connection closed")
                         myzip.write(data)
 
-                print("Finished receiving all files from computer")
-                print("Unpacking app")
+                Logger.info("Reloader: Finished receiving all files from computer")
+                Logger.info("Reloader: Unpacking app")
 
                 # first print the size of the zip file
                 zip_file_size = os.path.getsize(zip_file_path)
-                print(f"Zip file size: {zip_file_size}")
+                Logger.info(f"Reloader: Zip file size: {zip_file_size}")
 
                 shutil.unpack_archive(zip_file_path)
 
@@ -399,19 +398,18 @@ else:
                 os.remove(zip_file_path)
 
                 # Recompiling main.py
-                # print("Recompiling main.py")
+                # Logger.info("Recompiling main.py")
                 # self.recompile_main()
 
-                print("App updated, restarting app for refresh")
-                print("************** END SERVER **************")
+                Logger.info("Reloader: App updated, restarting app for refresh")
+                Logger.info("Reloader: ************** END SERVER **************")
                 self.unload_python_files_on_android()
                 self.reload_kv()
             except Exception as e:
                 import traceback
 
-                print(f"Server: crashed: {e!r}")
-
-                print(
-                    "full exception",
+                Logger.info(f"Reloader: Server crashed: {e!r}")
+                Logger.info(
+                    "Full exception:",
                     "".join(traceback.format_exception(*sys.exc_info())),
                 )
