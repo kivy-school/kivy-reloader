@@ -4,7 +4,7 @@
 title = Kivy Reloader
 
 # (str) Package name
-package.name = kivy_super_reloader
+package.name = kivy_reloader
 
 # (str) Package domain (needed for android/ios packaging)
 package.domain = org.example
