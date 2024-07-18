@@ -1,11 +1,5 @@
-from kivy_reloader import App
+import trio
 
+from beautifulapp import app
 
-class MainApp(App):
-    def build_and_reload(self):
-        from screens.main_screen import MainScreen
-
-        return MainScreen(name="Main Screen")
-
-
-MainApp()
+trio.run(app.main)
