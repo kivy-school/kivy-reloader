@@ -1,7 +1,6 @@
 .buildozer
 .DS_Store
 .dmypy.json
-.dmypy.json
 .env
 .mypy_cache
 .python-version
@@ -12,3 +11,4 @@ __pycache__
 dmypy.json
 temp
 dist
+poetry.lock
