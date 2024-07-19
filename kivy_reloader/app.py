@@ -31,6 +31,7 @@ if platform != "android":
     from shutil import copytree, ignore_patterns, rmtree
 
     from kaki.app import App
+    from kivy.base import async_runTouchApp
     from kivy.core.window import Window
 
     from .utils import get_auto_reloader_paths
@@ -49,6 +50,16 @@ if platform != "android":
             self.AUTORELOADER_PATHS: list = get_auto_reloader_paths()
             self.HOT_RELOAD_ON_PHONE: bool = config.HOT_RELOAD_ON_PHONE
             self.KV_FILES: list = get_kv_files_paths()
+
+            super().build()
+
+        async def async_run(self, async_lib="trio"):
+            async with trio.open_nursery() as nursery:
+                Logger.info("Reloader: Starting Async Kivy app")
+                self.nursery = nursery
+                self._run_prepare()
+                await async_runTouchApp(async_lib=async_lib)
+                self._stop()
 
         async def main(self) -> None:
             """
