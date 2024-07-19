@@ -75,7 +75,8 @@ if platform != "android":
             """
             Used internally by Kaki
             """
-            return self.build_and_reload()
+            Logger.debug("Reloader: Building app")
+            return self.build()
 
         def build_and_reload(self):
             pass
