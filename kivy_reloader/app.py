@@ -51,7 +51,23 @@ if platform != "android":
             self.HOT_RELOAD_ON_PHONE: bool = config.HOT_RELOAD_ON_PHONE
             self.KV_FILES: list = get_kv_files_paths()
 
-            super().build()
+            self._build()
+
+        def _build(self):
+            Logger.info("Reloader: Building the first screen")
+            if self.DEBUG:
+                Logger.info("Kaki: Debug mode activated")
+                self.enable_autoreload()
+                self.patch_builder()
+                self.bind_key(286, self.rebuild)
+            if self.FOREGROUND_LOCK:
+                self.prepare_foreground_lock()
+
+            self.state = {}
+            self.approot = None
+
+            if self.IDLE_DETECTION:
+                self.install_idle(timeout=self.IDLE_TIMEOUT)
 
         async def async_run(self, async_lib="trio"):
             async with trio.open_nursery() as nursery:
@@ -71,18 +87,8 @@ if platform != "android":
                 server.nursery = nursery
                 await server.async_run("trio")
 
-        def build_app(self):
-            """
-            Used internally by Kaki
-            """
-            Logger.debug("Reloader: Building app")
-            return self.build()
-
-        def build_and_reload(self):
-            pass
-
         def rebuild(self, *args, **kwargs):
-            Logger.debug("Reloader: Rebuild the application")
+            Logger.info("Reloader: Rebuilding the application")
             first = kwargs.get("first", False)
             try:
                 if not first:
@@ -92,7 +98,7 @@ if platform != "android":
 
                 self.load_app_dependencies()
                 self.set_widget(None)
-                self.approot = self.build_app()
+                self.approot = self.build()
                 self.set_widget(self.approot)
                 self.apply_state(self.state)
                 if self.HOT_RELOAD_ON_PHONE:
@@ -104,6 +110,22 @@ if platform != "android":
                 self.set_error(repr(e), traceback.format_exc())
                 if not self.DEBUG and self.RAISE_ERROR:
                     raise
+
+        def set_widget(self, wid):
+            """
+            Clear the root container, and set the new approot widget to `wid`
+            """
+            self.root.clear_widgets()
+            self.approot = wid
+            if wid is None:
+                return
+            self.root = self.get_root()
+            self.root.add_widget(self.approot)
+            Window.add_widget(self.root)
+            try:
+                wid.do_layout()
+            except Exception:
+                pass
 
         def clear_temp_folder_and_zip_file(self, folder, zip_file):
             if os.path.exists(folder):
