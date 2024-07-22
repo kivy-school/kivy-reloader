@@ -4,7 +4,7 @@ Hot reload your Kivy app on multiple phones and computer in real-time.
 
 This tool allows you to instantly update your Kivy app on multiple devices simultaneously by pressing `Ctrl+S`, saving your precious development time and effort.
 
-https://github.com/kivy-school/kivy-reloader/assets/23220309/f1459d7e-ca53-4ed6-b4d1-980cdae4ce16
+![image](https://github.com/user-attachments/assets/4863801d-3822-4365-8c6b-7043e4563d70)
 
 ---
 
