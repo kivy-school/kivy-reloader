@@ -4,21 +4,115 @@ Hot reload your Kivy app on multiple phones and computer in real-time.
 
 This tool allows you to instantly update your Kivy app on multiple devices simultaneously by pressing `Ctrl+S`, saving your precious development time and effort.
 
+https://github.com/kivy-school/kivy-reloader/assets/23220309/f1459d7e-ca53-4ed6-b4d1-980cdae4ce16
+
 ## How to use
 
+Instead of importing from `kivy.app`, import from `kivy_reloader.app`.
+Start the app within an async event loop using `trio`.
+
+### Beautiful App structure 0:
+
+Suppose your beautiful app has only one file:
+
+```
+├── main.py
+```
+
 ```python
-from kivy_reloader import App
+import trio
+from kivy.lang import Builder
+
+from kivy_reloader.app import App
+
+kv = """
+Button:
+    text: "Hello World"
+"""
+
 
 class MainApp(App):
-    def build_and_reload(self):
+    def build(self):
+        return Builder.load_string(kv)
+
+
+app = MainApp()
+trio.run(app.async_run, "trio")
+
+```
+
+Start your app with `python main.py`.
+
+### Beautiful App structure 1:
+
+Suppose your beautiful app has this tree structure:
+
+```
+.
+├── main.py
+└── screens
+    ├── main_screen.kv
+    └── main_screen.py
+```
+
+```python
+import trio
+
+from kivy_reloader.app import App
+
+class MainApp(App):
+    def build(self):
         from screens.main_screen import MainScreen
 
         return MainScreen(name="Main Screen")
 
-MainApp()
+app = MainApp()
+trio.run(app.async_run, "trio")
 ```
 
-https://github.com/kivy-school/kivy-reloader/assets/23220309/f1459d7e-ca53-4ed6-b4d1-980cdae4ce16
+Start your app with `python main.py`.
+
+### Beautiful App structure 2:
+
+Suppose your beautiful app has this tree structure (recommended):
+
+```
+.
+├── beautifulapp
+│ ├── __init__.py
+│ └── screens
+│ ├── main_screen.kv
+│ └── main_screen.py
+├── main.py
+```
+
+`main.py`:
+
+```python
+import trio
+
+from beautifulapp import app
+
+trio.run(app.async_run, "trio")
+```
+
+`beautifulapp/__init__.py`:
+
+```python
+from kivy_reloader.app import App
+
+
+class MainApp(App):
+    def build(self):
+        from .screens.main_screen import MainScreen
+
+        return MainScreen(name="Main Screen")
+
+
+app = MainApp()
+```
+
+Start your app with `python main.py`.
 
 # Prerequisites
 
@@ -40,38 +134,39 @@ I recommend you to use `poetry` to install `kivy-reloader`.
 
 ---
 
-# Configure the constants
+# Configure Kivy Reloader
 
-The first time you run `from kivy_reloader import App`, you will be prompted on the terminal:
+After installing `kivy-reloader`, on the project folder, type on the terminal `kivy-reloader init`.
+This is going to create two files on your project folder: `kivy-reloader.toml` and `buildozer.spec`.
 
-![image](https://github.com/kivy-school/kivy-reloader/assets/23220309/bf414b93-c5e5-421f-bba6-4a08b7bf7ccb)
+# Configure the `kivy-reloader.toml` file:
 
-Just press enter. This will create a file called `settings.py` on your project folder.
+The first time you run `kivy-reloader init`, you will see on the terminal:
 
-![image](https://github.com/kivy-school/kivy-reloader/assets/23220309/adad51b4-c005-448f-a1b6-930abea2e0e5)
+![image](https://github.com/user-attachments/assets/b88091bf-4979-44e9-b8b3-a29a7fbc110d)
+
+This is the `kivy-reloader.toml` that has been created on your project folder.
+
+![image](https://github.com/user-attachments/assets/afab6aad-3e13-4505-bd59-bc9a95e23459)
 
 Every line has an explanation above. The most important constants on this file are:
 
-1. **PHONE_IPS**: Put the IP of your phone here. You can find the IP of your Android phone on: Settings > About phone > Status > IP Address.
+1. **PHONE_IPS**: Put the IP of your phone here.
+   You can find the IP of your Android phone on: **Settings > About phone > Status > IP Address**.
    ![image](https://github.com/kivy-school/kivy-reloader/assets/23220309/afd354fc-1894-4d99-b09d-8ef11ab4d763)
-2. **HOT_RELOAD_ON_PHONE**: Set it to True to hot heload on your phone when you press `Ctrl+S`
+2. **HOT_RELOAD_ON_PHONE**: Set it to `True` to hot heload on your phone when you press `Ctrl+S`
 3. **WATCHED_FOLDERS_RECURSIVELY**: This is a list of folder names, for example `["screens", "components"]`. If _any_ file inside these folders change, your Kivy app will reload.
 4. **WATCHED_KV_FOLDERS_RECURSIVELY**: This is a list of folder names, for example `["screens", "components"]`. This is where the Reloader will find your `.kv` files to reload them every time you press `Ctrl+S`.
 
-Open the file `settings.py` and explore the other constants.
-
-This message will also appear for you on the first time you use Kivy Reloader.
-
-![image](https://github.com/kivy-school/kivy-reloader/assets/23220309/eda33c70-b75e-4e5d-a1d2-a69925c3cabc)
-
-Just press enter. This will create a file called `buildozer.spec` on your project folder.
+The `kivy-reloader init` also creates a file called `buildozer.spec` on your project folder. It has the minimal `buildozer.spec` that you can use to make your app work with Kivy Reloader.
 
 ---
 
-# How to use:
+# How to compile and hot reload on Android:
 
 1. Connect your phone to the computer using a USB cable.
-2. Create a script `compile.py` with the following code:
+2. [Enable developer options](https://developer.android.com/studio/debug/dev-options#enable) and [enable USB debugging](https://developer.android.com/studio/debug/dev-options#debugging) on your phone.
+3. Create a script `compile.py` with the following code:
 
 ```python
 from kivy_reloader import compile_app
@@ -79,9 +174,10 @@ from kivy_reloader import compile_app
 compile_app.start()
 ```
 
-3. Run on the terminal `python compile.py`, type `1` and press enter. Buildozer will compile the app and deploy on your phone.
-   ![image](https://github.com/kivy-school/kivy-reloader/assets/23220309/81f6689e-e8bb-4fe5-a91c-dd88f187616f)
-4. Once the app is on your phone, run `python main.py` and the hot reload will be already working. Just press `Ctrl+S` in any file inside `screens` folder or `main.py` and your app will be updated on computer and phone at the same time.
+3. Run on the terminal `python compile.py`.
+   ![image](https://github.com/user-attachments/assets/3ae3823b-b2ca-4e3f-a487-a6c4bfddef34)
+
+4. You can change the selected option by using UP ↑ / DOWN ↓ arrows and press ENTER. Choose the first option and Buildozer will compile the app and deploy on your phone. Once the app is on your phone, run `python main.py` and the hot reload will be already working. Just press `Ctrl+S` in any file inside `screens` folder or `main.py` and your app will be updated on computer and phone at the same time.
 
 ---
 
@@ -91,10 +187,11 @@ Clone this project, open the folder on terminal and type:
 
 1. `poetry shell`
 2. `poetry install`
-3. `python main.py`
-4. `python compile.py` and press 1, enter.
-5. Wait the compilation to finish on your phone.
-6. Enjoy the Kivy Reloader!
+3. Update the `kivy-reloader.toml` file with your phone IP.
+4. `python main.py`
+5. `python compile.py` and press enter.
+6. Wait the compilation to finish on your phone.
+7. Enjoy the Kivy Reloader!
 
 ---
 
@@ -104,6 +201,7 @@ Clone this project, open the folder on terminal and type:
 
 1. `poetry shell`
 2. `poetry install`
-3. `adb install bin/kivy_super_reloader-0.1-armeabi-v7a_arm64-v8a-debug.apk`
-4. `python main.py`
-5. Keep calm and enjoy the Kivy Reloader! 😄
+3. Update the `kivy-reloader.toml` file with your phone IP.
+4. `adb install bin/kivy_super_reloader-0.1-armeabi-v7a_arm64-v8a-debug.apk`
+5. `python main.py`
+6. Keep calm and enjoy the Kivy Reloader! 😄
