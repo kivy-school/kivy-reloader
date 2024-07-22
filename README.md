@@ -6,10 +6,27 @@ This tool allows you to instantly update your Kivy app on multiple devices simul
 
 https://github.com/kivy-school/kivy-reloader/assets/23220309/f1459d7e-ca53-4ed6-b4d1-980cdae4ce16
 
+---
+
+### I am too impatient to read the tutorial, I want to see it working RIGHT NOW!
+
+Clone this project, open the folder on terminal and type:
+
+1. `poetry shell`
+2. `poetry install`
+3. Update the `kivy-reloader.toml` file with your phone IP.
+4. `adb install bin/kivy_super_reloader-0.1-armeabi-v7a_arm64-v8a-debug.apk`
+5. `python main.py`
+6. Keep calm and enjoy the Kivy Reloader! 😄
+
+---
+
 ## How to use
 
 Instead of importing from `kivy.app`, import from `kivy_reloader.app`.
 Start the app within an async event loop using `trio`.
+
+On this tutorial we are going to show 3 possible different structures of your beautiful app.
 
 ### Beautiful App structure 0:
 
@@ -192,16 +209,3 @@ Clone this project, open the folder on terminal and type:
 5. `python compile.py` and press enter.
 6. Wait the compilation to finish on your phone.
 7. Enjoy the Kivy Reloader!
-
----
-
-### I am too impatient, I want to see it working RIGHT NOW!
-
-Clone this project, open the folder on terminal and type:
-
-1. `poetry shell`
-2. `poetry install`
-3. Update the `kivy-reloader.toml` file with your phone IP.
-4. `adb install bin/kivy_super_reloader-0.1-armeabi-v7a_arm64-v8a-debug.apk`
-5. `python main.py`
-6. Keep calm and enjoy the Kivy Reloader! 😄
