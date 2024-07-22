@@ -194,13 +194,6 @@ else:
     from kivy.app import App
 
     class App(App):
-        async def main(self) -> None:
-            async with trio.open_nursery() as nursery:
-                Logger.info("Starting Async Kivy app - Kivy Reloader")
-                server = self
-                server.nursery = nursery
-                await server.async_run("trio")
-
         def build(self):
             main_py_file_path = os.path.join(os.getcwd(), "main.py")
             if os.path.exists(main_py_file_path):
@@ -226,7 +219,7 @@ else:
         def restart_app_on_android(self):
             Logger.info("Restarting the app on smartphone")
 
-            from jnius import autoclass
+            from jnius import autoclass  # type: ignore
 
             Intent = autoclass("android.content.Intent")
             PythonActivity = autoclass("org.kivy.android.PythonActivity")
@@ -286,7 +279,7 @@ else:
 
                     # stop the service
                     Logger.info(f"Stopping service {service_name}")
-                    from jnius import autoclass
+                    from jnius import autoclass  # type: ignore
 
                     mActivity = autoclass("org.kivy.android.PythonActivity").mActivity
                     context = mActivity.getApplicationContext()
