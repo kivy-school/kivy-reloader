@@ -1,3 +1,4 @@
+import argparse
 import os
 import shutil
 
@@ -69,5 +70,13 @@ def create_buildozer_spec_file():
 
 
 def main():
-    create_settings_file()
-    create_buildozer_spec_file()
+    parser = argparse.ArgumentParser(description="Kivy Reloader CLI")
+    subparsers = parser.add_subparsers(dest="command")
+    init_parser = subparsers.add_parser("init", help="Initializes Kivy Reloader")
+    args = parser.parse_args()
+
+    print(args.command)
+
+    if args.command == "init":
+        create_settings_file()
+        create_buildozer_spec_file()
