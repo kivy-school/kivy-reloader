@@ -1,5 +1,6 @@
 import os
 import subprocess
+import sys
 
 import trio
 from kivy.factory import Factory as F
@@ -39,20 +40,37 @@ if platform != "android":
     Window.always_on_top = True
     logging.getLogger("watchdog").setLevel(logging.ERROR)
 
-    # from .constants import FOLDERS_AND_FILES_TO_EXCLUDE_FROM_PHONE
-
     # Desktop BaseApp
     class App(App):
+        subprocesses = []
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
-
+            self.built = False
+            self.root = None
             self.DEBUG = 1
             self.AUTORELOADER_PATHS: list = get_auto_reloader_paths()
             self.HOT_RELOAD_ON_PHONE: bool = config.HOT_RELOAD_ON_PHONE
             self.KV_FILES: list = get_kv_files_paths()
-
             self._build()
 
+        def _restart_app(self, mod):
+            _has_execv = sys.platform != 'win32'
+            original_argv = sys.argv
+            cmd = [sys.executable] + original_argv
+            if not _has_execv:
+                for p in self.subprocesses:
+                    p.terminate()
+                    p.wait()
+                p = subprocess.Popen(cmd, shell=False)
+                self.subprocesses.append(p)
+                sys.exit(0)
+            else:
+                try:
+                    os.execv(sys.executable, cmd)
+                except OSError:
+                    os.spawnv(os.P_NOWAIT, sys.executable, cmd)
+                    os._exit(0)
+                    
         def _build(self):
             Logger.info("Reloader: Building the first screen")
             if self.DEBUG:
