@@ -94,16 +94,8 @@ if platform != "android":
                 self._run_prepare()
                 await async_runTouchApp(async_lib=async_lib)
                 self._stop()
+                nursery.cancel_scope.cancel()
 
-        async def main(self) -> None:
-            """
-            Starts the async Kivy app
-            """
-            async with trio.open_nursery() as nursery:
-                Logger.info("Reloader: Starting Async Kivy app")
-                server = self
-                server.nursery = nursery
-                await server.async_run("trio")
 
         def rebuild(self, *args, **kwargs):
             Logger.info("Reloader: Rebuilding the application")
@@ -128,6 +120,59 @@ if platform != "android":
                 self.set_error(repr(e), traceback.format_exc())
                 if not self.DEBUG and self.RAISE_ERROR:
                     raise
+
+        def enable_autoreload(self):
+            if platform != "win":
+                super().enable_autoreload()
+                return
+
+            try:
+                from watchdog.events import (
+                    FileSystemEventHandler,
+                    PatternMatchingEventHandler,
+                )
+                from watchdog.observers import Observer
+            except ImportError:
+                Logger.warn("Reloader: Unavailable, watchdog is not installed")
+                return
+
+            Logger.info("Reloader: Autoreloader activated")
+            rootpath = self.get_root_path()
+            folder_handler = FileSystemEventHandler()
+            file_handler = PatternMatchingEventHandler()
+
+            folder_handler.dispatch = self._reload_from_watchdog
+            file_handler.dispatch = self._reload_from_watchdog
+
+            folder_observer = Observer()
+            file_observer = Observer()
+
+            patterns = [
+                os.path.abspath(os.path.join(rootpath, path))
+                for path in config.WATCHED_FILES
+            ]
+            file_handler._patterns = patterns
+
+            dirs_to_watch_from_watched_files = list(
+                set([os.path.dirname(path) for path in patterns])
+            )
+
+            for dir in dirs_to_watch_from_watched_files:
+                file_observer.schedule(file_handler, dir, **{"recursive": False})
+
+            for path in self.AUTORELOADER_PATHS:
+                path, options = path
+
+                # continue if it is not a directory
+                if not os.path.isdir(os.path.join(rootpath, path)):
+                    continue
+
+                folder_observer.schedule(
+                    folder_handler, os.path.join(rootpath, path), **options
+                )
+
+            file_observer.start()
+            folder_observer.start()
 
         def set_widget(self, wid):
             """
@@ -207,7 +252,6 @@ else:
     import hashlib
     import importlib
     import shutil
-    import sys
 
     from kivy.app import App
 
