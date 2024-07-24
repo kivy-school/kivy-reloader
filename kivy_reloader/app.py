@@ -64,12 +64,11 @@ if platform != "android":
             self._build()
             if platform == "win": #this is to make sure last spawned process on windows calls for parent Python process to be exited by PID when window is closed normally
                 Window.bind(on_request_close=self.on_request_close)
+                # https://stackoverflow.com/questions/54501099/how-to-run-a-method-on-the-exit-of-a-kivy-app
 
-        # https://stackoverflow.com/questions/54501099/how-to-run-a-method-on-the-exit-of-a-kivy-app
-
-        def on_request_close(self, *args):
-            #if this is a child process, you must stop the initial process, check argv for the PID
-            #only on windows
+        def on_request_close(self, *args, **kwargs):
+            # if this is a child process, you must stop the initial process, check argv for the PID
+            # only on windows
 
             if platform == "win" and len(sys.argv) > 1:
                 killstring = f"taskkill /F /PID {sys.argv[1]}"
@@ -85,19 +84,15 @@ if platform != "android":
                 for p in self.subprocesses:
                     p.terminate()
                     p.wait()
-                if len(sys.argv) > 1:
-                    # print("argv 1 getting longer", sys.argv[1])
-                    # cmd.append(sys.argv[1])
-                    pass #don't append, argv gets long
-                else:
+                if len(sys.argv) <= 1:
                     cmd.append(str(os.getpid()))
                 p = subprocess.Popen(cmd, shell=False)
                 self.subprocesses.append(p)
                 if len(sys.argv) > 1:
-                    #children will have the host Python's PID in the argv, these are not needed and must exit to prevent extra python processes
+                    # children will have the host Python's PID in the argv, these are not needed and must exit to prevent extra python processes
                     sys.exit(0)
                 else:
-                    #the main process will have a single arg in argv, but u need to keep it open so u can intercept KeyboardInterrupt
+                    # the main process will have a single arg in argv, but u need to keep it open so you can intercept KeyboardInterrupt
                     self.root_window.close() 
                     infiniteloop()
             else:
