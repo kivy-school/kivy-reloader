@@ -72,9 +72,25 @@ def create_buildozer_spec_file():
 def main():
     parser = argparse.ArgumentParser(description="Kivy Reloader CLI")
     subparsers = parser.add_subparsers(dest="command")
-    init_parser = subparsers.add_parser("init", help="Initializes Kivy Reloader")
+    init_parser = subparsers.add_parser(  # noqa: F841
+        "init",
+        help="Create the `kivy-reloader.toml` configuration file.",
+    )
+    run_parser = subparsers.add_parser(  # noqa: F841
+        "run",
+        help="Initializes Kivy Reloader",
+    )
+    start_parser = subparsers.add_parser(  # noqa: F841
+        "start",
+        help="Initializes Kivy Reloader",
+    )
     args = parser.parse_args()
 
     if args.command == "init":
         create_settings_file()
         create_buildozer_spec_file()
+
+    elif args.command in ["start", "run", "compile"]:
+        from .compile_app import start
+
+        start()
