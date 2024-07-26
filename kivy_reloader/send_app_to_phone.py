@@ -1,7 +1,7 @@
 import trio
 from colorama import Fore, Style, init
 
-from constants import PHONE_IPS
+from kivy_reloader.config import config
 
 red = Fore.RED
 green = Fore.GREEN
@@ -13,7 +13,7 @@ init(autoreset=True)
 async def connect_to_server(IP):
     try:
         PORT = 8050
-        print(f"Connecting to IP: {green}{IP}{white} and PORT: {green}{PORT}")
+        print(f"Connecting to IP: {green}{IP}{white} and PORT: {green}{config.PORT}")
         with trio.move_on_after(1):
             client_socket = await trio.open_tcp_stream(IP, PORT)
             return client_socket
@@ -25,12 +25,12 @@ async def connect_to_server(IP):
 async def send_app():
     print("*" * 50)
     print(green + "Connecting to smartphone...")
-    for IP in PHONE_IPS:
+    for IP in config.PHONE_IPS:
         client_socket = await connect_to_server(IP)
         if not client_socket:
-            print(yellow + "Couldn't connect to smartphone")
+            print(f"{yellow}Couldn't connect to smartphone")
             return
-        print(yellow + f"Phone connected successfully: ", IP)
+        print(f"{yellow} Phone connected successfully: {IP}")
         print(f"\n{green}Sending app to smartphone...")
         CHUNK_SIZE = 4096
         with open(
@@ -42,7 +42,7 @@ async def send_app():
                 await client_socket.send_all(chunk)
         print(green + "Finished sending app!")
     print("\n")
-    print(yellow + f"Sent app to {len(PHONE_IPS)} smartphone(s)")
+    print(yellow + f"Sent app to {len(config.PHONE_IPS)} smartphone(s)")
     print("*" * 50)
 
 

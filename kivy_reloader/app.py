@@ -3,6 +3,7 @@ import subprocess
 import sys
 
 import trio
+from kivy.base import async_runTouchApp
 from kivy.factory import Factory as F
 from kivy.lang import Builder
 from kivy.logger import Logger
@@ -42,7 +43,6 @@ if platform != "android":
     from shutil import copytree, ignore_patterns, rmtree
 
     from kaki.app import App
-    from kivy.base import async_runTouchApp
     from kivy.core.window import Window
 
     from .utils import get_auto_reloader_paths
@@ -53,6 +53,7 @@ if platform != "android":
     # Desktop BaseApp
     class App(App):
         subprocesses = []
+
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
             self.built = False
@@ -77,7 +78,7 @@ if platform != "android":
 
 
         def _restart_app(self, mod):
-            _has_execv = sys.platform != 'win32'
+            _has_execv = sys.platform != "win32"
             original_argv = sys.argv
             cmd = [sys.executable] + original_argv
             if not _has_execv:
@@ -101,7 +102,7 @@ if platform != "android":
                 except OSError:
                     os.spawnv(os.P_NOWAIT, sys.executable, cmd)
                     os._exit(0)
-                    
+
         def _build(self):
             Logger.info("Reloader: Building the first screen")
             if self.DEBUG:
@@ -126,7 +127,6 @@ if platform != "android":
                 await async_runTouchApp(async_lib=async_lib)
                 self._stop()
                 nursery.cancel_scope.cancel()
-
 
         def rebuild(self, *args, **kwargs):
             Logger.info("Reloader: Rebuilding the application")
@@ -287,7 +287,8 @@ else:
     from kivy.app import App
 
     class App(App):
-        def build(self):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
             main_py_file_path = os.path.join(os.getcwd(), "main.py")
             if os.path.exists(main_py_file_path):
                 self.main_py_hash = self.get_hash_of_file(main_py_file_path)
@@ -301,13 +302,18 @@ else:
                 file_name: self.get_hash_of_file(file_name)
                 for file_name in config.SERVICE_FILES
             }
-            self.initialize_server()
+
             self.recompile_main()
 
-            return self.build_and_reload()
-
-        def build_and_reload(self):
-            pass
+        async def async_run(self, async_lib="trio"):
+            async with trio.open_nursery() as nursery:
+                Logger.info("Reloader: Starting Async Kivy app")
+                self.nursery = nursery
+                self.initialize_server()
+                self._run_prepare()
+                await async_runTouchApp(async_lib=async_lib)
+                self._stop()
+                nursery.cancel_scope.cancel()
 
         def restart_app_on_android(self):
             Logger.info("Restarting the app on smartphone")
@@ -412,7 +418,7 @@ else:
                     Builder.load_file(file_name)
 
             self.root.clear_widgets()
-            root = self.build_and_reload()
+            root = self.build()
             root.do_layout()
             self.root.add_widget(root)
 
