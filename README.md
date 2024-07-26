@@ -333,4 +333,4 @@ If you have any idea or suggestion, please open an issue or a pull request.
 
 ## Do you need help?
 
-If you need help with Kivy Reloader, you can ask on [Kivy Discord](https://discord.gg/BrmCPvzPCV) support channels. We'll be happy to help you.
+If you need help with Kivy Reloader, you can ask on [Kivy Discord](https://chat.kivy.org/) support channels. We'll be happy to help you.
