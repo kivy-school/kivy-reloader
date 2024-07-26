@@ -7,7 +7,7 @@ readme = "README.md"
 packages = [{ include = "kivy_reloader" }]
 
 [tool.poetry.urls]
-"Homepage" = "https://kivyschool.com/reloader/"
+"Homepage" = "https://kivyschool.com/kivy-reloader/"
 "Repository" = "https://github.com/kivy-school/kivy-reloader"
 
 
