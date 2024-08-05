@@ -375,7 +375,7 @@ def start():
         # left key, q, ESC
         elif key == readchar.key.LEFT or key == "q" or key == readchar.key.ESC * 2:
             exit()
-        elif key == "\n" or key == readchar.key.RIGHT:
+        elif key in ["\n", readchar.key.RIGHT, readchar.key.ENTER]:
             typer.clear()
             print(f"{yellow} Selected option: {green}{selected_option}")
             option = str(compiler_options.index(selected_option) + 1)
