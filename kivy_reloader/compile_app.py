@@ -267,9 +267,35 @@ def start_scrcpy():
             command.append(config.WINDOW_TITLE)
         command.append("-d")
     elif config.STREAM_USING == "WIFI":
-        command.append("-e")
+        if config.ALWAYS_ON_TOP:
+            command.append("--always-on-top")
+        if config.TURN_SCREEN_OFF:
+            command.append("--turn-screen-off")
+        if config.STAY_AWAKE:
+            command.append("--stay-awake")
+        if config.SHOW_TOUCHES:
+            command.append("--show-touches")
+        if config.WINDOW_TITLE:
+            command.append("--window-title")
+            command.append(config.WINDOW_TITLE)
+        if _platform.system() == 'Linux' and 'microsoft' in _platform.release(): 
+            pass
+        else:
+            command.append("-e")
 
-    subprocess.run(command)
+    # logging.info("what is the command?", command)
+    try:
+        #WSL is when: 
+        if _platform.system() == 'Linux' and 'microsoft' in _platform.release() and config.STREAM_USING == "WIFI": 
+            # subprocess.run(["adb", "connect", "192.168.1.38:5555"])
+            for IP in config.PHONE_IPS:
+                subprocess.run(["adb", "connect", f"{IP}:{config.PORT}"])
+        subprocess.run(command)
+    except Exception as e:
+        import traceback
+        logging.info("error is "+ str(e))
+        logging.info(str(traceback.format_exc()))
+        logging.info("If scrcpy does not run and phone is in WIFI mode you must WIFI mode in kivy-reloader.toml")
 
 
 def create_aab():
