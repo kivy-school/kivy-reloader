@@ -27,15 +27,18 @@ kv = Builder.load_string("""
 )
 # fmt: on
 
+
 def infiniteloop():
-    '''
-    This is unironically required to keep the original host python process open on windows. This is because os.spawnv does not exist on Windows and so exiting the host early means that KeyboardInterrupt will not be caught by child processes. (for example, u have a reloader open, you ctrl s to reload/start a new (child) process, then the old process closes. when you ctrl+c the original process does not exist to send KeyboardInterrupt to the children whereas in linux spawnv children get access to the parent's env and also recieve ctrl+c KeyboardInterrupts). 
-    
+    """
+    This is unironically required to keep the original host python process open on windows. This is because os.spawnv does not exist on Windows and so exiting the host early means that KeyboardInterrupt will not be caught by child processes. (for example, u have a reloader open, you ctrl s to reload/start a new (child) process, then the old process closes. when you ctrl+c the original process does not exist to send KeyboardInterrupt to the children whereas in linux spawnv children get access to the parent's env and also recieve ctrl+c KeyboardInterrupts).
+
     You need to keep the host open so that when KeyboardInterrupt happens, it also gets sent to the child.
-    '''
+    """
     import time
+
     while True:
         time.sleep(10000)
+
 
 if platform != "android":
     import inspect
@@ -63,7 +66,9 @@ if platform != "android":
             self.HOT_RELOAD_ON_PHONE: bool = config.HOT_RELOAD_ON_PHONE
             self.KV_FILES: list = get_kv_files_paths()
             self._build()
-            if platform == "win": #this is to make sure last spawned process on windows calls for parent Python process to be exited by PID when window is closed normally
+            if (
+                platform == "win"
+            ):  # this is to make sure last spawned process on windows calls for parent Python process to be exited by PID when window is closed normally
                 Window.bind(on_request_close=self.on_request_close)
                 # https://stackoverflow.com/questions/54501099/how-to-run-a-method-on-the-exit-of-a-kivy-app
 
@@ -73,9 +78,10 @@ if platform != "android":
 
             if platform == "win" and len(sys.argv) > 1:
                 killstring = f"taskkill /F /PID {sys.argv[1]}"
-                Logger.info(f"Reloader: Detected request close on Windows. Closing original host Python PID: {sys.argv[1]}")
+                Logger.info(
+                    f"Reloader: Detected request close on Windows. Closing original host Python PID: {sys.argv[1]}"
+                )
                 os.system(killstring)
-
 
         def _restart_app(self, mod):
             _has_execv = sys.platform != "win32"
@@ -94,7 +100,7 @@ if platform != "android":
                     sys.exit(0)
                 else:
                     # the main process will have a single arg in argv, but u need to keep it open so you can intercept KeyboardInterrupt
-                    self.root_window.close() 
+                    self.root_window.close()
                     infiniteloop()
             else:
                 try:
