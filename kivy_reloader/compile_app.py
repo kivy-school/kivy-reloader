@@ -12,7 +12,6 @@ import psutil
 import readchar
 import typer
 from colorama import Fore, Style, init
-from icecream import ic
 
 from .config import config
 
@@ -306,6 +305,7 @@ def highlight_selected_option(option: str):
     else:
         option_text = f"[ ] {option}"
 
+    option_text = f"{option_text}{Style.RESET_ALL}"
     typer.echo(option_text)
 
 
@@ -318,20 +318,20 @@ def start():
     navigate_compiler_options()
 
     typer.clear()
-    typer.echo("\nSelect one of the options below:\n")
+    typer.echo(f"\nSelect one of the options below:\n")
 
     development_options = compiler_options[:2]
     production_option = compiler_options[2]
     fix_option = compiler_options[3]
 
-    typer.echo(f"{yellow}Development")
+    typer.echo(f"{yellow}Development{Style.RESET_ALL}")
     for option in development_options:
         highlight_selected_option(option)
 
-    typer.echo(f"\n{yellow}Production")
+    typer.echo(f"\n{yellow}Production{Style.RESET_ALL}")
     highlight_selected_option(production_option)
 
-    typer.echo(f"\n{yellow}Fix")
+    typer.echo(f"\n{yellow}Fix{Style.RESET_ALL}")
     highlight_selected_option(fix_option)
 
     while True:
