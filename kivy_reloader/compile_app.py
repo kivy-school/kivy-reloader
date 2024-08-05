@@ -170,13 +170,20 @@ def restart_adb_server():
 
 def kill_adb_server():
     logging.info("Restarting adb server")
-    subprocess.run(["adb", "disconnect"])
-    subprocess.run(["adb", "kill-server"])
+    try:
+        subprocess.run(["adb", "disconnect"])
+        subprocess.run(["adb", "kill-server"])
+    except FileNotFoundError:
+        print(f"{red}Please, install `scrcpy`: {yellow}https://github.com/Genymobile/scrcpy{Fore.RESET}")
 
 
 def start_adb_server():
     logging.info("Starting adb server")
-    subprocess.run(["adb", "start-server"])
+    try:
+        subprocess.run(["adb", "start-server"])
+    except FileNotFoundError:
+        logging.error("adb not found")
+        print(f"{red}Please, install `scrcpy`: {yellow}https://github.com/Genymobile/scrcpy{Fore.RESET}")
 
 
 def clear_logcat():
@@ -184,7 +191,11 @@ def clear_logcat():
     Clears the logcat.
     """
     logging.info("Clearing logcat")
-    subprocess.run(["adb", "logcat", "-c"])
+    try:
+        subprocess.run(["adb", "logcat", "-c"])
+    except FileNotFoundError:
+        logging.error("adb not found")
+        print(f"{red}Please, install `scrcpy`: {yellow}https://github.com/Genymobile/scrcpy{Fore.RESET}")
 
 
 def debug_on_wifi():
@@ -212,11 +223,19 @@ def run_logcat(IP=None, *args):
     logcat_command = f"adb logcat | grep {watch}"
 
     if IP:
-        subprocess.run(["adb", "connect", f"{IP}"])
+        try:
+            subprocess.run(["adb", "connect", f"{IP}"])
+        except FileNotFoundError:
+            logging.error("adb not found")
+            print(f"{red}Please, install `scrcpy`: {yellow}https://github.com/Genymobile/scrcpy{Fore.RESET}")
         logcat_command.replace("adb", f"adb -s {IP}:{config.PORT}")
 
     logging.info("Starting logcat")
-    subprocess.run(logcat_command, shell=True)
+    try:
+        subprocess.run(logcat_command, shell=True)
+    except FileNotFoundError:
+        logging.error(f"adb not found")
+        print(f"{red}Please, install `scrcpy`: {yellow}https://github.com/Genymobile/scrcpy{Fore.RESET}")
 
 
 def livestream():
@@ -268,7 +287,11 @@ def start_scrcpy():
     elif config.STREAM_USING == "WIFI":
         command.append("-e")
 
-    subprocess.run(command)
+    try:
+        subprocess.run(command)
+    except FileNotFoundError:
+        logging.error("scrcpy not found")
+        print(f"{red}Please, install `scrcpy`: {yellow}https://github.com/Genymobile/scrcpy{Fore.RESET}")
 
 
 def create_aab():
