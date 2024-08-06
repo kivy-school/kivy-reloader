@@ -64,6 +64,7 @@ FOLDERS_AND_FILES_TO_EXCLUDE_FROM_PHONE = [
     "venv/",
     "venv.bak/",
     "bin",
+    "dist",
     "buildozer.spec",
     "poetry.lock",
     "pyproject.toml",
