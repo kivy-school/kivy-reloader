@@ -372,8 +372,8 @@ def start():
     production_option = compiler_options[2]
     fix_option = compiler_options[3]
 
-    typer.echo(f"🛠️ {yellow}Development{Style.RESET_ALL} ")
-    for number, option in enumerate(development_options, start=1):
+    typer.echo(f"🛠️  {yellow}Development{Style.RESET_ALL} ")
+    for option in development_options:
         highlight_selected_option(option)
 
     typer.echo(f"\n📦 {yellow}Production{Style.RESET_ALL} ")
