@@ -118,7 +118,14 @@ def compile_app():
     Uses `buildozer` to compile the app for Android.
     Notifies the user about the compilation status.
     """
+    if platform == 'win':
+        logging.error("Windows can not run buildozer")
+        logging.error("Please, use WSL2")
+        print(f"{red}Please, follow Kivy School tutorial: {yellow}https://kivyschool.com/kivy-reloader/")
+        sys.exit(0)
+
     logging.info("Starting compilation")
+    
     notify(
         f"Compiling {app_name}",
         f"Compilation started at {time.strftime('%H:%M:%S')}",
