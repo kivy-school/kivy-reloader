@@ -118,14 +118,16 @@ def compile_app():
     Uses `buildozer` to compile the app for Android.
     Notifies the user about the compilation status.
     """
-    if platform == 'win':
+    if platform == "win":
         logging.error("Windows can not run buildozer")
         logging.error("Please, use WSL2")
-        print(f"{red}Please, follow Kivy School tutorial: {yellow}https://kivyschool.com/kivy-reloader/")
+        print(
+            f"{red}Please, follow Kivy School tutorial: {yellow}https://kivyschool.com/kivy-reloader/"
+        )
         sys.exit(0)
 
     logging.info("Starting compilation")
-    
+
     notify(
         f"Compiling {app_name}",
         f"Compilation started at {time.strftime('%H:%M:%S')}",
@@ -181,7 +183,9 @@ def kill_adb_server():
         subprocess.run(["adb", "disconnect"])
         subprocess.run(["adb", "kill-server"])
     except FileNotFoundError:
-        print(f"{red}Please, install `scrcpy`: {yellow}https://github.com/Genymobile/scrcpy{Fore.RESET}")
+        print(
+            f"{red}Please, install `scrcpy`: {yellow}https://github.com/Genymobile/scrcpy{Fore.RESET}"
+        )
 
 
 def start_adb_server():
@@ -190,7 +194,9 @@ def start_adb_server():
         subprocess.run(["adb", "start-server"])
     except FileNotFoundError:
         logging.error("adb not found")
-        print(f"{red}Please, install `scrcpy`: {yellow}https://github.com/Genymobile/scrcpy{Fore.RESET}")
+        print(
+            f"{red}Please, install `scrcpy`: {yellow}https://github.com/Genymobile/scrcpy{Fore.RESET}"
+        )
 
 
 def clear_logcat():
@@ -202,7 +208,9 @@ def clear_logcat():
         subprocess.run(["adb", "logcat", "-c"])
     except FileNotFoundError:
         logging.error("adb not found")
-        print(f"{red}Please, install `scrcpy`: {yellow}https://github.com/Genymobile/scrcpy{Fore.RESET}")
+        print(
+            f"{red}Please, install `scrcpy`: {yellow}https://github.com/Genymobile/scrcpy{Fore.RESET}"
+        )
 
 
 def debug_on_wifi():
@@ -234,7 +242,9 @@ def run_logcat(IP=None, *args):
             subprocess.run(["adb", "connect", f"{IP}"])
         except FileNotFoundError:
             logging.error("adb not found")
-            print(f"{red}Please, install `scrcpy`: {yellow}https://github.com/Genymobile/scrcpy{Fore.RESET}")
+            print(
+                f"{red}Please, install `scrcpy`: {yellow}https://github.com/Genymobile/scrcpy{Fore.RESET}"
+            )
         logcat_command.replace("adb", f"adb -s {IP}:{config.PORT}")
 
     logging.info("Starting logcat")
@@ -242,7 +252,9 @@ def run_logcat(IP=None, *args):
         subprocess.run(logcat_command, shell=True)
     except FileNotFoundError:
         logging.error(f"adb not found")
-        print(f"{red}Please, install `scrcpy`: {yellow}https://github.com/Genymobile/scrcpy{Fore.RESET}")
+        print(
+            f"{red}Please, install `scrcpy`: {yellow}https://github.com/Genymobile/scrcpy{Fore.RESET}"
+        )
 
 
 def livestream():
@@ -298,7 +310,9 @@ def start_scrcpy():
         subprocess.run(command)
     except FileNotFoundError:
         logging.error("scrcpy not found")
-        print(f"{red}Please, install `scrcpy`: {yellow}https://github.com/Genymobile/scrcpy{Fore.RESET}")
+        print(
+            f"{red}Please, install `scrcpy`: {yellow}https://github.com/Genymobile/scrcpy{Fore.RESET}"
+        )
 
 
 def create_aab():
