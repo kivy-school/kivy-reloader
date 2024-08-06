@@ -239,7 +239,7 @@ def run_logcat(IP=None, *args):
 
     if IP:
         try:
-            subprocess.run(["adb", "connect", f"{IP}"])
+            subprocess.run(["adb", "connect", f"{IP}:{config.PORT}"])
         except FileNotFoundError:
             logging.error("adb not found")
             print(
