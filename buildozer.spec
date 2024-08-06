@@ -22,7 +22,7 @@ source.include_exts = py,png,jpg,kv,atlas,toml
 source.exclude_exts = app_copy.zip
 
 # (list) List of directory to exclude (let empty to not exclude anything)
-source.exclude_dirs = temp, bin, .venv, __pycache__
+source.exclude_dirs = temp, bin, dist, .venv, __pycache__
 
 # (list) List of exclusions using pattern matching
 # Do not prefix with './'
