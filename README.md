@@ -2,7 +2,7 @@
 
 Hot reload your Kivy app on multiple Android phones, emulators and computer at the same time, in real-time.
 
-This tool allows you to instantly update your Kivy app on multiple devices simultaneously by pressing `Ctrl+S`, without having to restart / recompile every time you make a change, saving your precious development time and effort.
+This tool allows you to instantly update your Kivy app on multiple devices simultaneously by pressing <kbd>Ctrl</kbd> + <kbd>S</kbd>, without having to restart / recompile every time you make a change, saving your precious development time and effort.
 
 Check out the [Kivy School tutorial](https://kivyschool.com/kivy-reloader/) to learn how to use this tool, or follow the documentation below.
 
@@ -306,13 +306,13 @@ When you change any file (from the watched folders you specified on the `kivy-re
 
 1. Connect your phone to the computer using a USB cable.
 2. [Enable developer options](https://developer.android.com/studio/debug/dev-options#enable) and [enable USB debugging](https://developer.android.com/studio/debug/dev-options#debugging) on your phone.
-3. On the terminal, type `kivy-reloader start`:
+3. On the terminal, type `kivy-reloader run`:
 
 ```
-kivy-reloader start
+kivy-reloader run
 ```
 
-![kivy-reloader cli](https://github.com/user-attachments/assets/5a68913c-56c3-47b3-b0f4-a21f6072a9a2)
+![kivy-reloader cli](https://github.com/user-attachments/assets/20d8de57-cef3-4f6a-a31e-081b878144d5)
 
 This is a CLI application that will:
 
@@ -321,11 +321,11 @@ This is a CLI application that will:
 - 3. Create a `.aab` file that will be used to deploy your app on Google Play Store.
 - 4. Restart the adb server for you if needed.
 
-You can easily control the CLI application using _UP_ ↑ | _DOWN_ ↓ arrows, and press ENTER to select the option you want.
+You can easily control the CLI application using <kbd>↑</kbd> or <kbd>↓</kbd> arrows, and press <kbd>ENTER ↵</kbd> or <kbd>→</kbd> to select the option you want.
 
-4. Choose the first option and Buildozer will compile the app and deploy on your phone. Once the app is on your phone, run `python main.py` and the hot reload will be already working.
+4. Choose the first option and Buildozer will compile the app (create a .apk file) and deploy it on your phone. Once the app is on your phone, run `python main.py` and the hot reload will be already working.
 
-Just press `Ctrl+S` in any file inside `screens` folder or `main.py` and your app will be updated on computer and phone at the same time. (assuming you have configured the `kivy-reloader.toml` file correctly).
+Just press <kbd>Ctrl</kbd> + <kbd>S</kbd> in any file inside `screens` folder or `main.py` and your app will be updated on computer and phone at the same time. (assuming you have configured the `kivy-reloader.toml` file correctly).
 
 ## Contribution
 
