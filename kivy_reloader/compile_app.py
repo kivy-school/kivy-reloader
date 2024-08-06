@@ -331,11 +331,11 @@ def navigate_compiler_options():
 
 def highlight_selected_option(option: str):
     if option == selected_option:
-        option_text = f"[x] {green}{option}"
+        option_text = f"[{green}x{Style.RESET_ALL}] {green}"
     else:
-        option_text = f"[ ] {option}"
+        option_text = f"[ ] "
 
-    option_text = f"{option_text}{Style.RESET_ALL}"
+    option_text = f"{option_text}{option}{Style.RESET_ALL}"
     typer.echo(option_text)
 
 
@@ -348,21 +348,22 @@ def start():
     navigate_compiler_options()
 
     typer.clear()
-    typer.echo(f"\nSelect one of the options below:\n")
+    typer.echo(f"\nSelect one of the 4 options below:\n")
 
     development_options = compiler_options[:2]
     production_option = compiler_options[2]
     fix_option = compiler_options[3]
 
-    typer.echo(f"{yellow}Development{Style.RESET_ALL}")
-    for option in development_options:
+    typer.echo(f"🛠️ {yellow}Development{Style.RESET_ALL} ")
+    for number, option in enumerate(development_options, start=1):
         highlight_selected_option(option)
 
-    typer.echo(f"\n{yellow}Production{Style.RESET_ALL}")
+    typer.echo(f"\n📦 {yellow}Production{Style.RESET_ALL} ")
     highlight_selected_option(production_option)
 
-    typer.echo(f"\n{yellow}Fix{Style.RESET_ALL}")
+    typer.echo(f"\n🔄 {yellow}Fix{Style.RESET_ALL}")
     highlight_selected_option(fix_option)
+    typer.echo("")
 
     while True:
         key = readchar.readkey()
