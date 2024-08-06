@@ -290,18 +290,22 @@ def start_scrcpy():
         config.WINDOW_WIDTH,
     ]
 
+    command.append("--no-mouse-hover")
+
+    if config.ALWAYS_ON_TOP:
+        command.append("--always-on-top")
+    if config.TURN_SCREEN_OFF:
+        command.append("--turn-screen-off")
+    if config.STAY_AWAKE:
+        command.append("--stay-awake")
+    if config.SHOW_TOUCHES:
+        command.append("--show-touches")
+    if config.WINDOW_TITLE:
+        command.append(f"--window-title='{config.WINDOW_TITLE}'")
+    if config.NO_AUDIO:
+        command.append("--no-audio")
+
     if config.STREAM_USING == "USB":
-        if config.ALWAYS_ON_TOP:
-            command.append("--always-on-top")
-        if config.TURN_SCREEN_OFF:
-            command.append("--turn-screen-off")
-        if config.STAY_AWAKE:
-            command.append("--stay-awake")
-        if config.SHOW_TOUCHES:
-            command.append("--show-touches")
-        if config.WINDOW_TITLE:
-            command.append("--window-title")
-            command.append(config.WINDOW_TITLE)
         command.append("-d")
     elif config.STREAM_USING == "WIFI":
         command.append("-e")
