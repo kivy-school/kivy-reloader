@@ -27,6 +27,7 @@ class Config:
             "WINDOW_WIDTH",
             "SERVICE_FILES",
             "SERVICE_NAMES",
+            "NO_AUDIO",
         ]
         self._load_config()
 
@@ -164,6 +165,10 @@ class Config:
                 "README.md",
             ],
         )
+
+    @property
+    def NO_AUDIO(self) -> str:
+        return self.get("NO_AUDIO", True)
 
 
 config = Config()

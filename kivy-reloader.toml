@@ -98,3 +98,6 @@ TURN_SCREEN_OFF = false
 
 # If you want the window to be always on top, set this to True
 ALWAYS_ON_TOP = true
+
+# If you want to turn the audio off, set this to True
+NO_AUDIO = true
