@@ -1,4 +1,8 @@
 import os
+
+os.environ["KIVY_LOG_MODE"] = "MIXED"
+
+
 import subprocess
 import sys
 
