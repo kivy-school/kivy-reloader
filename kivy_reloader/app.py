@@ -107,6 +107,7 @@ if platform != "android":
                     self.root_window.close()
                     infiniteloop()
             else:
+                # linux spawnv
                 try:
                     os.execv(sys.executable, cmd)
                 except OSError:
@@ -125,6 +126,8 @@ if platform != "android":
 
             self.state = {}
             self.approot = None
+
+            self.rebuild()
 
             if self.IDLE_DETECTION:
                 self.install_idle(timeout=self.IDLE_TIMEOUT)
@@ -219,6 +222,8 @@ if platform != "android":
             """
             Clear the root container, and set the new approot widget to `wid`
             """
+            if self.root is None:
+                return
             self.root.clear_widgets()
             self.approot = wid
             if wid is None:
