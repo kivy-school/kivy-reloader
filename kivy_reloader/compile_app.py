@@ -392,12 +392,14 @@ def start():
             selected_option = compiler_options[next_index]
             typer.clear()
             start()
+            break
         elif key == readchar.key.UP:
             selected_index = compiler_options.index(selected_option)
             prev_index = (selected_index - 1) % len(compiler_options)
             selected_option = compiler_options[prev_index]
             typer.clear()
             start()
+            break
         # left key, q, ESC
         elif key == readchar.key.LEFT or key == "q" or key == readchar.key.ESC * 2:
             exit()
