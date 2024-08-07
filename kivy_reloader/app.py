@@ -47,9 +47,11 @@ def infiniteloop():
 if platform != "android":
     import inspect
     import logging
+    from fnmatch import fnmatch
     from shutil import copytree, ignore_patterns, rmtree
 
     from kaki.app import App
+    from kivy.clock import Clock, mainthread
     from kivy.core.window import Window
 
     from .utils import get_auto_reloader_paths
@@ -217,6 +219,36 @@ if platform != "android":
 
             file_observer.start()
             folder_observer.start()
+
+        @mainthread
+        def _reload_from_watchdog(self, event):
+            from watchdog.events import FileModifiedEvent
+
+            if not isinstance(event, FileModifiedEvent):
+                return
+
+            if not os.path.exists(event.src_path):
+                return
+
+            for pat in self.AUTORELOADER_IGNORE_PATTERNS:
+                if fnmatch(event.src_path, pat):
+                    return
+
+            Logger.trace(f"Reloader: Event received {event.src_path}")
+            if event.src_path.endswith(".py"):
+                # source changed, reload it
+                try:
+                    Builder.unload_file(event.src_path)
+                    self._reload_py(event.src_path)
+                except Exception as e:
+                    import traceback
+
+                    self.set_error(repr(e), traceback.format_exc())
+                    return
+
+            Logger.debug(f"Reloader: Triggered by {event}")
+            Clock.unschedule(self.rebuild)
+            Clock.schedule_once(self.rebuild, 0.1)
 
         def set_widget(self, wid):
             """
