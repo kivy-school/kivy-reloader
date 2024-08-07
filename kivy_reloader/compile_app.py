@@ -229,13 +229,20 @@ def run_logcat(IP=None, *args):
     """
     Runs logcat for debugging.
     """
-    watch = "'I python"
-    for service in config.SERVICE_NAMES:
-        watch += f"\|{service}"
-    else:
-        watch += "'"
 
-    logcat_command = f"adb logcat | grep {watch}"
+    if platform == "win":
+        watch = '"I python"'
+        findstr_services = " ".join(
+            [f"/c:{SERVICE_NAME}" for SERVICE_NAME in config.SERVICE_NAMES]
+        )
+        logcat_command = f"adb logcat | findstr /r /c:{watch} {findstr_services}"
+    else:
+        watch = "'I python"
+        for service in config.SERVICE_NAMES:
+            watch += f"\|{service}"
+        else:
+            watch += "'"
+        logcat_command = f"adb logcat | grep {watch}"
 
     if IP:
         try:
@@ -251,7 +258,7 @@ def run_logcat(IP=None, *args):
     try:
         subprocess.run(logcat_command, shell=True)
     except FileNotFoundError:
-        logging.error(f"adb not found")
+        logging.error("adb not found")
         print(
             f"{red}Please, install `scrcpy`: {yellow}https://github.com/Genymobile/scrcpy{Fore.RESET}"
         )
