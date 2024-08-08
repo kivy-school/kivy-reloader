@@ -127,18 +127,19 @@ def compile_app():
         sys.exit(0)
 
     logging.info("Starting compilation")
-
-    notify(
-        f"Compiling {app_name}",
-        f"Compilation started at {time.strftime('%H:%M:%S')}",
-    )
+    if config.NOTIFY_ON_COMPILE_START:
+        notify(
+            f"Compiling {app_name}",
+            f"Compilation started at {time.strftime('%H:%M:%S')}",
+        )
     t1 = time.time()
     subprocess.run(["buildozer", "-v", "android", "debug", "deploy", "run"], check=True)
     t2 = time.time()
-    notify(
-        f"Compiled {app_name} successfully",
-        f"Compilation finished in {round(t2 - t1, 2)} seconds",
-    )
+    if config.NOTIFY_ON_COMPILE_FINISH:
+        notify(
+            f"Compiled {app_name} successfully",
+            f"Compilation finished in {round(t2 - t1, 2)} seconds",
+        )
     logging.info("Finished compilation")
 
 
@@ -328,17 +329,19 @@ def start_scrcpy():
 
 def create_aab():
     print(f"{yellow} Started creating aab")
-    notify(
-        f"Compile production: {app_name}",
+    if config.NOTIFY_ON_COMPILE_START:
+        notify(
+            f"Compile production: {app_name}",
         f"Compilation started at {time.strftime('%H:%M:%S')}",
-    )
+        )
     t1 = time.time()
     os.system("buildozer -v android release")
     t2 = time.time()
-    notify(
-        f"Compiled {app_name} successfully",
-        f"Compilation finished in {round(t2 - t1, 2)} seconds",
-    )
+    if config.NOTIFY_ON_COMPILE_FINISH:
+        notify(
+            f"Compiled {app_name} successfully",
+            f"Compilation finished in {round(t2 - t1, 2)} seconds",
+        )
     print(f"{green} Finished compilation")
     sys.exit(0)
 

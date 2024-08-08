@@ -16,6 +16,12 @@ STREAM_USING = "USB"
 # It can be any port
 PORT = 5555
 
+# Whether to send a system notification whenever kivy-reloader begins compiling
+NOTIFY_ON_COMPILE_START = false
+
+# Whether to send a system notification whenever kivy-reloader finishes compiling compiling
+NOTIFY_ON_COMPILE_FINISH = true
+
 # Add the python files you want to watch here, i.e., if they change, the app will be reloaded
 WATCHED_FILES = ["main.py"]
 
