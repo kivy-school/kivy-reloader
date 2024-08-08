@@ -28,6 +28,8 @@ class Config:
             "SERVICE_FILES",
             "SERVICE_NAMES",
             "NO_AUDIO",
+            "NOTIFY_ON_COMPILE_START",
+            "NOTIFY_ON_COMPILE_FINISH",
         ]
         self._load_config()
 
@@ -170,5 +172,12 @@ class Config:
     def NO_AUDIO(self) -> str:
         return self.get("NO_AUDIO", True)
 
+    @property
+    def NOTIFY_ON_COMPILE_START(self) -> bool:
+        return self.get("NOTIFY_ON_COMPILE_START",False)
+
+    @property
+    def NOTIFY_ON_COMPILE_FINISH(self) -> bool:
+        return self.get("NOTIFY_ON_COMPILE_FINISH",True)
 
 config = Config()
