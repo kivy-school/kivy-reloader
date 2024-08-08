@@ -22,21 +22,19 @@ def load_kv_path(path):
 def get_auto_reloader_paths():
     """
     Returns a list of paths to watch for changes,
-    based on the constants.py file
+    based on the config.py file
     """
-    return (
-        [
-            (os.path.join(base_dir, x), {"recursive": False})
-            for x in config.WATCHED_FILES
-        ]
-        + [
-            (os.path.join(base_dir, x), {"recursive": True})
-            for x in config.WATCHED_FOLDERS_RECURSIVELY
-        ]
-        + [
-            (os.path.join(base_dir, x), {"recursive": False})
-            for x in config.WATCHED_FOLDERS
-        ]
+
+    def create_path_tuples(paths, recursive):
+        return [(os.path.join(base_dir, x), {"recursive": recursive}) for x in paths]
+
+    non_recursive_paths = (
+        config.WATCHED_FILES + config.WATCHED_FOLDERS + config.FULL_RELOAD_FILES
+    )
+    recursive_paths = config.WATCHED_FOLDERS_RECURSIVELY
+
+    return create_path_tuples(non_recursive_paths, False) + create_path_tuples(
+        recursive_paths, True
     )
 
 
