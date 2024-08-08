@@ -16,14 +16,17 @@ STREAM_USING = "USB"
 # It can be any port
 PORT = 5555
 
-# Add the python files you want to watch here, i.e., if they change, the app will be reloaded
-WATCHED_FILES = ["main.py"]
+# Add the files that will cause the app to be fully reloaded (instead of light reloading)
+FULL_RELOAD_FILES = ["main.py", "beautifulapp/__init__.py"]
 
-# Add the folders you want to watch recursively here, i.e., if **ANY FILE** inside them changes, the app will be reloaded
+# Add the python files you want to watch here, i.e., if they change, the app will be light reloaded
+WATCHED_FILES = []
+
+# Add the folders you want to watch recursively here, i.e., if **ANY FILE** inside them changes, the app will be light reloaded
 WATCHED_FOLDERS_RECURSIVELY = ["beautifulapp"]
 
 # Add the folders where you have your .kv files here
-# If you don't put them here, the .kv files won't be reloaded
+# If you don't put them here, the .kv files won't be light reloaded
 # this is recursive, i.e., it will watch all folders inside the folders you put here
 WATCHED_KV_FOLDERS_RECURSIVELY = ["beautifulapp"]
 
@@ -31,7 +34,7 @@ WATCHED_KV_FOLDERS_RECURSIVELY = ["beautifulapp"]
 WATCHED_FOLDERS = []
 
 # Add the folders where you have your .kv files here
-# If you don't put them here, the .kv files won't be reloaded
+# If you don't put them here, the .kv files won't be light reloaded
 # this is not recursive, i.e., it will only watch the first level of the folders you put here
 WATCHED_KV_FOLDERS = []
 
@@ -39,7 +42,7 @@ WATCHED_KV_FOLDERS = []
 # For example, ["MyService", "MyOtherService"]
 SERVICE_NAMES = []
 
-# If you want to hotreload your services, put the name of the service files here
+# If you want to fully reload your app when your services change, put the name of the service files here
 # For example, ["service.py", "service2.py"]
 SERVICE_FILES = []
 
