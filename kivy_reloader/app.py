@@ -195,7 +195,7 @@ if platform != "android":
 
             patterns = [
                 os.path.abspath(os.path.join(rootpath, path))
-                for path in config.WATCHED_FILES
+                for path in config.WATCHED_FILES + config.FULL_RELOAD_FILES
             ]
             file_handler._patterns = patterns
 
@@ -229,6 +229,11 @@ if platform != "android":
 
             if not os.path.exists(event.src_path):
                 return
+
+            if event.src_path in config.FULL_RELOAD_FILES:
+                mod = sys.modules[self.__class__.__module__]
+                mod_filename = os.path.realpath(mod.__file__)
+                self._restart_app(mod_filename)
 
             for pat in self.AUTORELOADER_IGNORE_PATTERNS:
                 if fnmatch(event.src_path, pat):
@@ -493,6 +498,11 @@ else:
                         self.unload_python_file(filename, module)
 
             for file in config.WATCHED_FILES:
+                filename = os.path.join(os.getcwd(), file)
+                module = filename.replace("/", ".")[:-3]
+                self.unload_python_file(filename, module)
+
+            for file in config.FULL_RELOAD_FILES:
                 filename = os.path.join(os.getcwd(), file)
                 module = filename.replace("/", ".")[:-3]
                 self.unload_python_file(filename, module)

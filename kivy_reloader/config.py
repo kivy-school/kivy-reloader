@@ -8,6 +8,7 @@ class Config:
     def __init__(self):
         self.config_file = os.path.join(os.getcwd(), "kivy-reloader.toml")
         self.constants_to_import = [
+            "FULL_RELOAD_FILES",
             "WATCHED_FILES",
             "WATCHED_FOLDERS",
             "WATCHED_FOLDERS_RECURSIVELY",
@@ -169,6 +170,10 @@ class Config:
     @property
     def NO_AUDIO(self) -> str:
         return self.get("NO_AUDIO", True)
+
+    @property
+    def FULL_RELOAD_FILES(self) -> List[str]:
+        return self.get("FULL_RELOAD_FILES", [])
 
 
 config = Config()
