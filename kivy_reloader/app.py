@@ -230,10 +230,14 @@ if platform != "android":
             if not os.path.exists(event.src_path):
                 return
 
-            if event.src_path in config.FULL_RELOAD_FILES:
-                mod = sys.modules[self.__class__.__module__]
-                mod_filename = os.path.realpath(mod.__file__)
-                self._restart_app(mod_filename)
+            for path in config.FULL_RELOAD_FILES:
+                full_path = os.path.join(self.get_root_path(), path)
+                if fnmatch(event.src_path, full_path):
+                    Logger.info(f"Reloader: Full reload triggered by {event.src_path}")
+                    mod = sys.modules[self.__class__.__module__]
+                    mod_filename = os.path.realpath(mod.__file__)
+                    self._restart_app(mod_filename)
+                    break
 
             for pat in self.AUTORELOADER_IGNORE_PATTERNS:
                 if fnmatch(event.src_path, pat):
