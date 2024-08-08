@@ -346,10 +346,12 @@ else:
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
             main_py_file_path = os.path.join(os.getcwd(), "main.py")
+
             if os.path.exists(main_py_file_path):
                 self.main_py_hash = self.get_hash_of_file(main_py_file_path)
             else:
                 self.main_py_hash = None
+
             self.kv_files_hashes = {
                 file_name: self.get_hash_of_file(file_name)
                 for file_name in get_kv_files_paths()
@@ -357,6 +359,11 @@ else:
             self.service_files_hashes = {
                 file_name: self.get_hash_of_file(file_name)
                 for file_name in config.SERVICE_FILES
+            }
+
+            self.full_reload_file_hashes = {
+                file_name: self.get_hash_of_file(file_name)
+                for file_name in config.FULL_RELOAD_FILES
             }
 
             self.recompile_main()
@@ -448,6 +455,16 @@ else:
             if should_restart_app_on_android:
                 self.restart_app_on_android()
                 return
+
+            for file_name in config.FULL_RELOAD_FILES:
+                if (
+                    self.get_hash_of_file(file_name)
+                    != self.full_reload_file_hashes[file_name]
+                ):
+                    Logger.info(
+                        f"Reloader: File {file_name} has been updated. Restarting app..."
+                    )
+                    self.restart_app_on_android()
 
             if os.path.exists(main_py_file_path):
                 if self.get_hash_of_file(main_py_file_path) != self.main_py_hash:
