@@ -2,12 +2,12 @@ import os
 
 os.environ["KIVY_LOG_MODE"] = "MIXED"
 
-
 import subprocess
 import sys
 
 import trio
 from kivy.base import async_runTouchApp
+from kivy.core.window import Window
 from kivy.factory import Factory as F
 from kivy.lang import Builder
 from kivy.logger import Logger
@@ -52,7 +52,6 @@ if platform != "android":
 
     from kaki.app import App
     from kivy.clock import Clock, mainthread
-    from kivy.core.window import Window
 
     from .utils import get_auto_reloader_paths
 
@@ -127,9 +126,9 @@ if platform != "android":
                 self.prepare_foreground_lock()
 
             self.state = {}
-            self.approot = None
 
-            self.rebuild()
+            self.rebuild(first=True)
+            # self.build()
 
             if self.IDLE_DETECTION:
                 self.install_idle(timeout=self.IDLE_TIMEOUT)
@@ -143,20 +142,57 @@ if platform != "android":
                 self._stop()
                 nursery.cancel_scope.cancel()
 
-        def rebuild(self, *args, **kwargs):
+        def build_root_and_add_to_window(self):
+            Logger.info("Reloader: Build root and add to window")
+            if self.root is not None:
+                self.root.clear_widgets()
+                Window.remove_widget(Window.children[0])
+
+            self.root = self.build()
+
+            if self.root:
+                if not isinstance(self.root, F.Widget):
+                    Logger.critical("App.root must be an _instance_ of Widget")
+                    raise Exception("Invalid instance in App.root")
+
+                Window.add_widget(self.root)
+
+        def _run_prepare(self):
+            if not self.built:
+                self.load_config()
+                self.load_kv(filename=self.kv_file)
+
+            # Check if the window is already created
+            from kivy.base import EventLoop
+
+            window = EventLoop.window
+            if window:
+                self._app_window = window
+                window.set_title(self.get_application_name())
+                icon = self.get_application_icon()
+                if icon:
+                    window.set_icon(icon)
+                self._install_settings_keys(window)
+            else:
+                Logger.critical(
+                    "Application: No window is created." " Terminating application run."
+                )
+                return
+
+            self.dispatch("on_start")
+
+        def rebuild(self, first=False, *args, **kwargs):
             Logger.info("Reloader: Rebuilding the application")
-            first = kwargs.get("first", False)
             try:
                 if not first:
                     self.unload_app_dependencies()
+                    self.unload_python_files_on_desktop(self.unload_python_file)
 
                 Builder.rulectx = {}
 
                 self.load_app_dependencies()
-                self.set_widget(None)
-                self.approot = self.build()
-                self.set_widget(self.approot)
-                self.apply_state(self.state)
+                self.build_root_and_add_to_window()
+                self.unload_python_files_on_desktop(self.fix_something)
                 if self.HOT_RELOAD_ON_PHONE:
                     self.send_app_to_phone()
             except Exception as e:
@@ -166,6 +202,33 @@ if platform != "android":
                 self.set_error(repr(e), traceback.format_exc())
                 if not self.DEBUG and self.RAISE_ERROR:
                     raise
+
+        def fix_something(self, filename, module):
+            import importlib
+            import sys
+
+            from icecream import ic
+
+            ic(filename, module)
+
+            if filename == "beautifulapp/__init__.py":
+                import importlib
+
+                module = "beautifulapp"
+                # breakpoint()
+
+                importlib.reload(sys.modules[module])
+
+        # if module in sys.modules:
+        #     ic()
+        #     # new_module = importlib.reload(module)
+        #     new_module = importlib.import_module(module)
+
+        #     for attr_name in dir(new_module):
+        #         new_attr = getattr(new_module, attr_name)
+        #         if isinstance(new_attr, type):
+        #             if isinstance(self.root, new_attr):
+        #                 self.root.__class__ = new_attr
 
         def enable_autoreload(self):
             if platform != "win":
@@ -220,6 +283,44 @@ if platform != "android":
             file_observer.start()
             folder_observer.start()
 
+        def unload_python_file(self, filename, module):
+            import importlib
+
+            if module in sys.modules:
+                del sys.modules[module]
+
+                # Invalidate caches
+                importlib.invalidate_caches()
+
+                # Reload the module
+                importlib.reload(module)
+
+        def unload_python_files_on_desktop(self, func):
+            for folder in config.WATCHED_FOLDERS_RECURSIVELY:
+                for root, _, files in os.walk(folder):
+                    for file in files:
+                        if file.endswith(".py"):
+                            filename = os.path.join(root, file)
+                            module = filename.replace("/", ".")[:-3]
+                            func(filename, module)
+
+            for folder in config.WATCHED_FOLDERS:
+                for file in os.listdir(folder):
+                    if file.endswith(".py"):
+                        filename = os.path.join(folder, file)
+                        module = filename.replace("/", ".")[:-3]
+                        func(filename, module)
+
+            for file in config.WATCHED_FILES:
+                filename = os.path.join(os.getcwd(), file)
+                module = filename.replace("/", ".")[:-3]
+                func(filename, module)
+
+            for file in config.FULL_RELOAD_FILES:
+                filename = os.path.join(os.getcwd(), file)
+                module = filename.replace("/", ".")[:-3]
+                func(filename, module)
+
         @mainthread
         def _reload_from_watchdog(self, event):
             from watchdog.events import FileModifiedEvent
@@ -254,24 +355,6 @@ if platform != "android":
             Logger.debug(f"Reloader: Triggered by {event}")
             Clock.unschedule(self.rebuild)
             Clock.schedule_once(self.rebuild, 0.1)
-
-        def set_widget(self, wid):
-            """
-            Clear the root container, and set the new approot widget to `wid`
-            """
-            if self.root is None:
-                return
-            self.root.clear_widgets()
-            self.approot = wid
-            if wid is None:
-                return
-            self.root = self.get_root()
-            self.root.add_widget(self.approot)
-            Window.add_widget(self.root)
-            try:
-                wid.do_layout()
-            except Exception:
-                pass
 
         def clear_temp_folder_and_zip_file(self, folder, zip_file):
             if os.path.exists(folder):
@@ -366,6 +449,46 @@ else:
                 await async_runTouchApp(async_lib=async_lib)
                 self._stop()
                 nursery.cancel_scope.cancel()
+
+        def _run_prepare(self):
+            if not self.built:
+                self.load_config()
+                self.load_kv(filename=self.kv_file)
+                self.build_root_and_add_to_window()
+
+            # Check if the window is already created
+            from kivy.base import EventLoop
+
+            window = EventLoop.window
+            if window:
+                self._app_window = window
+                window.set_title(self.get_application_name())
+                icon = self.get_application_icon()
+                if icon:
+                    window.set_icon(icon)
+                self._install_settings_keys(window)
+            else:
+                Logger.critical(
+                    "Application: No window is created." " Terminating application run."
+                )
+                return
+
+            self.dispatch("on_start")
+
+        def build_root_and_add_to_window(self):
+            Logger.info("Reloader: Build root and add to window")
+            if self.root is not None:
+                self.root.clear_widgets()
+                Window.remove_widget(Window.children[0])
+
+            self.root = self.build()
+
+            if self.root:
+                if not isinstance(self.root, F.Widget):
+                    Logger.critical("App.root must be an _instance_ of Widget")
+                    raise Exception("Invalid instance in App.root")
+
+                Window.add_widget(self.root)
 
         def restart_app_on_android(self):
             Logger.info("Restarting the app on smartphone")
@@ -469,10 +592,24 @@ else:
                     Builder.unload_file(file_name)
                     Builder.load_file(file_name)
 
-            self.root.clear_widgets()
-            root = self.build()
-            root.do_layout()
-            self.root.add_widget(root)
+            # self.root.clear_widgets()
+            # root = self.build()
+            # root.do_layout()
+            # self.root.add_widget(root)
+            self.build_root_and_add_to_window()
+            self.unload_python_files_on_android(self.fix_something)
+
+        def fix_something(self, filename, module):
+            import importlib
+
+            if module in sys.modules:
+                new_module = importlib.import_module(module)
+
+                for attr_name in dir(new_module):
+                    new_attr = getattr(new_module, attr_name)
+                    if isinstance(new_attr, type):
+                        if type(self.root.__class__) is type(new_attr):
+                            self.root.__class__ = new_attr
 
         def unload_python_file(self, filename, module):
             if module in sys.modules:
@@ -481,31 +618,31 @@ else:
                 self._unregister_factory_from_module(module)
                 importlib.reload(sys.modules[module])
 
-        def unload_python_files_on_android(self):
+        def unload_python_files_on_android(self, func):
             for folder in config.WATCHED_FOLDERS_RECURSIVELY:
                 for root, _, files in os.walk(folder):
                     for file in files:
                         if file.endswith(".py"):
                             filename = os.path.join(root, file)
                             module = filename.replace("/", ".")[:-3]
-                            self.unload_python_file(filename, module)
+                            func(filename, module)
 
             for folder in config.WATCHED_FOLDERS:
                 for file in os.listdir(folder):
                     if file.endswith(".py"):
                         filename = os.path.join(folder, file)
                         module = filename.replace("/", ".")[:-3]
-                        self.unload_python_file(filename, module)
+                        func(filename, module)
 
             for file in config.WATCHED_FILES:
                 filename = os.path.join(os.getcwd(), file)
                 module = filename.replace("/", ".")[:-3]
-                self.unload_python_file(filename, module)
+                func(filename, module)
 
             for file in config.FULL_RELOAD_FILES:
                 filename = os.path.join(os.getcwd(), file)
                 module = filename.replace("/", ".")[:-3]
-                self.unload_python_file(filename, module)
+                func(filename, module)
 
         def recompile_main(self):
             if platform == "android":
@@ -586,7 +723,7 @@ else:
 
                 Logger.info("Reloader: App updated, restarting app for refresh")
                 Logger.info("Reloader: ************** END SERVER **************")
-                self.unload_python_files_on_android()
+                self.unload_python_files_on_android(self.unload_python_file)
                 self.reload_kv()
             except Exception as e:
                 import traceback
