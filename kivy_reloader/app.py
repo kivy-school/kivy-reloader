@@ -1,5 +1,7 @@
 import os
 
+from icecream import ic
+
 os.environ["KIVY_LOG_MODE"] = "MIXED"
 
 import subprocess
@@ -181,18 +183,20 @@ if platform != "android":
 
             self.dispatch("on_start")
 
-        def rebuild(self, first=False, *args, **kwargs):
+        def rebuild(self, dt=None, first=False, *args, **kwargs):
             Logger.info("Reloader: Rebuilding the application")
+            ic(first)
+
             try:
                 if not first:
                     self.unload_app_dependencies()
-                    self.unload_python_files_on_desktop(self.unload_python_file)
+                    self.unload_python_files_on_desktop()
 
                 Builder.rulectx = {}
 
                 self.load_app_dependencies()
                 self.build_root_and_add_to_window()
-                self.unload_python_files_on_desktop(self.fix_something)
+                # self.unload_python_files_on_desktop(self.fix_something)
                 if self.HOT_RELOAD_ON_PHONE:
                     self.send_app_to_phone()
             except Exception as e:
@@ -283,43 +287,82 @@ if platform != "android":
             file_observer.start()
             folder_observer.start()
 
-        def unload_python_file(self, filename, module):
+        def unload_python_file(self, filename, module_name):
             import importlib
 
-            if module in sys.modules:
-                del sys.modules[module]
+            if module_name in sys.modules:
+                ic()
+                del sys.modules[module_name]
 
                 # Invalidate caches
                 importlib.invalidate_caches()
 
                 # Reload the module
-                importlib.reload(module)
+                new_mod = importlib.reload(importlib.import_module(module_name))
+                print(new_mod)
 
-        def unload_python_files_on_desktop(self, func):
+            ic()
+            # breakpoint()
+            # if filename in config.FULL_RELOAD_FILES:
+            # if any(fnmatch(filename, pat) for pat in config.FULL_RELOAD_FILES):
+            #     ic()
+            #     dir_name = os.path.dirname(filename)
+
+            #     if dir_name in sys.modules:
+            #         importlib.reload(sys.modules[dir_name])
+            for path in config.FULL_RELOAD_FILES:
+                full_path = os.path.join(self.get_root_path(), path)
+                if fnmatch(filename, full_path):
+                    ic()
+                    dir_name = os.path.basename(os.path.dirname(filename))
+                    # kivy-reloader
+                    # breakpoint()
+
+                    if dir_name in sys.modules:
+                        ic()
+                        # breakpoint()
+                        importlib.reload(sys.modules[dir_name])
+                    else:
+                        ic()
+                        #     breakpoint()
+                        #     del sys.modules["app"]
+                        #     importlib.invalidate_caches()
+                        #     # importlib.reload(sys.modules["app"])
+                        importlib.reload(importlib.import_module("app"))
+
+        def unload_python_files_on_desktop(self):
             for folder in config.WATCHED_FOLDERS_RECURSIVELY:
                 for root, _, files in os.walk(folder):
                     for file in files:
                         if file.endswith(".py"):
                             filename = os.path.join(root, file)
-                            module = filename.replace("/", ".")[:-3]
-                            func(filename, module)
+                            module = os.path.relpath(filename).replace(
+                                os.path.sep, "."
+                            )[:-3]
+                            ic(filename, module)
+                            self.unload_python_file(filename, module)
 
             for folder in config.WATCHED_FOLDERS:
                 for file in os.listdir(folder):
                     if file.endswith(".py"):
                         filename = os.path.join(folder, file)
-                        module = filename.replace("/", ".")[:-3]
-                        func(filename, module)
+                        module = os.path.relpath(filename).replace(os.path.sep, ".")[
+                            :-3
+                        ]
+                        ic(filename, module)
+                        self.unload_python_file(filename, module)
 
             for file in config.WATCHED_FILES:
                 filename = os.path.join(os.getcwd(), file)
-                module = filename.replace("/", ".")[:-3]
-                func(filename, module)
+                module = os.path.relpath(filename).replace(os.path.sep, ".")[:-3]
+                ic(filename, module)
+                self.unload_python_file(filename, module)
 
             for file in config.FULL_RELOAD_FILES:
                 filename = os.path.join(os.getcwd(), file)
-                module = filename.replace("/", ".")[:-3]
-                func(filename, module)
+                module = os.path.relpath(filename).replace(os.path.sep, ".")[:-3]
+                ic(filename, module)
+                self.unload_python_file(filename, module)
 
         @mainthread
         def _reload_from_watchdog(self, event):

@@ -4,7 +4,7 @@
 # use "127.0.0.1" if you are using an emulator.
 PHONE_IPS = ["192.168.1.71"]
 
-HOT_RELOAD_ON_PHONE = true
+HOT_RELOAD_ON_PHONE = false
 
 # If True, it's going to send the app to smartphone every time you press Ctrl+S
 # You can stream using "USB" or "WIFI"
@@ -17,18 +17,18 @@ STREAM_USING = "USB"
 PORT = 5555
 
 # Add the files that will cause the app to be fully reloaded (instead of light reloading)
-FULL_RELOAD_FILES = ["main.py", "beautifulapp/__init__.py"]
+FULL_RELOAD_FILES = ["main.py", "app.py"]
 
 # Add the python files you want to watch here, i.e., if they change, the app will be light reloaded
 WATCHED_FILES = []
 
 # Add the folders you want to watch recursively here, i.e., if **ANY FILE** inside them changes, the app will be light reloaded
-WATCHED_FOLDERS_RECURSIVELY = ["beautifulapp"]
+WATCHED_FOLDERS_RECURSIVELY = ["screens"]
 
 # Add the folders where you have your .kv files here
 # If you don't put them here, the .kv files won't be light reloaded
 # this is recursive, i.e., it will watch all folders inside the folders you put here
-WATCHED_KV_FOLDERS_RECURSIVELY = ["beautifulapp"]
+WATCHED_KV_FOLDERS_RECURSIVELY = ["screens"]
 
 # Watched folders but not recursively, i.e., **ANY FILE** inside the first level of the folder
 WATCHED_FOLDERS = []

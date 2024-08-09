@@ -1,0 +1,10 @@
+<MainScreen>:
+    name: 'Main Screen'
+    app: app
+
+    BoxLayout:
+        orientation: 'vertical'
+        Button:
+            text: 'Kivy Schoo2'
+            on_release: self.text = 'Kivy '
+            on_press: root.something(); print(id(root.__class__))
