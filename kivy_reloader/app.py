@@ -576,43 +576,97 @@ else:
                     Builder.unload_file(file_name)
                     Builder.load_file(file_name)
 
-            self.root.clear_widgets()
-            root = self.build()
-            root.do_layout()
-            self.root.add_widget(root)
+            self.build_root_and_add_to_window()
+
+        def build_root_and_add_to_window(self):
+            Logger.info("Reloader: Building root widget and adding to window")
+            if self.root is not None:
+                self.root.clear_widgets()
+                Window.remove_widget(Window.children[0])
+
+            self.root = self.build()
+
+            if self.root:
+                if not isinstance(self.root, F.Widget):
+                    Logger.critical("App.root must be an _instance_ of Widget")
+                    raise Exception("Invalid instance in App.root")
+
+                Window.add_widget(self.root)
 
         def unload_python_file(self, filename, module):
+            if module == "main":
+                return None
+
             if module in sys.modules:
                 full_path = os.path.join(os.getcwd(), filename)
                 F.unregister_from_filename(full_path)
                 self._unregister_factory_from_module(module)
-                importlib.reload(sys.modules[module])
+                return sys.modules[module]
+
+            return None
+
+        def gather_files_to_reload(self, folders, recursive=False):
+            files_to_reload = []
+            for folder in folders:
+                if recursive:
+                    for root, _, files in os.walk(folder):
+                        files_to_reload.extend(
+                            os.path.join(root, file)
+                            for file in files
+                            if file.endswith(".py")
+                        )
+                else:
+                    files_to_reload.extend(
+                        os.path.join(folder, file)
+                        for file in os.listdir(folder)
+                        if file.endswith(".py")
+                    )
+            return files_to_reload
+
+        def process_unload_files(self, files):
+            modules_to_reload = []
+            for filename in files:
+                module_name = os.path.relpath(filename).replace(os.path.sep, ".")[:-3]
+                to_reload = self.unload_python_file(filename, module_name)
+                if to_reload is not None:
+                    modules_to_reload.append(to_reload)
+
+            return modules_to_reload
 
         def unload_python_files_on_android(self):
-            for folder in config.WATCHED_FOLDERS_RECURSIVELY:
-                for root, _, files in os.walk(folder):
-                    for file in files:
-                        if file.endswith(".py"):
-                            filename = os.path.join(root, file)
-                            module = filename.replace("/", ".")[:-3]
-                            self.unload_python_file(filename, module)
+            files_to_reload = []
 
-            for folder in config.WATCHED_FOLDERS:
-                for file in os.listdir(folder):
-                    if file.endswith(".py"):
-                        filename = os.path.join(folder, file)
-                        module = filename.replace("/", ".")[:-3]
-                        self.unload_python_file(filename, module)
+            # Gather files from recursively watched folders
+            files_to_reload.extend(
+                self.gather_files_to_reload(
+                    config.WATCHED_FOLDERS_RECURSIVELY, recursive=True
+                )
+            )
 
-            for file in config.WATCHED_FILES:
-                filename = os.path.join(os.getcwd(), file)
-                module = filename.replace("/", ".")[:-3]
-                self.unload_python_file(filename, module)
+            # Gather files from watched folders
+            files_to_reload.extend(self.gather_files_to_reload(config.WATCHED_FOLDERS))
 
-            for file in config.FULL_RELOAD_FILES:
-                filename = os.path.join(os.getcwd(), file)
-                module = filename.replace("/", ".")[:-3]
-                self.unload_python_file(filename, module)
+            # Add individual watched files
+            files_to_reload.extend(
+                os.path.join(os.getcwd(), file) for file in config.WATCHED_FILES
+            )
+
+            # Add files that require full reload
+            files_to_reload.extend(
+                os.path.join(os.getcwd(), file) for file in config.FULL_RELOAD_FILES
+            )
+
+            # Process the files and get the modules to reload
+            modules_to_reload = self.process_unload_files(files_to_reload)
+
+            # We need to reload the modules twice, because some modules
+            # may depend on other modules, and the order of reloading
+            # matters, so the first pass won't reload necessarily
+            # on the correct order, on the second pass the
+            # references will be updated correctly
+            for _ in range(2):
+                for module in modules_to_reload:
+                    importlib.reload(module)
 
         def recompile_main(self):
             if platform == "android":
@@ -693,8 +747,12 @@ else:
 
                 Logger.info("Reloader: App updated, restarting app for refresh")
                 Logger.info("Reloader: ************** END SERVER **************")
+
                 self.unload_python_files_on_android()
+                if self.__module__ != "__main__":
+                    importlib.reload(importlib.import_module(self.__module__))
                 self.reload_kv()
+
             except Exception as e:
                 import traceback
 
