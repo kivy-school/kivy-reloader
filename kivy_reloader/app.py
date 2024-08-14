@@ -135,7 +135,7 @@ if platform != "android":
                 self.install_idle(timeout=self.IDLE_TIMEOUT)
 
         def build_root_and_add_to_window(self):
-            Logger.info("Reloader: Build root and add to window")
+            Logger.info("Reloader: Building root widget and adding to window")
             if self.root is not None:
                 self.root.clear_widgets()
                 Window.remove_widget(Window.children[0])
@@ -421,18 +421,23 @@ else:
             else:
                 self.main_py_hash = None
 
+            # hot reload
             self.kv_files_hashes = {
                 file_name: self.get_hash_of_file(file_name)
                 for file_name in get_kv_files_paths()
             }
+
+            # live reload
             self.service_files_hashes = {
                 file_name: self.get_hash_of_file(file_name)
                 for file_name in config.SERVICE_FILES
             }
 
+            # live reload
             self.full_reload_file_hashes = {
                 file_name: self.get_hash_of_file(file_name)
                 for file_name in config.FULL_RELOAD_FILES
+                if os.path.exists(file_name)
             }
 
             self.recompile_main()
@@ -526,6 +531,18 @@ else:
                 return
 
             for file_name in config.FULL_RELOAD_FILES:
+                if not os.path.exists(file_name):
+                    Logger.info(
+                        f"Reloader: File {file_name} does not exist. Skipping..."
+                    )
+                    continue
+
+                if file_name not in self.full_reload_file_hashes:
+                    self.full_reload_file_hashes[file_name] = self.get_hash_of_file(
+                        file_name
+                    )
+                    continue
+
                 if (
                     self.get_hash_of_file(file_name)
                     != self.full_reload_file_hashes[file_name]
