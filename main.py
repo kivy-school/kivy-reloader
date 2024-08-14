@@ -1,5 +1,7 @@
 import trio
 
-from beautifulapp import app
+from beautifulapp import MainApp
+
+app = MainApp()
 
 trio.run(app.async_run, "trio")
