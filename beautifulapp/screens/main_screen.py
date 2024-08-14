@@ -13,4 +13,4 @@ class MainScreen(F.Screen):
         print("MainScreen on_enter")
 
     def something(self):
-        print("Kivy School!234567")
+        print("Kivy School3... ")

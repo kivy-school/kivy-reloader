@@ -6,4 +6,5 @@
         orientation: 'vertical'
         Button:
             text: 'Kivy School'
-            on_release: root.something()
+            on_release: self.text = 'Kivy '
+            on_press: root.something(); print(id(root.__class__))

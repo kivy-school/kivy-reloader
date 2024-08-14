@@ -1,12 +1,12 @@
-# import trio
+import trio
 
-# # from beautifulapp import app
-# from beautifulapp import MainApp
+# from beautifulapp import app
+from beautifulapp import MainApp
 
-# app = MainApp()
+app = MainApp()
 
 
-# trio.run(app.async_run, "trio")
+trio.run(app.async_run, "trio")
 # # import trio
 # # from kivy.lang import Builder
 
@@ -27,9 +27,9 @@
 # app = MainApp()
 # trio.run(app.async_run, "trio")
 
-import trio
+# import trio
 
-from app import MainApp
+# from app import MainApp
 
-app = MainApp()
-trio.run(app.async_run, "trio")
+# app = MainApp()
+# trio.run(app.async_run, "trio")

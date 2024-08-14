@@ -9,8 +9,8 @@ load_kv_path(main_screen_kv)
 
 
 class MainScreen(F.Screen):
-    def on_enter(self, *args):
-        print("MainScreen on_enter")
+    # def on_enter(self, *args):
+    #     print("MainScreen on_enter")
 
     def something(self):
-        print("kivy RELOAD 2")
+        return "adada"
