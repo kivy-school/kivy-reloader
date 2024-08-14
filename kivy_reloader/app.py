@@ -2,12 +2,12 @@ import os
 
 os.environ["KIVY_LOG_MODE"] = "MIXED"
 
-
 import subprocess
 import sys
 
 import trio
 from kivy.base import async_runTouchApp
+from kivy.core.window import Window
 from kivy.factory import Factory as F
 from kivy.lang import Builder
 from kivy.logger import Logger
@@ -127,12 +127,50 @@ if platform != "android":
                 self.prepare_foreground_lock()
 
             self.state = {}
-            self.approot = None
 
             self.rebuild()
 
             if self.IDLE_DETECTION:
                 self.install_idle(timeout=self.IDLE_TIMEOUT)
+
+        def build_root_and_add_to_window(self):
+            Logger.info("Reloader: Build root and add to window")
+            if self.root is not None:
+                self.root.clear_widgets()
+                Window.remove_widget(Window.children[0])
+
+            self.root = self.build()
+
+            if self.root:
+                if not isinstance(self.root, F.Widget):
+                    Logger.critical("App.root must be an _instance_ of Widget")
+                    raise Exception("Invalid instance in App.root")
+
+                Window.add_widget(self.root)
+
+        def _run_prepare(self):
+            if not self.built:
+                self.load_config()
+                self.load_kv(filename=self.kv_file)
+
+            # Check if the window is already created
+            from kivy.base import EventLoop
+
+            window = EventLoop.window
+            if window:
+                self._app_window = window
+                window.set_title(self.get_application_name())
+                icon = self.get_application_icon()
+                if icon:
+                    window.set_icon(icon)
+                self._install_settings_keys(window)
+            else:
+                Logger.critical(
+                    "Application: No window is created." " Terminating application run."
+                )
+                return
+
+            self.dispatch("on_start")
 
         async def async_run(self, async_lib="trio"):
             async with trio.open_nursery() as nursery:
@@ -258,24 +296,6 @@ if platform != "android":
             Logger.debug(f"Reloader: Triggered by {event}")
             Clock.unschedule(self.rebuild)
             Clock.schedule_once(self.rebuild, 0.1)
-
-        def set_widget(self, wid):
-            """
-            Clear the root container, and set the new approot widget to `wid`
-            """
-            if self.root is None:
-                return
-            self.root.clear_widgets()
-            self.approot = wid
-            if wid is None:
-                return
-            self.root = self.get_root()
-            self.root.add_widget(self.approot)
-            Window.add_widget(self.root)
-            try:
-                wid.do_layout()
-            except Exception:
-                pass
 
         def clear_temp_folder_and_zip_file(self, folder, zip_file):
             if os.path.exists(folder):
