@@ -123,7 +123,8 @@ if platform != "android":
                 Logger.info("Kaki: Debug mode activated")
                 self.enable_autoreload()
                 self.patch_builder()
-                self.bind_key(286, self.rebuild)
+                self.listen_for_reload()
+
             if self.FOREGROUND_LOCK:
                 self.prepare_foreground_lock()
 
@@ -133,6 +134,19 @@ if platform != "android":
 
             if self.IDLE_DETECTION:
                 self.install_idle(timeout=self.IDLE_TIMEOUT)
+
+        def listen_for_reload(self):
+            """
+            Reload the app when pressing F5 or Ctrl+R on desktop
+            """
+
+            def _on_keyboard(window, keycode, scancode, codepoint, modifier_keys):
+                pressed_modifiers = set(modifier_keys)
+
+                if keycode == 286 or (keycode == 114 and "ctrl" in pressed_modifiers):
+                    return self.rebuild()
+
+            Window.bind(on_keyboard=_on_keyboard)
 
         def build_root_and_add_to_window(self):
             Logger.info("Reloader: Building root widget and adding to window")
@@ -441,6 +455,21 @@ else:
             }
 
             self.recompile_main()
+
+            self.bind_key(114, self.restart_app_on_android)
+
+        def bind_key(self, key, callback):
+            """
+            Reload the app when pressing Ctrl+R from scrcpy
+            """
+
+            def _on_keyboard(window, keycode, scancode, codepoint, modifier_keys):
+                pressed_modifiers = set(modifier_keys)
+
+                if key == keycode and "ctrl" in pressed_modifiers:
+                    return callback()
+
+            Window.bind(on_keyboard=_on_keyboard)
 
         async def async_run(self, async_lib="trio"):
             async with trio.open_nursery() as nursery:
