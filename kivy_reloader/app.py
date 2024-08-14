@@ -2,6 +2,7 @@ import os
 
 os.environ["KIVY_LOG_MODE"] = "MIXED"
 
+import importlib
 import subprocess
 import sys
 
@@ -181,14 +182,61 @@ if platform != "android":
                 self._stop()
                 nursery.cancel_scope.cancel()
 
+        def unload_python_file(self, filename, module_name):
+            if module_name == "main":
+                return
+
+            if module_name in sys.modules:
+                full_path = os.path.join(os.getcwd(), filename)
+                F.unregister_from_filename(full_path)
+                self._unregister_factory_from_module(module_name)
+                importlib.reload(sys.modules[module_name])
+
+        def unload_files(self, files):
+            for filename in files:
+                module_name = os.path.relpath(filename).replace(os.path.sep, ".")[:-3]
+                self.unload_python_file(filename, module_name)
+
+        def unload_python_files_on_desktop(self):
+            files_to_unload = []
+
+            # Gather files from recursively watched folders
+            for folder in config.WATCHED_FOLDERS_RECURSIVELY:
+                for root, _, files in os.walk(folder):
+                    files_to_unload.extend(
+                        os.path.join(root, file)
+                        for file in files
+                        if file.endswith(".py")
+                    )
+
+            # Gather files from watched folders
+            for folder in config.WATCHED_FOLDERS:
+                files_to_unload.extend(
+                    os.path.join(folder, file)
+                    for file in os.listdir(folder)
+                    if file.endswith(".py")
+                )
+
+            # Gather individual watched files
+            files_to_unload.extend(
+                os.path.join(os.getcwd(), file) for file in config.WATCHED_FILES
+            )
+
+            # Gather files that require full reload
+            files_to_unload.extend(
+                os.path.join(os.getcwd(), file) for file in config.FULL_RELOAD_FILES
+            )
+
+            # Process all gathered files
+            self.unload_files(files_to_unload)
+
         def rebuild(self, dt=None, first=False, *args, **kwargs):
             Logger.info("Reloader: Rebuilding the application")
 
             try:
                 if not first:
                     self.unload_app_dependencies()
-                    import importlib
-
+                    self.unload_python_files_on_desktop()
                     importlib.reload(importlib.import_module(self.__module__))
 
                 Builder.rulectx = {}
@@ -359,7 +407,6 @@ if platform != "android":
 else:
     # Android BaseApp
     import hashlib
-    import importlib
     import shutil
 
     from kivy.app import App
