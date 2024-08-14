@@ -703,21 +703,3 @@ else:
                     "Full exception:",
                     "".join(traceback.format_exception(*sys.exc_info())),
                 )
-
-        def set_widget(self, wid):
-            """
-            Clear the root container, and set the new approot widget to `wid`
-            """
-            if self.root is None:
-                return
-            self.root.clear_widgets()
-            self.approot = wid
-            if wid is None:
-                return
-            self.root = self.get_root()
-            self.root.add_widget(self.approot)
-            Window.add_widget(self.root)
-            try:
-                wid.do_layout()
-            except Exception:
-                pass
