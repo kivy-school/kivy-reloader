@@ -128,7 +128,7 @@ if platform != "android":
 
             self.state = {}
 
-            self.rebuild()
+            self.rebuild(first=True)
 
             if self.IDLE_DETECTION:
                 self.install_idle(timeout=self.IDLE_TIMEOUT)
@@ -181,20 +181,22 @@ if platform != "android":
                 self._stop()
                 nursery.cancel_scope.cancel()
 
-        def rebuild(self, *args, **kwargs):
+        def rebuild(self, dt=None, first=False, *args, **kwargs):
             Logger.info("Reloader: Rebuilding the application")
-            first = kwargs.get("first", False)
+
             try:
                 if not first:
                     self.unload_app_dependencies()
+                    import importlib
+
+                    importlib.reload(importlib.import_module(self.__module__))
 
                 Builder.rulectx = {}
 
                 self.load_app_dependencies()
-                self.set_widget(None)
-                self.approot = self.build()
-                self.set_widget(self.approot)
-                self.apply_state(self.state)
+                self.build_root_and_add_to_window()
+
+                self.apply_state(self.state)  # TODO
                 if self.HOT_RELOAD_ON_PHONE:
                     self.send_app_to_phone()
             except Exception as e:
