@@ -244,6 +244,14 @@ if platform != "android":
             # Process all gathered files
             self.unload_files(files_to_unload)
 
+        def load_app_dependencies(self):
+            for path in self.KV_FILES:
+                path = os.path.realpath(path)
+                if path not in Builder.files:
+                    Builder.load_file(path)
+            for name, module in self.CLASSES.items():
+                F.register(name, module=module)
+
         def rebuild(self, dt=None, first=False, *args, **kwargs):
             Logger.info("Reloader: Rebuilding the application")
 
@@ -252,10 +260,9 @@ if platform != "android":
                     self.unload_app_dependencies()
                     self.unload_python_files_on_desktop()
                     importlib.reload(importlib.import_module(self.__module__))
+                    Builder.rulectx = {}
+                    self.load_app_dependencies()
 
-                Builder.rulectx = {}
-
-                self.load_app_dependencies()
                 self.build_root_and_add_to_window()
 
                 self.apply_state(self.state)  # TODO
