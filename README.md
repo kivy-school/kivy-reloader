@@ -27,6 +27,8 @@ Keep calm and enjoy the Kivy Reloader! 😄
 
 ---
 
+# Tutorial
+
 ## Prerequisites
 
 You must have followed our [installation guide](https://kivyschool.com/kivy-installation/) and you must have the basic tools installed and know how to use them:
@@ -164,6 +166,7 @@ trio.run(app.async_run, "trio")
 ```
 .
 ├── main.py
+├── app.py
 └── screens
     ├── main_screen.kv
     └── main_screen.py
@@ -174,29 +177,35 @@ trio.run(app.async_run, "trio")
 ```python
 import trio
 
-from kivy_reloader.app import App
-
-class MainApp(App):
-    def build(self):
-        from screens.main_screen import MainScreen
-
-        return MainScreen(name="Main Screen")
+from app import MainApp
 
 app = MainApp()
 trio.run(app.async_run, "trio")
+```
+
+`app.py`
+
+```python
+from kivy_reloader.app import App
+from screens.main_screen import MainScreen
+
+class MainApp(App):
+    def build(self):
+        return MainScreen()
+
 ```
 
 `screens/main_screen.kv`
 
 ```yaml
 <MainScreen>:
-  name: "Main Screen"
-  app: app
+    name: "Main Screen"
+    app: app
 
-  BoxLayout:
-    orientation: "vertical"
-    Button:
-      text: "Welcome to Kivy Reloader!"
+    BoxLayout:
+        orientation: "vertical"
+        Button:
+            text: "Welcome to Kivy Reloader!"
 ```
 
 `screens/main_screen.py`
@@ -249,30 +258,26 @@ trio.run(app.async_run, "trio")
 `beautifulapp/__init__.py`:
 
 ```python
+from beautifualapp.screens.main_screen import MainScreen
 from kivy_reloader.app import App
 
 
 class MainApp(App):
     def build(self):
-        from .screens.main_screen import MainScreen
-
-        return MainScreen(name="Main Screen")
-
-
-app = MainApp()
+        return MainScreen()
 ```
 
 `beautifulapp/screens/main_screen.kv`
 
 ```yaml
 <MainScreen>:
-  name: "Main Screen"
-  app: app
+    name: "Main Screen"
+    app: app
 
-  BoxLayout:
-    orientation: "vertical"
-    Button:
-      text: "Welcome to Kivy Reloader!"
+    BoxLayout:
+        orientation: "vertical"
+        Button:
+            text: "Welcome to Kivy Reloader!"
 ```
 
 `beautifulapp/screens/main_screen.py`
