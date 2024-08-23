@@ -17,7 +17,7 @@ STREAM_USING = "USB"
 PORT = 5555
 
 # Add the files that will cause the app to live reload (restart) when changed
-FULL_RELOAD_FILES = ['main.py']
+FULL_RELOAD_FILES = ["main.py"]
 
 # Add the python files you want to watch here, i.e., if they change, the app will hot reload
 WATCHED_FILES = []
