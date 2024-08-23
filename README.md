@@ -101,7 +101,7 @@ The first time you run `kivy-reloader init`, you will see on the terminal:
 
 This is the `kivy-reloader.toml` file that has been created on your project folder.
 
-![image](https://github.com/user-attachments/assets/afab6aad-3e13-4505-bd59-bc9a95e23459)
+![image](https://github.com/user-attachments/assets/60f3ef70-36e0-4c8b-9e3f-11f6677539ca)
 
 #### Configure the `kivy-reloader.toml` file:
 
