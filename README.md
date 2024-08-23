@@ -154,7 +154,6 @@ class MainApp(App):
 
 app = MainApp()
 trio.run(app.async_run, "trio")
-
 ```
 
 ### Beautiful App structure 1 (intermediate example):
@@ -245,15 +244,16 @@ This is the recommended way of structuring your app.
 ```python
 import trio
 
-from beautifulapp import app
+from beautifulapp import MainApp
 
+app = MainApp()
 trio.run(app.async_run, "trio")
 ```
 
 `beautifulapp/__init__.py`:
 
 ```python
-from beautifualapp.screens.main_screen import MainScreen
+from beautifulapp.screens.main_screen import MainScreen
 from kivy_reloader.app import App
 
 
