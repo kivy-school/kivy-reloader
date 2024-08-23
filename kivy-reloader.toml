@@ -1,12 +1,12 @@
 [kivy_reloader]
 
 # The IP address of your phone; You can hot-reload how many phones you want.
-# use "127.0.0.1" if you are using an emulator.
+# use "127.0.0.1" if you are using Android emulator.
 PHONE_IPS = ["192.168.1.71"]
 
-HOT_RELOAD_ON_PHONE = true
+# If true, it's going to send the app to smartphone every time you press Ctrl+S
+HOT_RELOAD_ON_PHONE = false
 
-# If True, it's going to send the app to smartphone every time you press Ctrl+S
 # You can stream using "USB" or "WIFI"
 # If your USB cable is connected, use "USB", otherwise use "WIFI"
 # To use WIFI, you need connect your phone to the same network as your computer
@@ -16,23 +16,23 @@ STREAM_USING = "USB"
 # It can be any port
 PORT = 5555
 
-# Add the files that will cause the app to be fully reloaded (instead of light reloading)
+# Add the files that will cause the app to live reload (restart) when changed
 FULL_RELOAD_FILES = ["main.py", "beautifulapp/__init__.py"]
 
-# Add the python files you want to watch here, i.e., if they change, the app will be light reloaded
+# Add the python files you want to watch here, i.e., if they change, the app will hot reload
 WATCHED_FILES = []
 
-# Add the folders you want to watch recursively here, i.e., if **ANY FILE** inside them changes, the app will be light reloaded
+# Add the folders you want to watch recursively here, i.e., if **ANY FILE** inside them changes, the app will hot reload
 WATCHED_FOLDERS_RECURSIVELY = ["beautifulapp"]
 
-# Watched folders but not recursively, i.e., **ANY FILE** inside the first level of the folder
+# Watched folders but not recursively, i.e., **ANY FILE** inside the first level of the folder will trigger a hot reload if changed
 WATCHED_FOLDERS = []
 
 # If you want to logcat services, put here the name of each service
 # For example, ["MyService", "MyOtherService"]
 SERVICE_NAMES = []
 
-# If you want to fully reload your app when your services change, put the name of the service files here
+# If you want to restart your app when your services change, put the relative path of the service files here
 # For example, ["service.py", "service2.py"]
 SERVICE_FILES = []
 
