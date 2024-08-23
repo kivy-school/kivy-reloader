@@ -101,7 +101,7 @@ The first time you run `kivy-reloader init`, you will see on the terminal:
 
 This is the `kivy-reloader.toml` file that has been created on your project folder.
 
-![image](https://github.com/user-attachments/assets/60f3ef70-36e0-4c8b-9e3f-11f6677539ca)
+![image](https://github.com/user-attachments/assets/0c686c32-7aa8-4123-812b-8ea5d2e6f0cb)
 
 #### Configure the `kivy-reloader.toml` file:
 
@@ -111,7 +111,8 @@ Every line has an explanation above. The most important constants on this file a
    You can find the IP of your Android phone on: **Settings > About phone > Status > IP Address**.
    ![image](https://github.com/kivy-school/kivy-reloader/assets/23220309/afd354fc-1894-4d99-b09d-8ef11ab4d763)
 2. **HOT_RELOAD_ON_PHONE**: Set it to `true` to hot heload on your phone when you press `Ctrl+S`
-3. **WATCHED_FOLDERS_RECURSIVELY**: This is a list of folder names, for example `["screens", "components"]`. If _any_ file inside these folders change, your Kivy app will reload.
+3. **FULL_RELOAD_FILES**: This is a list of file names that will trigger a live reload (your Kivy app will restart) when they change.
+4. **WATCHED_FOLDERS_RECURSIVELY**: This is a list of folder names, for example `["screens", "components"]`. If _any_ file inside these folders change, your Kivy app will hot reload.
 
 The `kivy-reloader init` also creates a file called `buildozer.spec` on your project folder. It has the minimal `buildozer.spec` that you can use to make your app work with Kivy Reloader.
 
