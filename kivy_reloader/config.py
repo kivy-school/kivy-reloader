@@ -12,8 +12,6 @@ class Config:
             "WATCHED_FILES",
             "WATCHED_FOLDERS",
             "WATCHED_FOLDERS_RECURSIVELY",
-            "WATCHED_KV_FOLDERS",
-            "WATCHED_KV_FOLDERS_RECURSIVELY",
             "HOT_RELOAD_ON_PHONE",
             "STREAM_USING",
             "PORT",
@@ -66,14 +64,6 @@ class Config:
     @property
     def WATCHED_FOLDERS_RECURSIVELY(self) -> List[str]:
         return self.get("WATCHED_FOLDERS_RECURSIVELY", [])
-
-    @property
-    def WATCHED_KV_FOLDERS(self) -> List[str]:
-        return self.get("WATCHED_KV_FOLDERS", [])
-
-    @property
-    def WATCHED_KV_FOLDERS_RECURSIVELY(self) -> List[str]:
-        return self.get("WATCHED_KV_FOLDERS_RECURSIVELY", [])
 
     @property
     def HOT_RELOAD_ON_PHONE(self) -> bool:
