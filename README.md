@@ -159,7 +159,7 @@ trio.run(app.async_run, "trio")
 
 ### Beautiful App structure 1 (intermediate example):
 
-- Create a file called `main.py` and a folder called `screens`.
+- Create a file called `main.py`, a file called `app.py` and a folder called `screens`.
 
 - Inside the `screens` folder, create two files: `main_screen.kv` and `main_screen.py`.
 
@@ -192,7 +192,6 @@ from screens.main_screen import MainScreen
 class MainApp(App):
     def build(self):
         return MainScreen()
-
 ```
 
 `screens/main_screen.kv`
