@@ -199,9 +199,6 @@ class MainApp(App):
 
 ```yaml
 <MainScreen>:
-    name: "Main Screen"
-    app: app
-
     BoxLayout:
         orientation: "vertical"
         Button:
@@ -222,8 +219,7 @@ load_kv_path(main_screen_kv)
 
 
 class MainScreen(Screen):
-    def on_enter(self, *args):
-        print("MainScreen on_enter")
+    pass
 ```
 
 ### Beautiful App structure 2 (advanced example):
@@ -271,9 +267,6 @@ class MainApp(App):
 
 ```yaml
 <MainScreen>:
-    name: "Main Screen"
-    app: app
-
     BoxLayout:
         orientation: "vertical"
         Button:
@@ -294,8 +287,7 @@ load_kv_path(main_screen_kv)
 
 
 class MainScreen(Screen):
-    def on_enter(self, *args):
-        print("MainScreen on_enter")
+    pass
 ```
 
 ---
