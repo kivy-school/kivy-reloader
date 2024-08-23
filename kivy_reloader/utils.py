@@ -1,6 +1,7 @@
 import os
 
 from kivy.lang import Builder
+from kivy.utils import platform
 
 from .config import config
 
@@ -32,10 +33,16 @@ def get_auto_reloader_paths():
         config.WATCHED_FILES + config.WATCHED_FOLDERS + config.FULL_RELOAD_FILES
     )
     recursive_paths = config.WATCHED_FOLDERS_RECURSIVELY
+    if platform == 'win':
+        return create_path_tuples(non_recursive_paths, False) + create_path_tuples(
+            recursive_paths, True
+        )
+    else:
+        return create_path_tuples(non_recursive_paths, True) + create_path_tuples(
+            recursive_paths, True
+        )
 
-    return create_path_tuples(non_recursive_paths, False) + create_path_tuples(
-        recursive_paths, True
-    )
+
 
 
 def find_kv_files_in_folder(folder):
