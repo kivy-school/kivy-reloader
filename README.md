@@ -1,6 +1,10 @@
 # Kivy Reloader
 
-[![Kivy Reloader Showcase](https://img.youtube.com/vi/WLAI01e-8OQ/hqdefault.jpg)](https://www.youtube.com/watch?v=WLAI01e-8OQ)
+<p align="center">
+  <a href="https://www.youtube.com/watch?v=WLAI01e-8OQ">
+    <img src="https://img.youtube.com/vi/WLAI01e-8OQ/hqdefault.jpg" alt="Kivy Reloader Showcase" style="max-width: 100%; width: 90%; height: auto;">
+  </a>
+</p>
 
 Hot reload your Kivy app on multiple Android phones, emulators and computer at the same time, in real-time.
 
