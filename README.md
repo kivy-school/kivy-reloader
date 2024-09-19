@@ -1,5 +1,7 @@
 # Kivy Reloader
 
+[![Kivy Reloader Showcase](https://img.youtube.com/vi/WLAI01e-8OQ/hqdefault.jpg)](https://www.youtube.com/watch?v=WLAI01e-8OQ)
+
 Hot reload your Kivy app on multiple Android phones, emulators and computer at the same time, in real-time.
 
 This tool allows you to instantly update your Kivy app on multiple devices simultaneously by pressing <kbd>Ctrl</kbd> + <kbd>S</kbd>, without having to restart / recompile every time you make a change, saving your precious development time and effort.
