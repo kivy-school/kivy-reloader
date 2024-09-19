@@ -28,6 +28,10 @@ WATCHED_FOLDERS_RECURSIVELY = ["beautifulapp"]
 # Watched folders but not recursively, i.e., **ANY FILE** inside the first level of the folder will trigger a hot reload if changed
 WATCHED_FOLDERS = []
 
+# If you do not want to watch some files or folders, add them here.
+# You can add the path to a file/folder or a pattern
+DO_NOT_WATCH_PATTERNS = ["*.pyc", "*__pycache__*"]
+
 # If you want to logcat services, put here the name of each service
 # For example, ["MyService", "MyOtherService"]
 SERVICE_NAMES = []

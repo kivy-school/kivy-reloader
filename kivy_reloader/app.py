@@ -350,8 +350,10 @@ if platform != "android":
                     self._restart_app(mod_filename)
                     break
 
-            for pat in self.AUTORELOADER_IGNORE_PATTERNS:
+            for pat in config.DO_NOT_WATCH_PATTERNS:
                 if fnmatch(event.src_path, pat):
+                    return
+                if fnmatch(event.src_path, os.path.join(os.getcwd(), pat)):
                     return
 
             Logger.trace(f"Reloader: Event received {event.src_path}")
