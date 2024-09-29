@@ -152,7 +152,9 @@ if platform != "android":
             Logger.info("Reloader: Building root widget and adding to window")
             if self.root is not None:
                 self.root.clear_widgets()
-                Window.remove_widget(Window.children[0])
+
+                while Window.children:
+                    Window.remove_widget(Window.children[0])
 
             self.root = self.build()
 
@@ -351,8 +353,10 @@ if platform != "android":
                     self._restart_app(mod_filename)
                     break
 
-            for pat in self.AUTORELOADER_IGNORE_PATTERNS:
+            for pat in config.DO_NOT_WATCH_PATTERNS:
                 if fnmatch(event.src_path, pat):
+                    return
+                if fnmatch(event.src_path, os.path.join(os.getcwd(), pat)):
                     return
 
             Logger.trace(f"Reloader: Event received {event.src_path}")
@@ -370,6 +374,27 @@ if platform != "android":
             Logger.debug(f"Reloader: Triggered by {event}")
             Clock.unschedule(self.rebuild)
             Clock.schedule_once(self.rebuild, 0.1)
+
+        @mainthread
+        def set_error(self, exc, tb=None):
+            lbl = F.Label(
+                size_hint=(1, None),
+                padding_y=150,
+                text_size=(Window.width - 100, None),
+                text="{}\n\n{}".format(exc, tb or ""),
+            )
+            lbl.texture_update()
+            lbl.height = lbl.texture_size[1]
+            sv = F.ScrollView(
+                size_hint=(1, 1),
+                pos_hint={"x": 0, "y": 0},
+                do_scroll_x=False,
+                scroll_y=0,
+            )
+            sv.add_widget(lbl)
+            while Window.children:
+                Window.remove_widget(Window.children[0])
+            Window.add_widget(sv)
 
         def clear_temp_folder_and_zip_file(self, folder, zip_file):
             if os.path.exists(folder):

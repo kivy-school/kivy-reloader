@@ -1,5 +1,11 @@
 # Kivy Reloader
 
+<p align="center">
+  <a href="https://www.youtube.com/watch?v=WLAI01e-8OQ">
+    <img src="https://img.youtube.com/vi/WLAI01e-8OQ/hqdefault.jpg" alt="Kivy Reloader Showcase" style="max-width: 100%; width: 90%; height: auto;">
+  </a>
+</p>
+
 Hot reload your Kivy app on multiple Android phones, emulators and computer at the same time, in real-time.
 
 This tool allows you to instantly update your Kivy app on multiple devices simultaneously by pressing <kbd>Ctrl</kbd> + <kbd>S</kbd>, without having to restart / recompile every time you make a change, saving your precious development time and effort.
@@ -26,6 +32,8 @@ Clone this project, open the folder on terminal and type:
 Keep calm and enjoy the Kivy Reloader! 😄
 
 ---
+
+# Tutorial
 
 ## Prerequisites
 
@@ -99,7 +107,7 @@ The first time you run `kivy-reloader init`, you will see on the terminal:
 
 This is the `kivy-reloader.toml` file that has been created on your project folder.
 
-![image](https://github.com/user-attachments/assets/afab6aad-3e13-4505-bd59-bc9a95e23459)
+![image](https://github.com/user-attachments/assets/0c686c32-7aa8-4123-812b-8ea5d2e6f0cb)
 
 #### Configure the `kivy-reloader.toml` file:
 
@@ -109,8 +117,8 @@ Every line has an explanation above. The most important constants on this file a
    You can find the IP of your Android phone on: **Settings > About phone > Status > IP Address**.
    ![image](https://github.com/kivy-school/kivy-reloader/assets/23220309/afd354fc-1894-4d99-b09d-8ef11ab4d763)
 2. **HOT_RELOAD_ON_PHONE**: Set it to `true` to hot heload on your phone when you press `Ctrl+S`
-3. **WATCHED_FOLDERS_RECURSIVELY**: This is a list of folder names, for example `["screens", "components"]`. If _any_ file inside these folders change, your Kivy app will reload.
-4. **WATCHED_KV_FOLDERS_RECURSIVELY**: This is a list of folder names, for example `["screens", "components"]`. This is where the Reloader will find your `.kv` files to reload them every time you press `Ctrl+S`.
+3. **FULL_RELOAD_FILES**: This is a list of file names that will trigger a live reload (your Kivy app will restart) when they change.
+4. **WATCHED_FOLDERS_RECURSIVELY**: This is a list of folder names, for example `["screens", "components"]`. If _any_ file inside these folders change, your Kivy app will hot reload.
 
 The `kivy-reloader init` also creates a file called `buildozer.spec` on your project folder. It has the minimal `buildozer.spec` that you can use to make your app work with Kivy Reloader.
 
@@ -152,18 +160,18 @@ class MainApp(App):
 
 app = MainApp()
 trio.run(app.async_run, "trio")
-
 ```
 
 ### Beautiful App structure 1 (intermediate example):
 
-- Create a file called `main.py` and a folder called `screens`.
+- Create a file called `main.py`, a file called `app.py` and a folder called `screens`.
 
 - Inside the `screens` folder, create two files: `main_screen.kv` and `main_screen.py`.
 
 ```
 .
 ├── main.py
+├── app.py
 └── screens
     ├── main_screen.kv
     └── main_screen.py
@@ -174,29 +182,31 @@ trio.run(app.async_run, "trio")
 ```python
 import trio
 
-from kivy_reloader.app import App
-
-class MainApp(App):
-    def build(self):
-        from screens.main_screen import MainScreen
-
-        return MainScreen(name="Main Screen")
+from app import MainApp
 
 app = MainApp()
 trio.run(app.async_run, "trio")
+```
+
+`app.py`
+
+```python
+from kivy_reloader.app import App
+from screens.main_screen import MainScreen
+
+class MainApp(App):
+    def build(self):
+        return MainScreen()
 ```
 
 `screens/main_screen.kv`
 
 ```yaml
 <MainScreen>:
-  name: "Main Screen"
-  app: app
-
-  BoxLayout:
-    orientation: "vertical"
-    Button:
-      text: "Welcome to Kivy Reloader!"
+    BoxLayout:
+        orientation: "vertical"
+        Button:
+            text: "Welcome to Kivy Reloader!"
 ```
 
 `screens/main_screen.py`
@@ -213,8 +223,7 @@ load_kv_path(main_screen_kv)
 
 
 class MainScreen(Screen):
-    def on_enter(self, *args):
-        print("MainScreen on_enter")
+    pass
 ```
 
 ### Beautiful App structure 2 (advanced example):
@@ -241,38 +250,32 @@ This is the recommended way of structuring your app.
 ```python
 import trio
 
-from beautifulapp import app
+from beautifulapp import MainApp
 
+app = MainApp()
 trio.run(app.async_run, "trio")
 ```
 
 `beautifulapp/__init__.py`:
 
 ```python
+from beautifulapp.screens.main_screen import MainScreen
 from kivy_reloader.app import App
 
 
 class MainApp(App):
     def build(self):
-        from .screens.main_screen import MainScreen
-
-        return MainScreen(name="Main Screen")
-
-
-app = MainApp()
+        return MainScreen()
 ```
 
 `beautifulapp/screens/main_screen.kv`
 
 ```yaml
 <MainScreen>:
-  name: "Main Screen"
-  app: app
-
-  BoxLayout:
-    orientation: "vertical"
-    Button:
-      text: "Welcome to Kivy Reloader!"
+    BoxLayout:
+        orientation: "vertical"
+        Button:
+            text: "Welcome to Kivy Reloader!"
 ```
 
 `beautifulapp/screens/main_screen.py`
@@ -289,8 +292,7 @@ load_kv_path(main_screen_kv)
 
 
 class MainScreen(Screen):
-    def on_enter(self, *args):
-        print("MainScreen on_enter")
+    pass
 ```
 
 ---

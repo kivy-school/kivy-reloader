@@ -12,8 +12,7 @@ class Config:
             "WATCHED_FILES",
             "WATCHED_FOLDERS",
             "WATCHED_FOLDERS_RECURSIVELY",
-            "WATCHED_KV_FOLDERS",
-            "WATCHED_KV_FOLDERS_RECURSIVELY",
+            "DO_NOT_WATCH_PATTERNS",
             "HOT_RELOAD_ON_PHONE",
             "STREAM_USING",
             "PORT",
@@ -68,12 +67,8 @@ class Config:
         return self.get("WATCHED_FOLDERS_RECURSIVELY", [])
 
     @property
-    def WATCHED_KV_FOLDERS(self) -> List[str]:
-        return self.get("WATCHED_KV_FOLDERS", [])
-
-    @property
-    def WATCHED_KV_FOLDERS_RECURSIVELY(self) -> List[str]:
-        return self.get("WATCHED_KV_FOLDERS_RECURSIVELY", [])
+    def DO_NOT_WATCH_PATTERNS(self) -> List[str]:
+        return self.get("DO_NOT_WATCH_PATTERNS", ["*.pyc", "*__pycache__*"])
 
     @property
     def HOT_RELOAD_ON_PHONE(self) -> bool:
