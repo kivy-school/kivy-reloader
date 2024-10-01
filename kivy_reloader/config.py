@@ -2,7 +2,7 @@ import os
 from typing import Any, List
 
 import toml
-
+import sys
 
 class Config:
     def __init__(self):
@@ -29,7 +29,8 @@ class Config:
             "SERVICE_NAMES",
             "NO_AUDIO",
         ]
-        self._load_config()
+        if not hasattr(sys, "_MEIPASS"):
+            self._load_config()
 
     def _load_config(self):
         if os.path.exists(self.config_file):
