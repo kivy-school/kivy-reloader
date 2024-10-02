@@ -1,49 +1,102 @@
-import trio
-from colorama import Fore, Style, init
+import os
 
-from kivy_reloader.config import config
+from kivy.lang import Builder
+from kivy.utils import platform
+from kivy.resources import resource_add_path, resource_find
+from .config import config
+import sys
+import pathlib
+import logging
 
-red = Fore.RED
-green = Fore.GREEN
-yellow = Fore.YELLOW
-white = Fore.WHITE
-init(autoreset=True)
-
-
-async def connect_to_server(IP):
-    try:
-        PORT = 8050
-        print(f"Connecting to IP: {green}{IP}{white} and PORT: {green}{config.PORT}")
-        with trio.move_on_after(1):
-            client_socket = await trio.open_tcp_stream(IP, PORT)
-            return client_socket
-    except Exception as e:
-        print(f"{red}Error: {e}")
-        return None
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+)
+base_dir = os.getcwd()
 
 
-async def send_app():
-    print("*" * 50)
-    print(green + "Connecting to smartphone...")
-    for IP in config.PHONE_IPS:
-        client_socket = await connect_to_server(IP)
-        if not client_socket:
-            print(f"{yellow}Couldn't connect to smartphone")
-            return
-        print(f"{yellow} Phone connected successfully: {IP}")
-        print(f"\n{green}Sending app to smartphone...")
-        CHUNK_SIZE = 4096
-        with open(
-            "app_copy.zip",
-            "rb",
-        ) as myzip:
-            for chunk in iter(lambda: myzip.read(CHUNK_SIZE), b""):
-                print("Sending chunk")
-                await client_socket.send_all(chunk)
-        print(green + "Finished sending app!")
-    print("\n")
-    print(yellow + f"Sent app to {len(config.PHONE_IPS)} smartphone(s)")
-    print("*" * 50)
+def load_kv_path(path):
+    """
+    Loads a kv file from a path
+    """
+    if hasattr(sys, "_MEIPASS"):
+        resource_add_path(sys._MEIPASS)
+        test_path = pathlib.Path(path)
+        try:
+        #     look with extra root path appended to sys._MEIP0ASS
+            if str(test_path.parent) != ".":
+                meipass_path = pathlib.Path(sys._MEIPASS) / test_path.parent
+            resource_add_path(meipass_path)
+            logging.info(f"resource_find {meipass_path}, {test_path.name}")
+            kv_path = resource_find(test_path.name)
+        except:
+        #     last resort: do a naive search with resource find
+            kv_path = resource_find(path)
+            logging.info(f"kv path might be a duplicate, please double check {path}, {kv_path}")
+
+    else:
+        kv_path = os.path.join(base_dir, path)
+    print("what is kv path now?", kv_path, path)
+    if kv_path is None:
+        logging.error(f"failed to load kv path: {path}")
+    if kv_path in Builder.files:
+        Builder.unload_file(kv_path)
+
+    if kv_path not in Builder.files:
+        Builder.load_file(kv_path)
 
 
-trio.run(send_app)
+def get_auto_reloader_paths():
+    """
+    Returns a list of paths to watch for changes,
+    based on the config.py file
+    """
+
+    def create_path_tuples(paths, recursive):
+        return [(os.path.join(base_dir, x), {"recursive": recursive}) for x in paths]
+
+    non_recursive_paths = (
+        config.WATCHED_FILES + config.WATCHED_FOLDERS + config.FULL_RELOAD_FILES
+    )
+    recursive_paths = config.WATCHED_FOLDERS_RECURSIVELY
+    if platform == 'win':
+        return create_path_tuples(non_recursive_paths, False) + create_path_tuples(
+            recursive_paths, True
+        )
+    else:
+        return create_path_tuples(non_recursive_paths, True) + create_path_tuples(
+            recursive_paths, True
+        )
+
+
+
+
+def find_kv_files_in_folder(folder):
+    kv_files = []
+    for root, _, files in os.walk(os.path.join(base_dir, folder)):
+        for file in files:
+            if file.endswith(".kv"):
+                kv_files.append(os.path.join(root, file))
+    return kv_files
+
+
+def get_kv_files_paths():
+    """
+    Given the folders on WATCHED_FOLDERS and WATCHED_FOLDERS_RECURSIVELY,
+    returns a list of all the kv files paths
+    """
+    KV_FILES = []
+
+    for folder in config.WATCHED_FOLDERS:
+        for file_name in os.listdir(folder):
+            if file_name.endswith(".kv"):
+                KV_FILES.append(os.path.join(base_dir, f"{folder}/{file_name}"))
+
+    for folder in config.WATCHED_FOLDERS_RECURSIVELY:
+        for file_name in find_kv_files_in_folder(folder):
+            KV_FILES.append(file_name)
+
+    # Removing duplicates
+    KV_FILES = list(set(KV_FILES))
+
+    return KV_FILES
