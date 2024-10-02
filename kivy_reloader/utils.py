@@ -2,9 +2,16 @@ import os
 
 from kivy.lang import Builder
 from kivy.utils import platform
-
+from kivy.resources import resource_add_path, resource_find
 from .config import config
+import sys
+import pathlib
+import logging
 
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+)
 base_dir = os.getcwd()
 
 
@@ -12,7 +19,26 @@ def load_kv_path(path):
     """
     Loads a kv file from a path
     """
-    kv_path = os.path.join(base_dir, path)
+    if hasattr(sys, "_MEIPASS"):
+        resource_add_path(sys._MEIPASS)
+        test_path = pathlib.Path(path)
+        try:
+        #     look with extra root path appended to sys._MEIP0ASS
+            if str(test_path.parent) != ".":
+                meipass_path = pathlib.Path(sys._MEIPASS) / test_path.parent
+            resource_add_path(meipass_path)
+            logging.info(f"resource_find {meipass_path}, {test_path.name}")
+            kv_path = resource_find(test_path.name)
+        except:
+        #     last resort: do a naive search with resource find
+            kv_path = resource_find(path)
+            logging.info(f"kv path might be a duplicate, please double check {path}, {kv_path}")
+
+    else:
+        kv_path = os.path.join(base_dir, path)
+    print("what is kv path now?", kv_path, path)
+    if kv_path is None:
+        logging.error(f"failed to load kv path: {path}")
     if kv_path in Builder.files:
         Builder.unload_file(kv_path)
 

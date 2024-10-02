@@ -268,7 +268,10 @@ if platform != "android":
                 self.build_root_and_add_to_window()
 
                 self.apply_state(self.state)  # TODO
-                if self.HOT_RELOAD_ON_PHONE:
+                #can't hot reload on windows directly -- need WSL
+                if platform == "win":
+                    Logger.warning("Reloader: Reloading on Android requires WSL installation: https://kivyschool.com/kivy-reloader-WindowsWSL/")
+                elif self.HOT_RELOAD_ON_PHONE:
                     self.send_app_to_phone()
             except Exception as e:
                 import traceback
