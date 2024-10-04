@@ -31,6 +31,8 @@ class Config:
         ]
         if not hasattr(sys, "_MEIPASS"):
             self._load_config()
+        elif hasattr(sys, "_MEIPASS"):
+            print("PyInstaller environment detected. Make sure to turn your kivy_reloader app into a kivy app. see: https://kivyschool.com/kivy-reloader/windows/setup-and-how-to-use/")
 
     def _load_config(self):
         if os.path.exists(self.config_file):
