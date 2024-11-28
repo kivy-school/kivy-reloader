@@ -464,6 +464,7 @@ else:
     import shutil
 
     from kivy.app import App
+    from kivy.clock import Clock
 
     class App(App):
         def __init__(self, *args, **kwargs):
