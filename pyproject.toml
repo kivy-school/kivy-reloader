@@ -15,7 +15,7 @@ packages = [{ include = "kivy_reloader" }]
 python = "^3.10"
 cython = "^0.29.34"
 kaki = "^0.1.8"
-trio = "^0.22.0"
+trio = "^0.27.0"
 buildozer = "1.5.0"
 plyer = "^2.1.0"
 toml = "^0.10.2"
