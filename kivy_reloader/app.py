@@ -156,6 +156,9 @@ if platform != "android":
                 while Window.children:
                     Window.remove_widget(Window.children[0])
 
+            Clock.schedule_once(self.delayed_build)
+
+        def delayed_build(self, *args):
             self.root = self.build()
 
             if self.root:
@@ -268,9 +271,11 @@ if platform != "android":
                 self.build_root_and_add_to_window()
 
                 self.apply_state(self.state)  # TODO
-                #can't hot reload on windows directly -- need WSL
+                # can't hot reload on windows directly -- need WSL
                 if platform == "win":
-                    Logger.warning("Reloader: Reloading on Android requires WSL installation: https://kivyschool.com/kivy-reloader-WindowsWSL/")
+                    Logger.warning(
+                        "Reloader: Reloading on Android requires WSL installation: https://kivyschool.com/kivy-reloader-WindowsWSL/"
+                    )
                 elif self.HOT_RELOAD_ON_PHONE:
                     self.send_app_to_phone()
             except Exception as e:
@@ -648,6 +653,9 @@ else:
                 self.root.clear_widgets()
                 Window.remove_widget(Window.children[0])
 
+            Clock.schedule_once(self.delayed_build)
+
+        def delayed_build(self, *args):
             self.root = self.build()
 
             if self.root:
