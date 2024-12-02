@@ -1,12 +1,13 @@
+import logging
 import os
+import pathlib
+import sys
 
 from kivy.lang import Builder
-from kivy.utils import platform
 from kivy.resources import resource_add_path, resource_find
+from kivy.utils import platform
+
 from .config import config
-import sys
-import pathlib
-import logging
 
 logging.basicConfig(
     level=logging.INFO,
@@ -23,20 +24,21 @@ def load_kv_path(path):
         resource_add_path(sys._MEIPASS)
         test_path = pathlib.Path(path)
         try:
-        #     look with extra root path appended to sys._MEIP0ASS
+            # look with extra root path appended to sys._MEIP0ASS
             if str(test_path.parent) != ".":
                 meipass_path = pathlib.Path(sys._MEIPASS) / test_path.parent
             resource_add_path(meipass_path)
             logging.info(f"resource_find {meipass_path}, {test_path.name}")
             kv_path = resource_find(test_path.name)
         except:
-        #     last resort: do a naive search with resource find
+            # last resort: do a naive search with resource find
             kv_path = resource_find(path)
-            logging.info(f"kv path might be a duplicate, please double check {path}, {kv_path}")
+            logging.info(
+                f"kv path might be a duplicate, please double check {path}, {kv_path}"
+            )
 
     else:
         kv_path = os.path.join(base_dir, path)
-    print("what is kv path now?", kv_path, path)
     if kv_path is None:
         logging.error(f"failed to load kv path: {path}")
     if kv_path in Builder.files:
@@ -59,7 +61,7 @@ def get_auto_reloader_paths():
         config.WATCHED_FILES + config.WATCHED_FOLDERS + config.FULL_RELOAD_FILES
     )
     recursive_paths = config.WATCHED_FOLDERS_RECURSIVELY
-    if platform == 'win':
+    if platform == "win":
         return create_path_tuples(non_recursive_paths, False) + create_path_tuples(
             recursive_paths, True
         )
@@ -67,8 +69,6 @@ def get_auto_reloader_paths():
         return create_path_tuples(non_recursive_paths, True) + create_path_tuples(
             recursive_paths, True
         )
-
-
 
 
 def find_kv_files_in_folder(folder):
