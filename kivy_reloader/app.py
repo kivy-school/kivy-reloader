@@ -272,9 +272,9 @@ if platform != "android":
 
                 self.apply_state(self.state)  # TODO
                 # can't hot reload on windows directly -- need WSL
-                if platform == "win":
+                if platform == "win" and config.HOT_RELOAD_ON_PHONE:
                     Logger.warning(
-                        "Reloader: Reloading on Android requires WSL installation: https://kivyschool.com/kivy-reloader-WindowsWSL/"
+                        "Reloader: Reloading on Android requires WSL installation: https://kivyschool.com/kivy-reloader/windows/wsl2-setup-targeting-android/"
                     )
                 elif self.HOT_RELOAD_ON_PHONE:
                     self.send_app_to_phone()
