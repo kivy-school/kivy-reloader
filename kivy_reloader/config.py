@@ -1,8 +1,9 @@
 import os
+import sys
 from typing import Any, List
 
 import toml
-import sys
+
 
 class Config:
     def __init__(self):
@@ -32,7 +33,11 @@ class Config:
         if not hasattr(sys, "_MEIPASS"):
             self._load_config()
         elif hasattr(sys, "_MEIPASS"):
-            print("PyInstaller environment detected. Make sure to turn your kivy_reloader app into a kivy app. see: https://kivyschool.com/kivy-reloader/windows/setup-and-how-to-use/")
+            print(
+                "PyInstaller environment detected."
+                "Make sure to turn your kivy_reloader app into a kivy app. see:"
+                "https://kivyschool.com/kivy-reloader/windows/setup-and-how-to-use/"
+            )
 
     def _load_config(self):
         if os.path.exists(self.config_file):
@@ -79,7 +84,7 @@ class Config:
 
     @property
     def STREAM_USING(self) -> str:
-        return self.get("STREAM_USING", "")
+        return self.get("STREAM_USING", "USB")
 
     @property
     def PORT(self) -> int:
