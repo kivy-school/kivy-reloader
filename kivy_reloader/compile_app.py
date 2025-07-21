@@ -1,6 +1,7 @@
 import logging
 import os
 import platform as _platform
+import signal
 import subprocess
 import sys
 import time
@@ -46,6 +47,8 @@ def _get_platform():
     return "unknown"
 
 
+processes: list[Process] = []
+
 platform_release = _platform.release().lower()
 platform = _get_platform()
 
@@ -76,6 +79,28 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
 )
+
+
+def _graceful_shutdown(signum, _frame):
+    logging.debug("received %s, terminating children", signal.Signals(signum).name)
+
+    for p in processes:
+        if p.pid and p.is_alive():
+            p.terminate()
+            p.join(timeout=5)
+
+    try:  # option 1: pkill (Linux / WSL2)
+        subprocess.run(["pkill", "-TERM", "-x", "scrcpy"])
+    except FileNotFoundError:  # if pkill is not available, use psutil
+        for proc in psutil.process_iter(["name", "pid"]):
+            if proc.info["name"] == "scrcpy":
+                os.kill(proc.info["pid"], signal.SIGTERM)
+
+    sys.exit(128 + signum)
+
+
+signal.signal(signal.SIGINT, _graceful_shutdown)
+signal.signal(signal.SIGTERM, _graceful_shutdown)
 
 
 def notify(title: str, message: str) -> None:
@@ -147,11 +172,17 @@ def debug_and_livestream() -> None:
     Executes `adb logcat` and `scrcpy` in parallel.
     """
     try:
-        adb_logcat = Process(target=debug)
-        scrcpy = Process(target=livestream)
+        adb_logcat = Process(target=debug, name="adb_logcat")
+        scrcpy = Process(target=livestream, name="scrcpy")
 
         adb_logcat.start()
         scrcpy.start()
+
+        processes.extend((adb_logcat, scrcpy))
+
+        for p in processes:
+            p.join()
+
     except KeyboardInterrupt:
         logging.info("Terminating processes")
         adb_logcat.terminate()
@@ -318,7 +349,11 @@ def start_scrcpy():
         command.append("-e")
 
     try:
-        subprocess.run(command)
+        subprocess.Popen(
+            command,
+            start_new_session=True,
+            close_fds=True,
+        )
     except FileNotFoundError:
         logging.error("scrcpy not found")
         print(
