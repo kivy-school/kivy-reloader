@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "kivy-reloader"
-version = "0.5.5"
+version = "0.5.6"
 description = "Hot reload your Kivy app on multiple Android phones and computer in real-time."
 authors = ["filipemarch <filipe.marchesini@gmail.com>"]
 readme = "README.md"
