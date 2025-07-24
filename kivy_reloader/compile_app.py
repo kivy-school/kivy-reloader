@@ -5,6 +5,7 @@ import signal
 import subprocess
 import sys
 import time
+from contextlib import suppress
 from multiprocessing import Process
 from sys import platform as _sys_platform
 from threading import Thread
@@ -47,13 +48,41 @@ def _get_platform():
     return "unknown"
 
 
-processes: list[Process] = []
-
 platform_release = _platform.release().lower()
 platform = _get_platform()
 
 if platform in ["linux", "macosx"]:
     from plyer import notification
+
+if platform != "win":
+    # ── terminal state capture ────────────────────────────────────────────────────
+    _ORIGINAL_STTY = subprocess.check_output(["stty", "-g"]).decode().strip()
+
+    def _restore_terminal() -> None:
+        """Return terminal to the settings captured at startup."""
+        subprocess.run(["stty", _ORIGINAL_STTY], check=False)
+
+    def _sigint_handler(_sig, _frame) -> None:
+        """Handle Ctrl-C: restore terminal, then exit."""
+        _restore_terminal()
+        sys.exit(130)
+
+    signal.signal(signal.SIGINT, _sigint_handler)
+else:
+
+    def _restore_terminal() -> None:
+        """No-op for Windows."""
+        pass
+
+
+def _terminate(proc: subprocess.Popen) -> None:
+    with suppress(Exception):
+        if proc and proc.poll() is None:
+            proc.terminate()
+
+
+logcat_proc: subprocess.Popen | None = None
+filter_proc: subprocess.Popen | None = None
 
 green = Fore.GREEN
 yellow = Fore.YELLOW
@@ -79,28 +108,6 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
 )
-
-
-def _graceful_shutdown(signum, _frame):
-    logging.debug("received %s, terminating children", signal.Signals(signum).name)
-
-    for p in processes:
-        if p.pid and p.is_alive():
-            p.terminate()
-            p.join(timeout=5)
-
-    try:  # option 1: pkill (Linux / WSL2)
-        subprocess.run(["pkill", "-TERM", "-x", "scrcpy"])
-    except FileNotFoundError:  # if pkill is not available, use psutil
-        for proc in psutil.process_iter(["name", "pid"]):
-            if proc.info["name"] == "scrcpy":
-                os.kill(proc.info["pid"], signal.SIGTERM)
-
-    sys.exit(128 + signum)
-
-
-signal.signal(signal.SIGINT, _graceful_shutdown)
-signal.signal(signal.SIGTERM, _graceful_shutdown)
 
 
 def notify(title: str, message: str) -> None:
@@ -172,17 +179,11 @@ def debug_and_livestream() -> None:
     Executes `adb logcat` and `scrcpy` in parallel.
     """
     try:
-        adb_logcat = Process(target=debug, name="adb_logcat")
-        scrcpy = Process(target=livestream, name="scrcpy")
+        adb_logcat = Process(target=debug)
+        scrcpy = Process(target=livestream)
 
         adb_logcat.start()
         scrcpy.start()
-
-        processes.extend((adb_logcat, scrcpy))
-
-        for p in processes:
-            p.join()
-
     except KeyboardInterrupt:
         logging.info("Terminating processes")
         adb_logcat.terminate()
@@ -260,20 +261,21 @@ def run_logcat(IP=None, *args):
     """
     Runs logcat for debugging.
     """
+    global logcat_proc, filter_proc
+
+    LOGCAT_CMD = ["adb", "logcat"]
 
     if platform == "win":
-        watch = '"I python"'
-        findstr_services = " ".join(
-            [f"/c:{SERVICE_NAME}" for SERVICE_NAME in config.SERVICE_NAMES]
-        )
-        logcat_command = f"adb logcat | findstr /r /c:{watch} {findstr_services}"
+        watch = "I python"
+        findstr_services = [
+            f"/c:{SERVICE_NAME}" for SERVICE_NAME in config.SERVICE_NAMES
+        ]
+        FINDSTR_CMD = ["findstr", "/c:" + watch] + findstr_services
+
     else:
-        watch = "'I python"
-        for service in config.SERVICE_NAMES:
-            watch += f"\|{service}"
-        else:
-            watch += "'"
-        logcat_command = f"adb logcat | grep {watch}"
+        services = "|".join(config.SERVICE_NAMES)
+        watch = "I python" if not services else f"I python|{services}"
+        GREP_CMD = ["grep", "-E", watch]
 
     if IP:
         try:
@@ -283,11 +285,15 @@ def run_logcat(IP=None, *args):
             print(
                 f"{red}Please, install `scrcpy`: {yellow}https://github.com/Genymobile/scrcpy{Fore.RESET}"
             )
-        logcat_command.replace("adb", f"adb -s {IP}:{config.PORT}")
+        LOGCAT_CMD[:1] = ["adb", "-s", f"{IP}:{config.PORT}"]
 
     logging.info("Starting logcat")
     try:
-        subprocess.run(logcat_command, shell=True)
+        logcat_proc = subprocess.Popen(LOGCAT_CMD, stdout=subprocess.PIPE)
+        filter_proc = subprocess.Popen(
+            FINDSTR_CMD if platform == "win" else GREP_CMD, stdin=logcat_proc.stdout
+        )
+
     except FileNotFoundError:
         logging.error("adb not found")
         print(
@@ -317,8 +323,10 @@ def start_scrcpy():
     """
     Starts the scrcpy process for screen mirroring.
     """
+    global logcat_proc, filter_proc
+
     logging.info("Starting scrcpy")
-    command = [
+    SCRCPY_CMD = [
         "scrcpy",
         "--window-x",
         config.WINDOW_X,
@@ -328,37 +336,39 @@ def start_scrcpy():
         config.WINDOW_WIDTH,
     ]
 
-    command.append("--no-mouse-hover")
+    SCRCPY_CMD.append("--no-mouse-hover")
 
     if config.ALWAYS_ON_TOP:
-        command.append("--always-on-top")
+        SCRCPY_CMD.append("--always-on-top")
     if config.TURN_SCREEN_OFF:
-        command.append("--turn-screen-off")
+        SCRCPY_CMD.append("--turn-screen-off")
     if config.STAY_AWAKE:
-        command.append("--stay-awake")
+        SCRCPY_CMD.append("--stay-awake")
     if config.SHOW_TOUCHES:
-        command.append("--show-touches")
+        SCRCPY_CMD.append("--show-touches")
     if config.WINDOW_TITLE:
-        command.append(f"--window-title='{config.WINDOW_TITLE}'")
+        SCRCPY_CMD.append(f"--window-title='{config.WINDOW_TITLE}'")
     if config.NO_AUDIO:
-        command.append("--no-audio")
+        SCRCPY_CMD.append("--no-audio")
 
     if config.STREAM_USING == "USB":
-        command.append("-d")
+        SCRCPY_CMD.append("-d")
     elif config.STREAM_USING == "WIFI":
-        command.append("-e")
+        SCRCPY_CMD.append("-e")
 
     try:
-        subprocess.Popen(
-            command,
-            start_new_session=True,
-            close_fds=True,
-        )
+        scrcpy_proc = subprocess.Popen(SCRCPY_CMD, stdin=subprocess.DEVNULL)
+        scrcpy_proc.wait()
     except FileNotFoundError:
         logging.error("scrcpy not found")
         print(
             f"{red}Please, install `scrcpy`: {yellow}https://github.com/Genymobile/scrcpy{Fore.RESET}"
         )
+    finally:
+        _restore_terminal()
+        _terminate(filter_proc)
+        _terminate(logcat_proc)
+        _terminate(scrcpy_proc)
 
 
 def create_aab():
