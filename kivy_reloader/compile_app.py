@@ -184,10 +184,12 @@ def select_option(option: str, app_name: str) -> None:
         logging.error(f'An error occurred during compilation: {e}')
 
 
-def compile_app():
+def validate_compilation_environment() -> None:
     """
-    Uses `buildozer` to compile the app for Android.
-    Notifies the user about the compilation status.
+    Validates that the current platform supports buildozer compilation.
+
+    Raises:
+        SystemExit: If running on Windows platform
     """
     if platform == 'win':
         logging.error('Windows can not run buildozer')
@@ -197,61 +199,127 @@ def compile_app():
         )
         sys.exit(0)
 
-    logging.info("Starting compilation")
+
+def run_buildozer_compilation() -> float:
+    """
+    Executes buildozer compilation process with timing and notifications.
+
+    Returns:
+        float: Compilation time in seconds
+
+    Raises:
+        subprocess.CalledProcessError: If buildozer compilation fails
+    """
+    logging.info('Starting compilation')
 
     notify(
         f'Compiling {app_name}',
         f'Compilation started at {time.strftime("%H:%M:%S")}',
     )
 
-    # Step 1: Compile using buildozer
-    t1 = time.time()
-    subprocess.run(["buildozer", "-v", "android", "debug"], check=True)
-    t2 = time.time()
+    start_time = time.time()
+    subprocess.run(['buildozer', '-v', 'android', 'debug'], check=True)
+    end_time = time.time()
+
+    compilation_time = round(end_time - start_time, 2)
+
     notify(
-        f"Compiled {app_name} successfully",
-        f"Compilation finished in {round(t2 - t1, 2)} seconds",
+        f'Compiled {app_name} successfully',
+        f'Compilation finished in {compilation_time} seconds',
     )
     logging.info('Finished compilation')
 
-    # Step 2: Select target serial
-    devices = get_connected_devices()
-    if not devices:
-        logging.error("No connected devices found. APK will not be installed.")
-        return
+    return compilation_time
 
+
+def filter_target_devices(devices: list) -> dict:
+    """
+    Filters and deduplicates devices based on physical device mapping.
+
+    Prioritizes USB devices when STREAM_USING is "USB" and TCP/IP devices
+    when STREAM_USING is "WIFI" for the same physical device.
+
+    Args:
+        devices: List of connected device dictionaries
+
+    Returns:
+        dict: Mapping of device info tuples to selected device dictionaries
+    """
     physical_map = {}
-    for d in devices:
-        key = (d["wifi_ip"], d["model"])
-        existing = physical_map.get(key)
-        if not existing:
-            physical_map[key] = d
-        elif config.STREAM_USING == "USB" and d["transport"] == "usb":
-            physical_map[key] = d
-        elif config.STREAM_USING == "WIFI" and d["transport"] == "tcpip":
-            physical_map[key] = d
 
-    # Step 3: Install the APK on each device
-    for device in physical_map.values():
-        logging.info(f"Installing APK on {device['model']} | ({device['serial']})")
+    for device in devices:
+        key = (device['wifi_ip'], device['model'])
+        existing = physical_map.get(key)
+
+        if not existing:
+            physical_map[key] = device
+        elif config.STREAM_USING == 'USB' and device['transport'] == 'usb':
+            physical_map[key] = device
+        elif config.STREAM_USING == 'WIFI' and device['transport'] == 'tcpip':
+            physical_map[key] = device
+
+    return physical_map
+
+
+def deploy_app_to_devices(
+    target_devices: dict, apk_file_path: str, package_name: str
+) -> None:
+    """
+    Installs APK and starts the application on target devices.
+
+    Args:
+        target_devices: Dictionary of filtered target devices
+        apk_file_path: Path to the APK file to install
+        package_name: Full package name for the application
+
+    Raises:
+        subprocess.CalledProcessError: If ADB commands fail
+    """
+    for device in target_devices.values():
+        logging.info(f'Installing APK on {device["model"]} | ({device["serial"]})')
         subprocess.run(
-            ["adb", "-s", device["serial"], "install", "-r", apk_path], check=True
+            ['adb', '-s', device['serial'], 'install', '-r', apk_file_path], check=True
         )
 
         logging.info(f'Starting app on {device["model"]} | ({device["serial"]})')
         subprocess.run(
             [
-                "adb",
-                "-s",
-                device["serial"],
-                "shell",
-                "am",
-                "start",
-                "-n",
-                f"{package}/org.kivy.android.PythonActivity",
+                'adb',
+                '-s',
+                device['serial'],
+                'shell',
+                'am',
+                'start',
+                '-n',
+                f'{package_name}/org.kivy.android.PythonActivity',
             ],
             check=True,
         )
+
+
+def compile_app():
+    """
+    Orchestrates the complete app compilation and deployment process.
+
+    This function coordinates platform validation, buildozer compilation,
+    device filtering, and app deployment to connected Android devices.
+    """
+    # Step 1: Validate environment
+    validate_compilation_environment()
+
+    # Step 2: Compile using buildozer
+    run_buildozer_compilation()
+
+    # Step 3: Get and filter target devices
+    devices = get_connected_devices()
+    if not devices:
+        logging.error('No connected devices found. APK will not be installed.')
+        return
+
+    target_devices = filter_target_devices(devices)
+
+    # Step 4: Deploy to devices
+    deploy_app_to_devices(target_devices, apk_path, package)
 
 
 def debug_and_livestream() -> None:
