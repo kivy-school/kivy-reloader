@@ -484,9 +484,14 @@ def start_scrcpy():
     """
     Starts the scrcpy process for screen mirroring.
     """
+    logging.info("Starting scrcpy")
     global logcat_proc, filter_proc
 
-    logging.info("Starting scrcpy")
+    devices = get_connected_devices()
+    if not devices:
+        logging.error("No connected devices found. Scrcpy will not start.")
+        return
+
     SCRCPY_CMD = [
         "scrcpy",
         "--window-x",
