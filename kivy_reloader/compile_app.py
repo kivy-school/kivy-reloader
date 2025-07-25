@@ -681,19 +681,14 @@ def livestream():
     start_scrcpy()
 
 
-def start_scrcpy():
+def build_scrcpy_command() -> list:
     """
-    Starts the scrcpy process for screen mirroring.
+    Builds the scrcpy command with all configuration options.
+
+    Returns:
+        list: Complete scrcpy command array with all configured options
     """
-    logging.info('Starting scrcpy')
-    global logcat_proc, filter_proc
-
-    devices = get_connected_devices()
-    if not devices:
-        logging.error('No connected devices found. Scrcpy will not start.')
-        return
-
-    SCRCPY_CMD = [
+    scrcpy_cmd = [
         'scrcpy',
         '--window-x',
         config.WINDOW_X,
@@ -701,41 +696,94 @@ def start_scrcpy():
         config.WINDOW_Y,
         '--window-width',
         config.WINDOW_WIDTH,
+        '--no-mouse-hover',
     ]
 
-    SCRCPY_CMD.append('--no-mouse-hover')
-
+    # Add optional features based on configuration
     if config.ALWAYS_ON_TOP:
-        SCRCPY_CMD.append('--always-on-top')
+        scrcpy_cmd.append('--always-on-top')
     if config.TURN_SCREEN_OFF:
-        SCRCPY_CMD.append('--turn-screen-off')
+        scrcpy_cmd.append('--turn-screen-off')
     if config.STAY_AWAKE:
-        SCRCPY_CMD.append('--stay-awake')
+        scrcpy_cmd.append('--stay-awake')
     if config.SHOW_TOUCHES:
-        SCRCPY_CMD.append('--show-touches')
+        scrcpy_cmd.append('--show-touches')
     if config.WINDOW_TITLE:
-        SCRCPY_CMD.append(f"--window-title='{config.WINDOW_TITLE}'")
+        scrcpy_cmd.append(f"--window-title='{config.WINDOW_TITLE}'")
     if config.NO_AUDIO:
-        SCRCPY_CMD.append('--no-audio')
+        scrcpy_cmd.append('--no-audio')
 
+    # Add connection method
     if config.STREAM_USING == 'USB':
-        SCRCPY_CMD.append('-d')
+        scrcpy_cmd.append('-d')
     elif config.STREAM_USING == 'WIFI':
-        SCRCPY_CMD.append('-e')
+        scrcpy_cmd.append('-e')
 
+    return scrcpy_cmd
+
+
+def execute_scrcpy_process(command: list) -> subprocess.Popen:
+    """
+    Executes the scrcpy process and waits for completion.
+
+    Args:
+        command: Complete scrcpy command array
+
+    Returns:
+        subprocess.Popen: The scrcpy process object
+
+    Raises:
+        FileNotFoundError: If scrcpy executable is not found
+    """
     try:
-        scrcpy_proc = subprocess.Popen(SCRCPY_CMD, stdin=subprocess.DEVNULL)
+        scrcpy_proc = subprocess.Popen(command, stdin=subprocess.DEVNULL)
         scrcpy_proc.wait()
+        return scrcpy_proc
     except FileNotFoundError:
         logging.error('scrcpy not found')
         print(
             f'{red}Please, install `scrcpy`: {yellow}https://github.com/Genymobile/scrcpy{Fore.RESET}'
         )
+        raise
+
+
+def cleanup_processes(*processes: subprocess.Popen) -> None:
+    """
+    Performs cleanup operations including terminal restoration and process termination.
+
+    Args:
+        *processes: Variable number of process objects to terminate
+    """
+    _restore_terminal()
+    for proc in processes:
+        if proc is not None:
+            _terminate(proc)
+
+
+def start_scrcpy():
+    """
+    Orchestrates scrcpy screen mirroring with command building, execution, and cleanup.
+
+    This function coordinates device validation, command construction,
+    process execution, and proper cleanup of resources.
+    """
+    logging.info('Starting scrcpy')
+
+    # Step 1: Validate devices are connected
+    devices = get_connected_devices()
+    if not devices:
+        logging.error('No connected devices found. Scrcpy will not start.')
+        return
+
+    # Step 2: Build scrcpy command
+    scrcpy_cmd = build_scrcpy_command()
+
+    # Step 3: Execute scrcpy process with cleanup
+    scrcpy_proc = None
+    try:
+        scrcpy_proc = execute_scrcpy_process(scrcpy_cmd)
     finally:
-        _restore_terminal()
-        _terminate(filter_proc)
-        _terminate(logcat_proc)
-        _terminate(scrcpy_proc)
+        cleanup_processes(filter_proc, logcat_proc, scrcpy_proc)
 
 
 def create_aab():
