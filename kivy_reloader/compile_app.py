@@ -16,6 +16,13 @@ import typer
 from colorama import Fore, Style, init
 
 from .config import config
+from .utils import get_connected_devices, get_wifi_ip
+
+# ── colorama ──────────────────────────────
+init(autoreset=True)
+green = Fore.GREEN
+yellow = Fore.YELLOW
+red = Fore.RED
 
 
 def get_app_name():
@@ -27,6 +34,34 @@ def get_app_name():
             if line.startswith("title"):
                 return line.split("=")[1].strip()
     return "UnknownApp"
+
+
+def get_apk_path():
+    pkg = ""
+    version = ""
+    archs = ""
+    with open("buildozer.spec", 'r', encoding='utf-8') as f:
+        for line in f:
+            if line.startswith("package.name"):
+                pkg = line.split("=", 1)[1].strip()
+            elif line.startswith("version") and not line.startswith("version."):
+                version = line.split("=", 1)[1].strip()
+            elif line.startswith("android.archs"):
+                archs = line.split("=", 1)[1].strip().replace(",", "_").replace(" ", "")
+    arch = archs if archs else "arm64-v8a"
+    return f"bin/{pkg}-{version}-{arch}-debug.apk"
+
+
+def get_package_name():
+    domain = "org.test"
+    name = "UnknownApp"
+    with open("buildozer.spec", "r", encoding='utf-8') as file:
+        for line in file:
+            if line.startswith("package.domain"):
+                domain = line.split("=")[1].strip()
+            elif line.startswith("package.name"):
+                name = line.split("=")[1].strip()
+    return f"{domain}.{name}"
 
 
 def _get_platform():
@@ -84,13 +119,10 @@ def _terminate(proc: subprocess.Popen) -> None:
 logcat_proc: subprocess.Popen | None = None
 filter_proc: subprocess.Popen | None = None
 
-green = Fore.GREEN
-yellow = Fore.YELLOW
-red = Fore.RED
-init(autoreset=True)
-
 app = typer.Typer()
 app_name = get_app_name()
+package = get_package_name()
+apk_path = get_apk_path()
 
 compiler_options = [
     "Compile, debug and livestream",
