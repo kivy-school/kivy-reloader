@@ -109,3 +109,80 @@ def get_kv_files_paths():
     KV_FILES = list(set(KV_FILES))
 
     return KV_FILES
+
+
+def get_connected_devices() -> list[dict[str, str]]:
+    """
+    Returns a list of connected devices with metadata:
+    - serial: device serial (USB or IP)
+    - transport: usb or tcpip
+    - model: device model name if available
+    - wifi_ip: IP address of wlan0 (if available)
+    """
+    result = subprocess.run(
+        ['adb', 'devices', '-l'], capture_output=True, text=True, check=True
+    )
+    lines = result.stdout.strip().splitlines()[1:]  # Skip header
+    devices = []
+    for line in lines:
+        if not line.strip() or 'device' not in line:
+            continue
+        parts = line.strip().split()
+        serial = parts[0]
+        transport = 'tcpip' if ':' in serial else 'usb'
+        model = next(
+            (p.split(':')[1] for p in parts if p.startswith('model:')),
+            'unknown',
+        )
+
+        logging.info(
+            f'Detected device: '
+            f'serial={serial}, '
+            f'transport={transport}, '
+            f'model={model}'
+        )
+        wifi_ip = get_wifi_ip(serial)
+
+        devices.append({
+            'serial': serial,
+            'transport': transport,
+            'model': model,
+            'wifi_ip': wifi_ip,
+        })
+    logging.info(f'Total serials connected: {len(devices)}')
+    unique_physical = {
+        (d['wifi_ip'], d['model']) for d in devices if d['wifi_ip'] is not None
+    }
+    logging.info(f'Total physical devices connected: {len(unique_physical)}')
+    return devices
+
+
+def get_wifi_ip(serial: str) -> str | None:
+    logging.debug(f'Querying Wi-Fi IP for serial: {serial}')
+    try:
+        result = subprocess.run(
+            [
+                'adb',
+                '-s',
+                serial,
+                'shell',
+                'ip',
+                '-f',
+                'inet',
+                'addr',
+                'show',
+                'wlan0',
+            ],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        for line in result.stdout.splitlines():
+            stripped_line = line.strip()
+            if stripped_line.startswith('inet '):
+                ip = stripped_line.split()[1].split('/')[0]
+                logging.debug(f'Found Wi-Fi IP {ip} for serial: {serial}')
+                return ip
+    except subprocess.CalledProcessError as e:
+        logging.warning(f'Failed to query Wi-Fi IP for {serial}: {e}')
+    return None
