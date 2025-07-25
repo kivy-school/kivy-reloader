@@ -29,7 +29,7 @@ def get_app_name():
     """
     Extracts the application name from the 'buildozer.spec' file.
     """
-    with open("buildozer.spec", "r") as file:
+    with open("buildozer.spec", "r", encoding='utf-8') as file:
         for line in file:
             if line.startswith("title"):
                 return line.split("=")[1].strip()
@@ -88,6 +88,13 @@ platform = _get_platform()
 
 if platform in ["linux", "macosx"]:
     from plyer import notification
+else:
+    # Mock notification for Windows and other platforms
+    class NotificationMock:
+        def notify(self, message, title):
+            pass
+
+    notification = NotificationMock()
 
 if platform != "win":
     # ── terminal state capture ────────────────────────────────────────────────────
@@ -284,8 +291,8 @@ def restart_adb_server():
 def kill_adb_server():
     logging.info("Restarting adb server")
     try:
-        subprocess.run(["adb", "disconnect"])
-        subprocess.run(["adb", "kill-server"])
+        subprocess.run(["adb", "disconnect"], check=True)
+        subprocess.run(["adb", "kill-server"], check=True)
     except FileNotFoundError:
         print(
             f"{red}Please, install `scrcpy`: {yellow}https://github.com/Genymobile/scrcpy{Fore.RESET}"
@@ -295,7 +302,7 @@ def kill_adb_server():
 def start_adb_server():
     logging.info("Starting adb server")
     try:
-        subprocess.run(["adb", "start-server"])
+        subprocess.run(["adb", "start-server"], check=True)
     except FileNotFoundError:
         logging.error("adb not found")
         print(
@@ -333,11 +340,13 @@ def clear_logcat():
 
         for d in physical_map.values():
             logging.debug(
-                f"Clearing logcat for serial={d['serial']} ({d['transport']}, {d['model']})"
+                "Clearing logcat for "
+                f"serial={d['serial']} ({d['transport']}, {d['model']})"
             )
             subprocess.run(["adb", "-s", d["serial"], "logcat", "-c"], check=True)
             logging.info(
-                f"Logcat cleared for device {d['model']} ({d['serial']}) ({d['transport']})"
+                "Logcat cleared for "
+                f"device {d['model']} ({d['serial']}) ({d['transport']})"
             )
     except FileNotFoundError:
         logging.error("adb not found")
@@ -376,7 +385,11 @@ def debug_on_wifi():
 
     for d in target_usb_devices:
         logging.info(f"Enabling tcpip mode for {d['model']} ({d['serial']})")
-        subprocess.run(["adb", "-s", d["serial"], "tcpip", f"{config.ADB_PORT}"], check=True)
+        subprocess.run(["adb", "-s",
+                        d["serial"],
+                        "tcpip",
+                        f"{config.ADB_PORT}"],
+                        check=True)
 
         if not d["wifi_ip"]:
             d["wifi_ip"] = get_wifi_ip(d["serial"])
@@ -569,7 +582,7 @@ def highlight_selected_option(option: str):
     if option == selected_option:
         option_text = f"[{green}x{Style.RESET_ALL}] {green}"
     else:
-        option_text = f"[ ] "
+        option_text = "[ ] "
 
     option_text = f"{option_text}{option}{Style.RESET_ALL}"
     typer.echo(option_text)
@@ -584,7 +597,7 @@ def start():
     navigate_compiler_options()
 
     typer.clear()
-    typer.echo(f"\nSelect one of the 4 options below:\n")
+    typer.echo("\nSelect one of the 4 options below:\n")
 
     development_options = compiler_options[:2]
     production_option = compiler_options[2]
@@ -619,9 +632,9 @@ def start():
             start()
             break
         # left key, q, ESC
-        elif key == readchar.key.LEFT or key == "q" or key == readchar.key.ESC * 2:
-            exit()
-        elif key in ["\n", readchar.key.RIGHT, readchar.key.ENTER]:
+        elif key in {readchar.key.LEFT, "q", readchar.key.ESC * 2}:
+            sys.exit()
+        elif key in {"\n", readchar.key.RIGHT, readchar.key.ENTER}:
             typer.clear()
             print(f"{yellow} Selected option: {green}{selected_option}")
             option = str(compiler_options.index(selected_option) + 1)
