@@ -25,68 +25,121 @@ yellow = Fore.YELLOW
 red = Fore.RED
 
 
-def get_app_name():
+def parse_buildozer_spec() -> dict:
     """
-    Extracts the application name from the 'buildozer.spec' file.
+    Parses the buildozer.spec file and extracts all relevant configuration values.
+
+    Returns:
+        dict: Configuration values from buildozer.spec
+
+    Raises:
+        FileNotFoundError: If buildozer.spec file doesn't exist
     """
-    with open('buildozer.spec', 'r', encoding='utf-8') as file:
-        for line in file:
-            if line.startswith('title'):
-                return line.split('=')[1].strip()
-    return 'UnknownApp'
+    config_values = {
+        'title': 'UnknownApp',
+        'package_name': 'unknown_app',
+        'package_domain': 'org.example',
+        'version': '0.1',
+        'android_archs': 'arm64-v8a',
+    }
+
+    try:
+        with open('buildozer.spec', 'r', encoding='utf-8') as file:
+            for file_line in file:
+                stripped_line = file_line.strip()
+                if '=' in stripped_line and not stripped_line.startswith('#'):
+                    key, value = stripped_line.split('=', 1)
+                    key = key.strip()
+                    value = value.strip()
+
+                    if key == 'title':
+                        config_values['title'] = value
+                    elif key == 'package.name':
+                        config_values['package_name'] = value
+                    elif key == 'package.domain':
+                        config_values['package_domain'] = value
+                    elif key == 'version' and not key.startswith('version.'):
+                        config_values['version'] = value
+                    elif key == 'android.archs':
+                        config_values['android_archs'] = value.replace(
+                            ',', '_'
+                        ).replace(' ', '')
+    except FileNotFoundError:
+        raise FileNotFoundError(
+            'buildozer.spec file not found. Please, '
+            'run `kivy-reloader init` to generate a default buildozer.spec file.'
+        )
+    return config_values
 
 
-def get_apk_path():
-    pkg = ''
-    version = ''
-    archs = ''
-    with open('buildozer.spec', 'r', encoding='utf-8') as f:
-        for line in f:
-            if line.startswith('package.name'):
-                pkg = line.split('=', 1)[1].strip()
-            elif line.startswith('version') and not line.startswith('version.'):
-                version = line.split('=', 1)[1].strip()
-            elif line.startswith('android.archs'):
-                archs = line.split('=', 1)[1].strip().replace(',', '_').replace(' ', '')
-    arch = archs if archs else 'arm64-v8a'
+def get_app_name() -> str:
+    """
+    Extracts the application name from the buildozer.spec file.
+
+    Returns:
+        str: Application title or 'UnknownApp' if not found
+    """
+    return parse_buildozer_spec()['title']
+
+
+def get_apk_path() -> str:
+    """
+    Constructs the APK file path based on buildozer.spec configuration.
+
+    Returns:
+        str: Path to the debug APK file
+    """
+    spec = parse_buildozer_spec()
+    pkg = spec['package_name']
+    version = spec['version']
+    arch = spec['android_archs']
     return f'bin/{pkg}-{version}-{arch}-debug.apk'
 
 
-def get_package_name():
-    domain = 'org.test'
-    name = 'UnknownApp'
-    with open('buildozer.spec', 'r', encoding='utf-8') as file:
-        for line in file:
-            if line.startswith('package.domain'):
-                domain = line.split('=')[1].strip()
-            elif line.startswith('package.name'):
-                name = line.split('=')[1].strip()
-    return f'{domain}.{name}'
+def get_package_name() -> str:
+    """
+    Constructs the full package name from domain and name in buildozer.spec.
+
+    Returns:
+        str: Full package name in format 'domain.name'
+    """
+    spec = parse_buildozer_spec()
+    return f'{spec["package_domain"]}.{spec["package_name"]}'
 
 
 def _get_platform():
+    """
+    Determines the current platform string.
+
+    Returns:
+        str: Platform identifier (android, ios, win, macosx, linux, or unknown)
+    """
     kivy_build = os.environ.get('KIVY_BUILD', '')
+
+    # Priority 1: KIVY_BUILD environment variable
     if kivy_build in {'android', 'ios'}:
         return kivy_build
-    elif 'P4A_BOOTSTRAP' in os.environ:
+
+    # Priority 2: Android-specific environment variables
+    android_env_vars = {'P4A_BOOTSTRAP', 'ANDROID_ARGUMENT'}
+    if any(var in os.environ for var in android_env_vars):
         return 'android'
-    elif 'ANDROID_ARGUMENT' in os.environ:
-        return 'android'
-    elif _sys_platform in ('win32', 'cygwin'):
-        return 'win'
-    elif _sys_platform == 'darwin':
-        return 'macosx'
-    elif _sys_platform.startswith('linux'):
+
+    # Priority 3: System platform detection
+    platform_map = {'win32': 'win', 'cygwin': 'win', 'darwin': 'macosx'}
+
+    if _sys_platform in platform_map:
+        return platform_map[_sys_platform]
+    elif _sys_platform.startswith(('linux', 'freebsd')):
         return 'linux'
-    elif _sys_platform.startswith('freebsd'):
-        return 'linux'
+
     return 'unknown'
 
 
 platform_release = _platform.release().lower()
 platform = _get_platform()
 
-if platform in ['linux', 'macosx']:
+if platform in {'linux', 'macosx'}:
     from plyer import notification
 else:
     # Mock notification for Windows and other platforms
@@ -155,7 +208,7 @@ def notify(title: str, message: str) -> None:
     No support for Windows yet.
     """
     try:
-        if platform in ['linux', 'macosx'] and 'microsoft' not in platform_release:
+        if platform in {'linux', 'macosx'} and 'microsoft' not in platform_release:
             notification.notify(message=message, title=title)
     except Exception as e:
         logging.error(f'Failed to send notification: {e}')
