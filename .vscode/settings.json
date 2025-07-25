@@ -1,10 +1,19 @@
 {
-  "editor.formatOnSave": true,
-  "materialkv.pythonFile": "main.py",
-  "[python]": {
-    "editor.defaultFormatter": "ms-python.black-formatter",
-    "editor.codeActionsOnSave": {
-      "source.organizeImports": "explicit"
-    }
-  }
+    "editor.formatOnSave": true,
+    "[python]": {
+        "editor.defaultFormatter": "charliermarsh.ruff",
+        "editor.codeActionsOnSave": {
+            "source.organizeImports": "explicit"
+        }
+    },
+    "python.analysis.autoImportCompletions": true,
+    "python.analysis.indexing": true,
+    "python.analysis.stubPath": "",
+    "python.analysis.packageIndexDepths": [
+        {
+            "name": "",
+            "depth": 4,
+            "includeAllSymbols": true
+        }
+    ],
 }
