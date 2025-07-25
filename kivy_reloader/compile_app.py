@@ -379,44 +379,50 @@ def start_adb_server():
         )
 
 
+def clear_device_logcat(device: dict) -> None:
+    """
+    Clears logcat for a specific device.
+
+    Args:
+        device: Device dictionary containing serial, model, and transport info
+
+    Raises:
+        subprocess.CalledProcessError: If adb logcat command fails
+    """
+    logging.debug(
+        'Clearing logcat for '
+        f'serial={device["serial"]} ({device["transport"]}, {device["model"]})'
+    )
+    subprocess.run(['adb', '-s', device['serial'], 'logcat', '-c'], check=True)
+    logging.info(
+        'Logcat cleared for '
+        f'device {device["model"]} ({device["serial"]}) ({device["transport"]})'
+    )
+
+
 def clear_logcat():
     """
-    Clears the logcat.
-    If multiple serials point to the same device, clears only once per device.
+    Clears logcat for all connected devices, filtering duplicates by physical device.
+
+    Uses the same device filtering logic as other functions to ensure
+    logcat is cleared only once per physical device.
     """
     logging.info('Clearing logcat')
+
     try:
         devices = get_connected_devices()
         if not devices:
             logging.error('No connected devices found. Logcat will not be cleared.')
             return
 
-        # Group by (wifi_ip, model) = physical device
-        physical_map = {}
-        for d in devices:
-            key = (d['wifi_ip'], d['model'])
-            existing = physical_map.get(key)
+        # Reuse existing device filtering logic
+        filtered_devices = filter_target_devices(devices)
+        logging.debug(f'Estimated physical devices connected: {len(filtered_devices)}')
 
-            if not existing:
-                physical_map[key] = d
-            else:
-                if config.STREAM_USING == 'USB' and d['transport'] == 'usb':
-                    physical_map[key] = d
-                elif config.STREAM_USING == 'WIFI' and d['transport'] == 'tcpip':
-                    physical_map[key] = d
+        # Clear logcat for each filtered device
+        for device in filtered_devices.values():
+            clear_device_logcat(device)
 
-        logging.debug(f'Estimated physical devices connected: {len(physical_map)}')
-
-        for d in physical_map.values():
-            logging.debug(
-                'Clearing logcat for '
-                f'serial={d["serial"]} ({d["transport"]}, {d["model"]})'
-            )
-            subprocess.run(['adb', '-s', d['serial'], 'logcat', '-c'], check=True)
-            logging.info(
-                'Logcat cleared for '
-                f'device {d["model"]} ({d["serial"]}) ({d["transport"]})'
-            )
     except FileNotFoundError:
         logging.error('adb not found')
         print(
@@ -638,7 +644,8 @@ def start_logcat_processes(logcat_cmd: list, filter_cmd: list) -> tuple:
 
 def run_logcat(IP=None, *args):
     """
-    Orchestrates logcat execution with connection, command building, and process management.
+    Orchestrates logcat execution with connection, command building,
+    and process management.
 
     Args:
         IP: Optional IP address for WiFi debugging
