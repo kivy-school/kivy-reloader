@@ -794,17 +794,35 @@ def start_scrcpy():
 
 
 def create_aab():
+    """
+    Creates an Android App Bundle (AAB) for production release.
+
+    Uses buildozer to compile the app in release mode with proper timing
+    and notifications. Exits the application after completion.
+
+    Raises:
+        subprocess.CalledProcessError: If buildozer compilation fails
+    """
     print(f'{yellow} Started creating aab')
     notify(
         f'Compile production: {app_name}',
         f'Compilation started at {time.strftime("%H:%M:%S")}',
     )
-    t1 = time.time()
-    os.system('buildozer -v android release')
-    t2 = time.time()
+
+    start_time = time.time()
+    try:
+        subprocess.run(['buildozer', '-v', 'android', 'release'], check=True)
+    except subprocess.CalledProcessError as e:
+        logging.error(f'AAB compilation failed: {e}')
+        print(f'{red} Failed to create AAB')
+        sys.exit(1)
+
+    end_time = time.time()
+    compilation_time = round(end_time - start_time, 2)
+
     notify(
         f'Compiled {app_name} successfully',
-        f'Compilation finished in {round(t2 - t1, 2)} seconds',
+        f'Compilation finished in {compilation_time} seconds',
     )
     print(f'{green} Finished compilation')
     sys.exit(0)
