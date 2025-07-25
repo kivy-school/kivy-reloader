@@ -406,39 +406,55 @@ def run_logcat(IP=None, *args):
     """
     Runs logcat for debugging.
     """
+    logging.info("Preparing to run logcat")
     global logcat_proc, filter_proc
-
-    LOGCAT_CMD = ["adb", "logcat"]
-
-    if platform == "win":
-        watch = "I python"
-        findstr_services = [
-            f"/c:{SERVICE_NAME}" for SERVICE_NAME in config.SERVICE_NAMES
-        ]
-        FINDSTR_CMD = ["findstr", "/c:" + watch] + findstr_services
-
-    else:
-        services = "|".join(config.SERVICE_NAMES)
-        watch = "I python" if not services else f"I python|{services}"
-        GREP_CMD = ["grep", "-E", watch]
 
     if IP:
         try:
-            subprocess.run(["adb", "connect", f"{IP}:{config.PORT}"])
+            subprocess.run(["adb", "connect", f"{IP}:{config.ADB_PORT}"], check=True)
         except FileNotFoundError:
             logging.error("adb not found")
             print(
                 f"{red}Please, install `scrcpy`: {yellow}https://github.com/Genymobile/scrcpy{Fore.RESET}"
             )
-        LOGCAT_CMD[:1] = ["adb", "-s", f"{IP}:{config.PORT}"]
+        LOGCAT_CMD = ["adb", "-s", f"{IP}:{config.ADB_PORT}", "logcat"]
+    else:
+        connected = get_connected_devices()
+        if not connected:
+            logging.error("No connected devices found. Logcat will not start.")
+            return
+
+        unique_devices = {
+            (d["wifi_ip"], d["model"]) for d in connected if d["wifi_ip"] != "unknown"
+        }
+        if len(unique_devices) == 1:
+            # Prefer USB if available
+            serial = next(
+                (d["serial"] for d in connected if d["transport"] == "usb"),
+                connected[0]["serial"],  # fallback
+            )
+            LOGCAT_CMD = ["adb", "-s", serial, "logcat"]
+        else:
+            logging.error("Multiple devices connected. Specify IP or disambiguate.")
+            return
+
+    if platform == "win":
+        services = [f"{SERVICE_NAME}:V" for SERVICE_NAME in config.SERVICE_NAMES]
+        FILTER_CMD = ["-v", "time", "-s", "python:V"] + services + ["*:S"]
+    else:
+        services = "|".join(config.SERVICE_NAMES)
+        watch = "I python" if not services else f"I python|{services}"
+        FILTER_CMD = ["grep", "-E", watch]
 
     logging.info("Starting logcat")
     try:
-        logcat_proc = subprocess.Popen(LOGCAT_CMD, stdout=subprocess.PIPE)
-        filter_proc = subprocess.Popen(
-            FINDSTR_CMD if platform == "win" else GREP_CMD, stdin=logcat_proc.stdout
-        )
+        if platform == "win":
+            logging.info(f"LOGCAT_CMD + FILTER_CMD {LOGCAT_CMD + FILTER_CMD}")
 
+            logcat_proc = subprocess.Popen(LOGCAT_CMD + FILTER_CMD)
+        else:
+            logcat_proc = subprocess.Popen(LOGCAT_CMD, stdout=subprocess.PIPE)
+            filter_proc = subprocess.Popen(FILTER_CMD, stdin=logcat_proc.stdout)
     except FileNotFoundError:
         logging.error("adb not found")
         print(
