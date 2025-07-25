@@ -531,64 +531,136 @@ def debug_on_wifi():
     start_logcat_for_ips(all_target_ips)
 
 
-def run_logcat(IP=None, *args):
+def handle_logcat_connection(ip: str) -> None:
     """
-    Runs logcat for debugging.
+    Handles ADB connection to a specific IP address for logcat.
+
+    Args:
+        ip: IP address to connect to
+
+    Raises:
+        subprocess.CalledProcessError: If ADB connection fails
     """
-    logging.info('Preparing to run logcat')
-    global logcat_proc, filter_proc
-
-    if IP:
-        try:
-            subprocess.run(['adb', 'connect', f'{IP}:{config.ADB_PORT}'], check=True)
-        except FileNotFoundError:
-            logging.error('adb not found')
-            print(
-                f'{red}Please, install `scrcpy`: {yellow}https://github.com/Genymobile/scrcpy{Fore.RESET}'
-            )
-        LOGCAT_CMD = ['adb', '-s', f'{IP}:{config.ADB_PORT}', 'logcat']
-    else:
-        connected = get_connected_devices()
-        if not connected:
-            logging.error('No connected devices found. Logcat will not start.')
-            return
-
-        unique_devices = {
-            (d['wifi_ip'], d['model']) for d in connected if d['wifi_ip'] != 'unknown'
-        }
-        if len(unique_devices) == 1:
-            # Prefer USB if available
-            serial = next(
-                (d['serial'] for d in connected if d['transport'] == 'usb'),
-                connected[0]['serial'],  # fallback
-            )
-            LOGCAT_CMD = ['adb', '-s', serial, 'logcat']
-        else:
-            logging.error('Multiple devices connected. Specify IP or disambiguate.')
-            return
-
-    if platform == 'win':
-        services = [f'{SERVICE_NAME}:V' for SERVICE_NAME in config.SERVICE_NAMES]
-        FILTER_CMD = ['-v', 'time', '-s', 'python:V'] + services + ['*:S']
-    else:
-        services = '|'.join(config.SERVICE_NAMES)
-        watch = 'I python' if not services else f'I python|{services}'
-        FILTER_CMD = ['grep', '-E', watch]
-
-    logging.info('Starting logcat')
     try:
-        if platform == 'win':
-            logging.info(f'LOGCAT_CMD + FILTER_CMD {LOGCAT_CMD + FILTER_CMD}')
-
-            logcat_proc = subprocess.Popen(LOGCAT_CMD + FILTER_CMD)
-        else:
-            logcat_proc = subprocess.Popen(LOGCAT_CMD, stdout=subprocess.PIPE)
-            filter_proc = subprocess.Popen(FILTER_CMD, stdin=logcat_proc.stdout)
+        subprocess.run(['adb', 'connect', f'{ip}:{config.ADB_PORT}'], check=True)
     except FileNotFoundError:
         logging.error('adb not found')
         print(
             f'{red}Please, install `scrcpy`: {yellow}https://github.com/Genymobile/scrcpy{Fore.RESET}'
         )
+
+
+def build_logcat_command(ip: str = None) -> list:
+    """
+    Builds the logcat command based on IP or connected devices.
+
+    Args:
+        ip: Optional IP address for TCP/IP connection
+
+    Returns:
+        list: Command array for logcat or empty list if no devices
+    """
+    if ip:
+        return ['adb', '-s', f'{ip}:{config.ADB_PORT}', 'logcat']
+
+    # Handle USB/local device connection
+    connected = get_connected_devices()
+    if not connected:
+        logging.error('No connected devices found. Logcat will not start.')
+        return []
+
+    unique_devices = {
+        (d['wifi_ip'], d['model']) for d in connected if d['wifi_ip'] != 'unknown'
+    }
+
+    if len(unique_devices) == 1:
+        # Prefer USB if available
+        serial = next(
+            (d['serial'] for d in connected if d['transport'] == 'usb'),
+            connected[0]['serial'],  # fallback
+        )
+        return ['adb', '-s', serial, 'logcat']
+    else:
+        logging.error('Multiple devices connected. Specify IP or disambiguate.')
+        return []
+
+
+def build_filter_command() -> list:
+    """
+    Builds platform-specific filter command for logcat output.
+
+    Returns:
+        list: Filter command array based on current platform
+    """
+    if platform == 'win':
+        services = [f'{SERVICE_NAME}:V' for SERVICE_NAME in config.SERVICE_NAMES]
+        return ['-v', 'time', '-s', 'python:V'] + services + ['*:S']
+    else:
+        services = '|'.join(config.SERVICE_NAMES)
+        watch = 'I python' if not services else f'I python|{services}'
+        return ['grep', '-E', watch]
+
+
+def start_logcat_processes(logcat_cmd: list, filter_cmd: list) -> tuple:
+    """
+    Starts logcat and filter processes based on platform.
+
+    Args:
+        logcat_cmd: Command array for logcat
+        filter_cmd: Command array for filtering
+
+    Returns:
+        tuple: (logcat_process, filter_process) - filter_process may be None on Windows
+
+    Raises:
+        subprocess.CalledProcessError: If process creation fails
+    """
+    global logcat_proc, filter_proc
+
+    try:
+        if platform == 'win':
+            logging.info(f'LOGCAT_CMD + FILTER_CMD {logcat_cmd + filter_cmd}')
+            logcat_proc = subprocess.Popen(logcat_cmd + filter_cmd)
+            filter_proc = None
+        else:
+            logcat_proc = subprocess.Popen(logcat_cmd, stdout=subprocess.PIPE)
+            filter_proc = subprocess.Popen(filter_cmd, stdin=logcat_proc.stdout)
+
+        return logcat_proc, filter_proc
+
+    except FileNotFoundError:
+        logging.error('adb not found')
+        print(
+            f'{red}Please, install `scrcpy`: {yellow}https://github.com/Genymobile/scrcpy{Fore.RESET}'
+        )
+        return None, None
+
+
+def run_logcat(IP=None, *args):
+    """
+    Orchestrates logcat execution with connection, command building, and process management.
+
+    Args:
+        IP: Optional IP address for WiFi debugging
+        *args: Additional arguments (unused but kept for compatibility)
+    """
+    logging.info('Preparing to run logcat')
+
+    # Step 1: Handle connection if IP is provided
+    if IP:
+        handle_logcat_connection(IP)
+
+    # Step 2: Build logcat command
+    logcat_cmd = build_logcat_command(IP)
+    if not logcat_cmd:
+        return
+
+    # Step 3: Build filter command
+    filter_cmd = build_filter_command()
+
+    # Step 4: Start processes
+    logging.info('Starting logcat')
+    start_logcat_processes(logcat_cmd, filter_cmd)
 
 
 def livestream():
