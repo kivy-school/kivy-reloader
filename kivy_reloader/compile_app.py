@@ -155,7 +155,7 @@ def notify(title: str, message: str) -> None:
         print(e)
 
 
-def select_option(option: int, app_name: str) -> None:
+def select_option(option: str, app_name: str) -> None:
     """
     1. Compile and deploy the app to the device
     2. Debug and livestream the app
