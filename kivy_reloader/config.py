@@ -5,7 +5,7 @@ from typing import Any, List
 import toml
 
 
-class Config:
+class Config:  # noqa: PLR0904
     def __init__(self):
         self.config_file = os.path.join(os.getcwd(), 'kivy-reloader.toml')
         self.constants_to_import = [
@@ -35,7 +35,7 @@ class Config:
         elif hasattr(sys, '_MEIPASS'):
             print(
                 'PyInstaller environment detected.'
-                'Make sure to turn your kivy_reloader app into a kivy app. see:'
+                'Make sure to turn your kivy_reloader app into a kivy app:'
                 'https://kivyschool.com/kivy-reloader/windows/setup-and-how-to-use/'
             )
 
@@ -45,7 +45,8 @@ class Config:
                 self.config = toml.load(f)['kivy_reloader']
         else:
             raise FileNotFoundError(
-                f'Config file not found: {self.config_file}. Please execute `kivy-reloader init` first.'
+                f'Config file not found: {self.config_file}. '
+                'Please execute `kivy-reloader init` first.'
             )
 
     def get(self, key: str, default: Any = None) -> Any:
@@ -55,7 +56,7 @@ class Config:
         self.config[key] = value
 
     def save(self):
-        with open(self.config_file, 'w') as f:
+        with open(self.config_file, 'w', encoding='utf-8') as f:
             toml.dump(self.config, f)
 
         self._load_config()
