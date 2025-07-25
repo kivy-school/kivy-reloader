@@ -424,17 +424,16 @@ def clear_logcat():
         )
 
 
-def debug_on_wifi():
+def determine_wifi_targets(devices: list) -> tuple[list, list]:
     """
-    Debugging over WiFi.
-    If config.PHONE_IPS is empty, operate on all connected devices.
-    If not empty, operate only on devices whose wifi_ip is in config.PHONE_IPS.
-    """
-    logging.info("Switching ADB to TCP/IP mode...")
-    devices = get_connected_devices()
-    logging.debug(f"Connected devices: {devices}")
+    Determines target USB devices and TCP/IP IPs based on configuration.
 
-    # Determine targets
+    Args:
+        devices: List of connected device dictionaries
+
+    Returns:
+        tuple: (target_usb_devices, target_tcpip_ips)
+    """
     if not config.PHONE_IPS:
         target_usb_devices = [d for d in devices if d['transport'] == 'usb']
         target_tcpip_ips = [
@@ -452,36 +451,84 @@ def debug_on_wifi():
             if any(d['wifi_ip'] == ip and d['transport'] == 'tcpip' for d in devices)
         ]
 
-    for d in target_usb_devices:
-        logging.info(f"Enabling tcpip mode for {d['model']} ({d['serial']})")
-        subprocess.run(["adb", "-s",
-                        d["serial"],
-                        "tcpip",
-                        f"{config.ADB_PORT}"],
-                        check=True)
+    return target_usb_devices, target_tcpip_ips
 
-        if not d["wifi_ip"]:
-            d["wifi_ip"] = get_wifi_ip(d["serial"])
 
-        ip_with_port = f"{d['wifi_ip']}:{config.ADB_PORT}"
-        logging.info(f"Connecting to {ip_with_port}")
+def enable_tcpip_for_devices(usb_devices: list) -> list:
+    """
+    Enables TCP/IP mode for USB devices and connects to them.
+
+    Args:
+        usb_devices: List of USB device dictionaries
+
+    Returns:
+        list: IP addresses of devices successfully converted to TCP/IP
+
+    Raises:
+        subprocess.CalledProcessError: If ADB commands fail
+    """
+    converted_ips = []
+
+    for device in usb_devices:
+        logging.info(f'Enabling tcpip mode for {device["model"]} ({device["serial"]})')
+        subprocess.run(
+            ['adb', '-s', device['serial'], 'tcpip', f'{config.ADB_PORT}'], check=True
+        )
+
+        if not device['wifi_ip']:
+            device['wifi_ip'] = get_wifi_ip(device['serial'])
+
+        ip_with_port = f'{device["wifi_ip"]}:{config.ADB_PORT}'
+        logging.info(f'Connecting to {ip_with_port}')
+
         try:
-            subprocess.run(["adb", "connect", ip_with_port], check=True)
+            subprocess.run(['adb', 'connect', ip_with_port], check=True)
+            converted_ips.append(device['wifi_ip'])
         except FileNotFoundError:
             logging.error('adb not found')
             print(
                 f'{red}Please, install `scrcpy`: {yellow}https://github.com/Genymobile/scrcpy{Fore.RESET}'
             )
 
-        # Now the device is in tcpip mode, we can run logcat
-        # but we need to add it to the list of target_tcpip_ips
-        if d["wifi_ip"] not in target_tcpip_ips:
-            target_tcpip_ips.append(d["wifi_ip"])
+    return converted_ips
 
-    for ip in target_tcpip_ips:
-        # start each logcat on a thread
-        t = Thread(target=run_logcat, args=(ip,))
-        t.start()
+
+def start_logcat_for_ips(ip_addresses: list) -> None:
+    """
+    Starts logcat processes for each IP address in separate threads.
+
+    Args:
+        ip_addresses: List of IP addresses to start logcat for
+    """
+    for ip in ip_addresses:
+        thread = Thread(target=run_logcat, args=(ip,))
+        thread.start()
+
+
+def debug_on_wifi():
+    """
+    Orchestrates WiFi debugging by enabling TCP/IP mode and starting logcat.
+
+    This function coordinates device targeting, TCP/IP conversion, and
+    logcat thread management for WiFi-based debugging.
+    """
+    logging.info('Switching ADB to TCP/IP mode...')
+    devices = get_connected_devices()
+    logging.debug(f'Connected devices: {devices}')
+
+    # Step 1: Determine target devices and IPs
+    target_usb_devices, target_tcpip_ips = determine_wifi_targets(devices)
+
+    # Step 2: Convert USB devices to TCP/IP and get their IPs
+    converted_ips = enable_tcpip_for_devices(target_usb_devices)
+
+    # Step 3: Combine existing TCP/IP IPs with newly converted ones
+    all_target_ips = target_tcpip_ips + [
+        ip for ip in converted_ips if ip not in target_tcpip_ips
+    ]
+
+    # Step 4: Start logcat for all target IPs
+    start_logcat_for_ips(all_target_ips)
 
 
 def run_logcat(IP=None, *args):
