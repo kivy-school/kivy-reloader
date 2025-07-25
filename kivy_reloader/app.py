@@ -1,6 +1,6 @@
 import os
 
-os.environ["KIVY_LOG_MODE"] = "MIXED"
+os.environ['KIVY_LOG_MODE'] = 'MIXED'
 
 import importlib
 import subprocess
@@ -35,9 +35,19 @@ kv = Builder.load_string("""
 
 def infiniteloop():
     """
-    This is unironically required to keep the original host python process open on windows. This is because os.spawnv does not exist on Windows and so exiting the host early means that KeyboardInterrupt will not be caught by child processes. (for example, u have a reloader open, you ctrl s to reload/start a new (child) process, then the old process closes. when you ctrl+c the original process does not exist to send KeyboardInterrupt to the children whereas in linux spawnv children get access to the parent's env and also recieve ctrl+c KeyboardInterrupts).
+    This is unironically required to keep the original host python process open
+    on Windows. This is because os.spawnv does not exist on Windows and so
+    exiting the host early means that KeyboardInterrupt will not be caught by
+    child processes.
 
-    You need to keep the host open so that when KeyboardInterrupt happens, it also gets sent to the child.
+    For example, you have a reloader open, you Ctrl+S to reload/start a new
+    (child) process, then the old process closes. when you Ctrl+C the original
+    process does not exist to send KeyboardInterrupt to the children whereas in
+    linux spawnv children get access to the parent's env and also receive
+    Ctrl+C KeyboardInterrupts).
+
+    You need to keep the host open so that when KeyboardInterrupt happens, it
+    also gets sent to the child.
     """
     import time
 
@@ -45,7 +55,7 @@ def infiniteloop():
         time.sleep(10000)
 
 
-if platform != "android":
+if platform != 'android':
     import inspect
     import logging
     from fnmatch import fnmatch
@@ -58,7 +68,7 @@ if platform != "android":
     from .utils import get_auto_reloader_paths
 
     Window.always_on_top = True
-    logging.getLogger("watchdog").setLevel(logging.ERROR)
+    logging.getLogger('watchdog').setLevel(logging.ERROR)
 
     # Desktop BaseApp
     class App(App):
@@ -74,24 +84,27 @@ if platform != "android":
             self.KV_FILES: list = get_kv_files_paths()
             self._build()
             if (
-                platform == "win"
-            ):  # this is to make sure last spawned process on windows calls for parent Python process to be exited by PID when window is closed normally
+                platform == 'win'
+            ):  # this is to make sure last spawned process on windows calls
+                # for parent Python process to be exited by PID when window
+                # is closed normally
                 Window.bind(on_request_close=self.on_request_close)
                 # https://stackoverflow.com/questions/54501099/how-to-run-a-method-on-the-exit-of-a-kivy-app
 
         def on_request_close(self, *args, **kwargs):
-            # if this is a child process, you must stop the initial process, check argv for the PID
-            # only on windows
+            # if this is a child process, you must stop the initial process,
+            # check argv for the PID (only on windows)
 
-            if platform == "win" and len(sys.argv) > 1:
-                killstring = f"taskkill /F /PID {sys.argv[1]}"
+            if platform == 'win' and len(sys.argv) > 1:
+                killstring = f'taskkill /F /PID {sys.argv[1]}'
                 Logger.info(
-                    f"Reloader: Detected request close on Windows. Closing original host Python PID: {sys.argv[1]}"
+                    'Reloader: Detected request close on Windows. '
+                    f'Closing original host Python PID: {sys.argv[1]}'
                 )
                 os.system(killstring)
 
         def _restart_app(self, mod):
-            _has_execv = sys.platform != "win32"
+            _has_execv = sys.platform != 'win32'
             original_argv = sys.argv
             cmd = [sys.executable] + original_argv
             if not _has_execv:
@@ -103,10 +116,14 @@ if platform != "android":
                 p = subprocess.Popen(cmd, shell=False)
                 self.subprocesses.append(p)
                 if len(sys.argv) > 1:
-                    # children will have the host Python's PID in the argv, these are not needed and must exit to prevent extra python processes
+                    # children will have the host Python's PID in the argv,
+                    # these are not needed and must exit to prevent extra
+                    # python processes
                     sys.exit(0)
                 else:
-                    # the main process will have a single arg in argv, but u need to keep it open so you can intercept KeyboardInterrupt
+                    # the main process will have a single arg in argv, but you
+                    # need to keep it open so you can intercept
+                    # KeyboardInterrupt
                     self.root_window.close()
                     infiniteloop()
             else:
@@ -118,9 +135,9 @@ if platform != "android":
                     os._exit(0)
 
         def _build(self):
-            Logger.info("Reloader: Building the first screen")
+            Logger.info('Reloader: Building the first screen')
             if self.DEBUG:
-                Logger.info("Kaki: Debug mode activated")
+                Logger.info('Kaki: Debug mode activated')
                 self.enable_autoreload()
                 self.patch_builder()
                 self.listen_for_reload()
@@ -140,16 +157,23 @@ if platform != "android":
             Reload the app when pressing F5 or Ctrl+R on desktop
             """
 
-            def _on_keyboard(window, keycode, scancode, codepoint, modifier_keys):
+            F5_KEYCODE = 286  # Named constant for F5 key
+            CTRL_R_KEYCODE = 114  # Named constant for Ctrl+R key
+
+            def _on_keyboard(
+                window, keycode, scancode, codepoint, modifier_keys
+            ):
                 pressed_modifiers = set(modifier_keys)
 
-                if keycode == 286 or (keycode == 114 and "ctrl" in pressed_modifiers):
+                if keycode == F5_KEYCODE or (
+                    keycode == CTRL_R_KEYCODE and 'ctrl' in pressed_modifiers
+                ):
                     return self.rebuild()
 
             Window.bind(on_keyboard=_on_keyboard)
 
         def build_root_and_add_to_window(self):
-            Logger.info("Reloader: Building root widget and adding to window")
+            Logger.info('Reloader: Building root widget and adding to window')
             if self.root is not None:
                 self.root.clear_widgets()
 
@@ -163,8 +187,8 @@ if platform != "android":
 
             if self.root:
                 if not isinstance(self.root, F.Widget):
-                    Logger.critical("App.root must be an _instance_ of Widget")
-                    raise Exception("Invalid instance in App.root")
+                    Logger.critical('App.root must be an _instance_ of Widget')
+                    raise Exception('Invalid instance in App.root')
 
                 Window.add_widget(self.root)
 
@@ -186,15 +210,16 @@ if platform != "android":
                 self._install_settings_keys(window)
             else:
                 Logger.critical(
-                    "Application: No window is created." " Terminating application run."
+                    'Application: No window is created.'
+                    ' Terminating application run.'
                 )
                 return
 
-            self.dispatch("on_start")
+            self.dispatch('on_start')
 
-        async def async_run(self, async_lib="trio"):
+        async def async_run(self, async_lib='trio'):
             async with trio.open_nursery() as nursery:
-                Logger.info("Reloader: Starting Async Kivy app")
+                Logger.info('Reloader: Starting Async Kivy app')
                 self.nursery = nursery
                 self._run_prepare()
                 await async_runTouchApp(async_lib=async_lib)
@@ -202,7 +227,7 @@ if platform != "android":
                 nursery.cancel_scope.cancel()
 
         def unload_python_file(self, filename, module_name):
-            if module_name == "main":
+            if module_name == 'main':
                 return
 
             if module_name in sys.modules:
@@ -213,7 +238,9 @@ if platform != "android":
 
         def unload_files(self, files):
             for filename in files:
-                module_name = os.path.relpath(filename).replace(os.path.sep, ".")[:-3]
+                module_name = os.path.relpath(filename).replace(
+                    os.path.sep, '.'
+                )[:-3]
                 self.unload_python_file(filename, module_name)
 
         def unload_python_files_on_desktop(self):
@@ -225,7 +252,7 @@ if platform != "android":
                     files_to_unload.extend(
                         os.path.join(root, file)
                         for file in files
-                        if file.endswith(".py")
+                        if file.endswith('.py')
                     )
 
             # Gather files from watched folders
@@ -233,17 +260,19 @@ if platform != "android":
                 files_to_unload.extend(
                     os.path.join(folder, file)
                     for file in os.listdir(folder)
-                    if file.endswith(".py")
+                    if file.endswith('.py')
                 )
 
             # Gather individual watched files
             files_to_unload.extend(
-                os.path.join(os.getcwd(), file) for file in config.WATCHED_FILES
+                os.path.join(os.getcwd(), file)
+                for file in config.WATCHED_FILES
             )
 
             # Gather files that require full reload
             files_to_unload.extend(
-                os.path.join(os.getcwd(), file) for file in config.FULL_RELOAD_FILES
+                os.path.join(os.getcwd(), file)
+                for file in config.FULL_RELOAD_FILES
             )
 
             # Process all gathered files
@@ -251,14 +280,14 @@ if platform != "android":
 
         def load_app_dependencies(self):
             for path in self.KV_FILES:
-                path = os.path.realpath(path)
-                if path not in Builder.files:
-                    Builder.load_file(path)
+                real_path = os.path.realpath(path)
+                if real_path not in Builder.files:
+                    Builder.load_file(real_path)
             for name, module in self.CLASSES.items():
                 F.register(name, module=module)
 
         def rebuild(self, dt=None, first=False, *args, **kwargs):
-            Logger.info("Reloader: Rebuilding the application")
+            Logger.info('Reloader: Rebuilding the application')
 
             try:
                 if not first:
@@ -272,22 +301,23 @@ if platform != "android":
 
                 self.apply_state(self.state)  # TODO
                 # can't hot reload on windows directly -- need WSL
-                if platform == "win" and config.HOT_RELOAD_ON_PHONE:
+                if platform == 'win' and config.HOT_RELOAD_ON_PHONE:
                     Logger.warning(
-                        "Reloader: Reloading on Android requires WSL installation: https://kivyschool.com/kivy-reloader/windows/wsl2-setup-targeting-android/"
+                        'Reloader: Reloading on Android requires WSL'
+                        'installation: https://kivyschool.com/kivy-reloader/windows/wsl2-setup-targeting-android/'
                     )
                 elif self.HOT_RELOAD_ON_PHONE:
                     self.send_app_to_phone()
             except Exception as e:
                 import traceback
 
-                Logger.exception("Reloader: Error when building app")
+                Logger.exception('Reloader: Error when building app')
                 self.set_error(repr(e), traceback.format_exc())
                 if not self.DEBUG and self.RAISE_ERROR:
                     raise
 
         def enable_autoreload(self):
-            if platform != "win":
+            if platform != 'win':
                 super().enable_autoreload()
                 return
 
@@ -298,10 +328,10 @@ if platform != "android":
                 )
                 from watchdog.observers import Observer
             except ImportError:
-                Logger.warn("Reloader: Unavailable, watchdog is not installed")
+                Logger.warn('Reloader: Unavailable, watchdog is not installed')
                 return
 
-            Logger.info("Reloader: Autoreloader activated")
+            Logger.info('Reloader: Autoreloader activated')
             rootpath = self.get_root_path()
             folder_handler = FileSystemEventHandler()
             file_handler = PatternMatchingEventHandler()
@@ -323,10 +353,12 @@ if platform != "android":
             )
 
             for dir in dirs_to_watch_from_watched_files:
-                file_observer.schedule(file_handler, dir, **{"recursive": False})
+                file_observer.schedule(
+                    file_handler, dir, **{'recursive': False}
+                )
 
-            for path in self.AUTORELOADER_PATHS:
-                path, options = path
+            for path_tuple in self.AUTORELOADER_PATHS:
+                path, options = path_tuple
 
                 # continue if it is not a directory
                 if not os.path.isdir(os.path.join(rootpath, path)):
@@ -352,7 +384,9 @@ if platform != "android":
             for path in config.FULL_RELOAD_FILES:
                 full_path = os.path.join(self.get_root_path(), path)
                 if fnmatch(event.src_path, full_path):
-                    Logger.info(f"Reloader: Full reload triggered by {event.src_path}")
+                    Logger.info(
+                        f'Reloader: Full reload triggered by {event.src_path}'
+                    )
                     mod = sys.modules[self.__class__.__module__]
                     mod_filename = os.path.realpath(mod.__file__)
                     self._restart_app(mod_filename)
@@ -364,8 +398,8 @@ if platform != "android":
                 if fnmatch(event.src_path, os.path.join(os.getcwd(), pat)):
                     return
 
-            Logger.trace(f"Reloader: Event received {event.src_path}")
-            if event.src_path.endswith(".py"):
+            Logger.trace(f'Reloader: Event received {event.src_path}')
+            if event.src_path.endswith('.py'):
                 # source changed, reload it
                 try:
                     Builder.unload_file(event.src_path)
@@ -376,7 +410,7 @@ if platform != "android":
                     self.set_error(repr(e), traceback.format_exc())
                     return
 
-            Logger.debug(f"Reloader: Triggered by {event}")
+            Logger.debug(f'Reloader: Triggered by {event}')
             Clock.unschedule(self.rebuild)
             Clock.schedule_once(self.rebuild, 0.1)
 
@@ -386,13 +420,13 @@ if platform != "android":
                 size_hint=(1, None),
                 padding_y=150,
                 text_size=(Window.width - 100, None),
-                text="{}\n\n{}".format(exc, tb or ""),
+                text='{}\n\n{}'.format(exc, tb or ''),
             )
             lbl.texture_update()
             lbl.height = lbl.texture_size[1]
             sv = F.ScrollView(
                 size_hint=(1, 1),
-                pos_hint={"x": 0, "y": 0},
+                pos_hint={'x': 0, 'y': 0},
                 do_scroll_x=False,
                 scroll_y=0,
             )
@@ -410,8 +444,8 @@ if platform != "android":
         def send_app_to_phone(self):
             # Creating a copy of the files on `temp` folder
             source = os.getcwd()
-            destination = os.path.join(os.getcwd(), "temp")
-            zip_file = os.path.join(os.getcwd(), "app_copy.zip")
+            destination = os.path.join(os.getcwd(), 'temp')
+            zip_file = os.path.join(os.getcwd(), 'app_copy.zip')
 
             self.clear_temp_folder_and_zip_file(destination, zip_file)
 
@@ -423,11 +457,13 @@ if platform != "android":
                 ),
             )
 
-            # Zipping all files inside `temp` folder, except the `temp` folder itself
+            # Zipping all files inside `temp` folder,
+            # except the `temp` folder itself
             subprocess.run(
-                f"cd {destination} && zip -r ../app_copy.zip ./* -x ./temp",
+                f'cd {destination} && zip -r ../app_copy.zip ./* -x ./temp',
                 shell=True,
                 stdout=subprocess.DEVNULL,
+                check=True,
             )
 
             # Sending the zip file to the phone
@@ -436,9 +472,11 @@ if platform != "android":
                 os.path.dirname(
                     os.path.abspath(path_of_current_file.f_code.co_filename)
                 ),
-                "send_app_to_phone.py",
+                'send_app_to_phone.py',
             )
-            subprocess.run(f"python {path_of_send_app}", shell=True)
+            subprocess.run(
+                f'python {path_of_send_app}', shell=True, check=True
+            )
 
             # Deleting the temp folder and the zip file
             self.clear_temp_folder_and_zip_file(destination, zip_file)
@@ -448,14 +486,14 @@ if platform != "android":
             if filename.startswith(rootpath):
                 filename = filename[len(rootpath) :]
 
-            if platform == "macosx":
+            if platform == 'macosx':
                 prefix = os.sep
             else:
                 prefix = os.path.sep
 
             if filename.startswith(prefix):
                 filename = filename[1:]
-            module = filename[:-3].replace(prefix, ".")
+            module = filename[:-3].replace(prefix, '.')
             return module
 
 else:
@@ -469,7 +507,7 @@ else:
     class App(App):
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
-            main_py_file_path = os.path.join(os.getcwd(), "main.py")
+            main_py_file_path = os.path.join(os.getcwd(), 'main.py')
 
             if os.path.exists(main_py_file_path):
                 self.main_py_hash = self.get_hash_of_file(main_py_file_path)
@@ -504,17 +542,19 @@ else:
             Reload the app when pressing Ctrl+R from scrcpy
             """
 
-            def _on_keyboard(window, keycode, scancode, codepoint, modifier_keys):
+            def _on_keyboard(
+                window, keycode, scancode, codepoint, modifier_keys
+            ):
                 pressed_modifiers = set(modifier_keys)
 
-                if key == keycode and "ctrl" in pressed_modifiers:
+                if key == keycode and 'ctrl' in pressed_modifiers:
                     return callback()
 
             Window.bind(on_keyboard=_on_keyboard)
 
-        async def async_run(self, async_lib="trio"):
+        async def async_run(self, async_lib='trio'):
             async with trio.open_nursery() as nursery:
-                Logger.info("Reloader: Starting Async Kivy app")
+                Logger.info('Reloader: Starting Async Kivy app')
                 self.nursery = nursery
                 self.initialize_server()
                 self._run_prepare()
@@ -523,13 +563,13 @@ else:
                 nursery.cancel_scope.cancel()
 
         def restart_app_on_android(self):
-            Logger.info("Restarting the app on smartphone")
+            Logger.info('Restarting the app on smartphone')
 
             from jnius import autoclass  # type: ignore
 
-            Intent = autoclass("android.content.Intent")
-            PythonActivity = autoclass("org.kivy.android.PythonActivity")
-            System = autoclass("java.lang.System")
+            Intent = autoclass('android.content.Intent')
+            PythonActivity = autoclass('org.kivy.android.PythonActivity')
+            System = autoclass('java.lang.System')
 
             activity = PythonActivity.mActivity
             intent = Intent(activity.getApplicationContext(), PythonActivity)
@@ -542,18 +582,20 @@ else:
             """
             Returns the hash of the file using md5 hash
             """
-            with open(file_name, "rb") as f:
+            with open(file_name, 'rb') as f:
                 return hashlib.md5(f.read()).hexdigest()
 
         def _unregister_factory_from_module(self, module):
-            to_remove = [x for x in F.classes if F.classes[x]["module"] == module]
+            to_remove = [
+                x for x in F.classes if F.classes[x]['module'] == module
+            ]
 
             # check class name
             for x in F.classes:
-                cls = F.classes[x]["cls"]
+                cls = F.classes[x]['cls']
                 if not cls:
                     continue
-                if getattr(cls, "__module__", None) == module:
+                if getattr(cls, '__module__', None) == module:
                     to_remove.append(x)
 
             for name in set(to_remove):
@@ -563,8 +605,8 @@ else:
             """
             Hot reloading kv files on Android
             """
-            Logger.info("Reloading kv files")
-            main_py_file_path = os.path.join(os.getcwd(), "main.py")
+            Logger.info('Reloading kv files')
+            main_py_file_path = os.path.join(os.getcwd(), 'main.py')
 
             # reload the service files
             should_restart_app_on_android = False
@@ -575,22 +617,30 @@ else:
                     self.get_hash_of_file(file_name)
                     != self.service_files_hashes[file_name]
                 ):
-                    Logger.info(f"Service {service_name} has been updated")
-                    if os.path.exists(f"{file_name}c"):
+                    Logger.info(f'Service {service_name} has been updated')
+                    if os.path.exists(f'{file_name}c'):
                         # remove the compiled service file
-                        os.remove(f"{file_name}c")
+                        os.remove(f'{file_name}c')
 
                     # recopiling the service file
-                    subprocess.run(f"python -m compileall {file_name}", shell=True)
+                    subprocess.run(
+                        f'python -m compileall {file_name}',
+                        shell=True,
+                        check=True,
+                    )
 
                     # stop the service
-                    Logger.info(f"Stopping service {service_name}")
+                    Logger.info(f'Stopping service {service_name}')
                     from jnius import autoclass  # type: ignore
 
-                    mActivity = autoclass("org.kivy.android.PythonActivity").mActivity
+                    mActivity = autoclass(
+                        'org.kivy.android.PythonActivity'
+                    ).mActivity
                     context = mActivity.getApplicationContext()
                     SERVICE_NAME = (
-                        str(context.getPackageName()) + ".Service" + service_name
+                        str(context.getPackageName())
+                        + '.Service'
+                        + service_name
                     )
                     service = autoclass(SERVICE_NAME)
                     service.stop(mActivity)
@@ -603,13 +653,13 @@ else:
             for file_name in config.FULL_RELOAD_FILES:
                 if not os.path.exists(file_name):
                     Logger.info(
-                        f"Reloader: File {file_name} does not exist. Skipping..."
+                        f'Reloader: File {file_name} does not exist. Skipping!'
                     )
                     continue
 
                 if file_name not in self.full_reload_file_hashes:
-                    self.full_reload_file_hashes[file_name] = self.get_hash_of_file(
-                        file_name
+                    self.full_reload_file_hashes[file_name] = (
+                        self.get_hash_of_file(file_name)
                     )
                     continue
 
@@ -618,12 +668,16 @@ else:
                     != self.full_reload_file_hashes[file_name]
                 ):
                     Logger.info(
-                        f"Reloader: File {file_name} has been updated. Restarting app..."
+                        f'Reloader: File {file_name} has been updated. '
+                        'Restarting app...'
                     )
                     self.restart_app_on_android()
 
             if os.path.exists(main_py_file_path):
-                if self.get_hash_of_file(main_py_file_path) != self.main_py_hash:
+                if (
+                    self.get_hash_of_file(main_py_file_path)
+                    != self.main_py_hash
+                ):
                     # `main.py` changed, restarting app
                     self.restart_app_on_android()
                     return
@@ -649,7 +703,7 @@ else:
             self.build_root_and_add_to_window()
 
         def build_root_and_add_to_window(self):
-            Logger.info("Reloader: Building root widget and adding to window")
+            Logger.info('Reloader: Building root widget and adding to window')
             if self.root is not None:
                 self.root.clear_widgets()
                 Window.remove_widget(Window.children[0])
@@ -661,13 +715,13 @@ else:
 
             if self.root:
                 if not isinstance(self.root, F.Widget):
-                    Logger.critical("App.root must be an _instance_ of Widget")
-                    raise Exception("Invalid instance in App.root")
+                    Logger.critical('App.root must be an _instance_ of Widget')
+                    raise Exception('Invalid instance in App.root')
 
                 Window.add_widget(self.root)
 
         def unload_python_file(self, filename, module):
-            if module == "main":
+            if module == 'main':
                 return None
 
             if module in sys.modules:
@@ -686,20 +740,22 @@ else:
                         files_to_reload.extend(
                             os.path.join(root, file)
                             for file in files
-                            if file.endswith(".py")
+                            if file.endswith('.py')
                         )
                 else:
                     files_to_reload.extend(
                         os.path.join(folder, file)
                         for file in os.listdir(folder)
-                        if file.endswith(".py")
+                        if file.endswith('.py')
                     )
             return files_to_reload
 
         def process_unload_files(self, files):
             modules_to_reload = []
             for filename in files:
-                module_name = os.path.relpath(filename).replace(os.path.sep, ".")[:-3]
+                module_name = os.path.relpath(filename).replace(
+                    os.path.sep, '.'
+                )[:-3]
                 to_reload = self.unload_python_file(filename, module_name)
                 if to_reload is not None:
                     modules_to_reload.append(to_reload)
@@ -717,16 +773,20 @@ else:
             )
 
             # Gather files from watched folders
-            files_to_reload.extend(self.gather_files_to_reload(config.WATCHED_FOLDERS))
+            files_to_reload.extend(
+                self.gather_files_to_reload(config.WATCHED_FOLDERS)
+            )
 
             # Add individual watched files
             files_to_reload.extend(
-                os.path.join(os.getcwd(), file) for file in config.WATCHED_FILES
+                os.path.join(os.getcwd(), file)
+                for file in config.WATCHED_FILES
             )
 
             # Add files that require full reload
             files_to_reload.extend(
-                os.path.join(os.getcwd(), file) for file in config.FULL_RELOAD_FILES
+                os.path.join(os.getcwd(), file)
+                for file in config.FULL_RELOAD_FILES
             )
 
             # Process the files and get the modules to reload
@@ -742,14 +802,18 @@ else:
                     importlib.reload(module)
 
         def recompile_main(self):
-            if platform == "android":
+            if platform == 'android':
                 files = os.listdir()
-                if "main.pyc" in files and "main.py" in files:
-                    Logger.info("Deleting main.pyc")
-                    os.remove("main.pyc")
-                    Logger.info("Compiling main.py")
-                    main_py_path = os.path.join(os.getcwd(), "main.py")
-                    subprocess.run(f"python -m compileall {main_py_path}", shell=True)
+                if 'main.pyc' in files and 'main.py' in files:
+                    Logger.info('Deleting main.pyc')
+                    os.remove('main.pyc')
+                    Logger.info('Compiling main.py')
+                    main_py_path = os.path.join(os.getcwd(), 'main.py')
+                    subprocess.run(
+                        f'python -m compileall {main_py_path}',
+                        shell=True,
+                        check=True,
+                    )
 
         def initialize_server(self):
             """
@@ -776,10 +840,12 @@ else:
                 await trio.serve_tcp(self.data_receiver, PORT)
             except Exception as e:
                 Logger.info(
-                    "It was not possible to start the server, check if the phone is connected to the same network as the computer"
+                    'It was not possible to start the server, check if the '
+                    'phone is connected to the same network as the computer'
                 )
                 Logger.info(
-                    "Another possible cause is that the port is already in use by another app. Check if the port is free and try again"
+                    'Another possible cause is that the port is already in use'
+                    ' by another app. Check if the port is free and try again'
                 )
                 Logger.info(e)
 
@@ -790,24 +856,28 @@ else:
             and then unpacked
             and the app is reloaded
             """
-            Logger.info("Reloader: ************** SERVER **************")
-            Logger.info("Reloader: Server started: receiving data from computer...")
+            Logger.info('Reloader: ************** SERVER **************')
+            Logger.info(
+                'Reloader: Server started: receiving data from computer...'
+            )
 
             try:
-                zip_file_path = os.path.join(os.getcwd(), "app_copy.zip")
-                with open(zip_file_path, "wb") as myzip:
+                zip_file_path = os.path.join(os.getcwd(), 'app_copy.zip')
+                with open(zip_file_path, 'wb') as myzip:
                     async for data in data_stream:
-                        Logger.info("Reloader: Server: received data")
-                        Logger.info(f"Reloader: Data size: {len(data)}")
-                        Logger.info("Reloader: Server: connection closed")
+                        Logger.info('Reloader: Server: received data')
+                        Logger.info(f'Reloader: Data size: {len(data)}')
+                        Logger.info('Reloader: Server: connection closed')
                         myzip.write(data)
 
-                Logger.info("Reloader: Finished receiving all files from computer")
-                Logger.info("Reloader: Unpacking app")
+                Logger.info(
+                    'Reloader: Finished receiving all files from computer'
+                )
+                Logger.info('Reloader: Unpacking app')
 
                 # first print the size of the zip file
                 zip_file_size = os.path.getsize(zip_file_path)
-                Logger.info(f"Reloader: Zip file size: {zip_file_size}")
+                Logger.info(f'Reloader: Zip file size: {zip_file_size}')
 
                 shutil.unpack_archive(zip_file_path)
 
@@ -818,19 +888,23 @@ else:
                 # Logger.info("Recompiling main.py")
                 # self.recompile_main()
 
-                Logger.info("Reloader: App updated, restarting app for refresh")
-                Logger.info("Reloader: ************** END SERVER **************")
+                Logger.info(
+                    'Reloader: App updated, restarting app for refresh'
+                )
+                Logger.info(
+                    'Reloader: ************** END SERVER **************'
+                )
 
                 self.unload_python_files_on_android()
-                if self.__module__ != "__main__":
+                if self.__module__ != '__main__':
                     importlib.reload(importlib.import_module(self.__module__))
                 self.reload_kv()
 
             except Exception as e:
                 import traceback
 
-                Logger.info(f"Reloader: Server crashed: {e!r}")
+                Logger.info(f'Reloader: Server crashed: {e!r}')
                 Logger.info(
-                    "Full exception:",
-                    "".join(traceback.format_exception(*sys.exc_info())),
+                    'Full exception:',
+                    ''.join(traceback.format_exception(*sys.exc_info())),
                 )
