@@ -196,14 +196,54 @@ def compile_app():
         f"Compiling {app_name}",
         f"Compilation started at {time.strftime('%H:%M:%S')}",
     )
+
+    # Step 1: Compile using buildozer
     t1 = time.time()
-    subprocess.run(["buildozer", "-v", "android", "debug", "deploy", "run"], check=True)
+    subprocess.run(["buildozer", "-v", "android", "debug"], check=True)
     t2 = time.time()
     notify(
         f"Compiled {app_name} successfully",
         f"Compilation finished in {round(t2 - t1, 2)} seconds",
     )
     logging.info("Finished compilation")
+
+    # Step 2: Select target serial
+    devices = get_connected_devices()
+    if not devices:
+        logging.error("No connected devices found. APK will not be installed.")
+        return
+
+    physical_map = {}
+    for d in devices:
+        key = (d["wifi_ip"], d["model"])
+        existing = physical_map.get(key)
+        if not existing:
+            physical_map[key] = d
+        elif config.STREAM_USING == "USB" and d["transport"] == "usb":
+            physical_map[key] = d
+        elif config.STREAM_USING == "WIFI" and d["transport"] == "tcpip":
+            physical_map[key] = d
+
+    # Step 3: Install the APK on each device
+    for device in physical_map.values():
+        logging.info(f"Installing APK on {device['model']} | ({device['serial']})")
+        subprocess.run(
+            ["adb", "-s", device["serial"], "install", "-r", apk_path], check=True
+        )
+        logging.info(f"Starting app on {device['model']} | ({device['serial']})")
+        subprocess.run(
+            [
+                "adb",
+                "-s",
+                device["serial"],
+                "shell",
+                "am",
+                "start",
+                "-n",
+                f"{package}/org.kivy.android.PythonActivity",
+            ],
+            check=True,
+        )
 
 
 def debug_and_livestream() -> None:
