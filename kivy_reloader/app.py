@@ -828,14 +828,14 @@ else:
             """
             import socket
 
-            try:
-                PORT = 8050
-                self.s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-                self.s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-                self.s.connect(("8.8.8.8", 80))
+            PORT = config.RELOADER_PORT
 
-                IP = self.s.getsockname()[0]
-                Logger.info(f"Smartphone IP: {IP}")
+            try:
+                with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as probe:
+                    probe.connect(('8.8.8.8', 80))
+                    ip = probe.getsockname()[0]
+
+                Logger.info(f'Smartphone IP: {ip}')
 
                 await trio.serve_tcp(self.data_receiver, PORT)
             except Exception as e:
