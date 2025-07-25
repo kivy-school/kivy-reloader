@@ -306,10 +306,39 @@ def start_adb_server():
 def clear_logcat():
     """
     Clears the logcat.
+    If multiple serials point to the same device, clears only once per device.
     """
     logging.info("Clearing logcat")
     try:
-        subprocess.run(["adb", "logcat", "-c"])
+        devices = get_connected_devices()
+        if not devices:
+            logging.error("No connected devices found. Logcat will not be cleared.")
+            return
+
+        # Group by (wifi_ip, model) = physical device
+        physical_map = {}
+        for d in devices:
+            key = (d["wifi_ip"], d["model"])
+            existing = physical_map.get(key)
+
+            if not existing:
+                physical_map[key] = d
+            else:
+                if config.STREAM_USING == "USB" and d["transport"] == "usb":
+                    physical_map[key] = d
+                elif config.STREAM_USING == "WIFI" and d["transport"] == "tcpip":
+                    physical_map[key] = d
+
+        logging.debug(f"Estimated physical devices connected: {len(physical_map)}")
+
+        for d in physical_map.values():
+            logging.debug(
+                f"Clearing logcat for serial={d['serial']} ({d['transport']}, {d['model']})"
+            )
+            subprocess.run(["adb", "-s", d["serial"], "logcat", "-c"], check=True)
+            logging.info(
+                f"Logcat cleared for device {d['model']} ({d['serial']}) ({d['transport']})"
+            )
     except FileNotFoundError:
         logging.error("adb not found")
         print(
