@@ -849,14 +849,13 @@ def highlight_selected_option(option: str):
     typer.echo(option_text)
 
 
-def start():
+def render_option_menu(current_selection: str) -> None:
     """
-    Entry point for the script. Prompts the user to choose an option.
+    Renders the option menu with the current selection highlighted.
+
+    Args:
+        current_selection: Currently selected option string
     """
-    global selected_option
-
-    navigate_compiler_options()
-
     typer.clear()
     typer.echo('\nSelect one of the 4 options below:\n')
 
@@ -864,41 +863,97 @@ def start():
     production_option = compiler_options[2]
     fix_option = compiler_options[3]
 
+    # Render Development section
     typer.echo(f'🛠️  {yellow}Development{Style.RESET_ALL} ')
     for option in development_options:
         highlight_selected_option(option)
 
+    # Render Production section
     typer.echo(f'\n📦 {yellow}Production{Style.RESET_ALL} ')
     highlight_selected_option(production_option)
 
+    # Render Fix section
     typer.echo(f'\n🔄 {yellow}Fix{Style.RESET_ALL}')
     highlight_selected_option(fix_option)
     typer.echo('')
 
-    while True:
-        key = readchar.readkey()
 
-        if key == readchar.key.DOWN:
-            selected_index = compiler_options.index(selected_option)
-            next_index = (selected_index + 1) % len(compiler_options)
-            selected_option = compiler_options[next_index]
-            typer.clear()
-            start()
-            break
-        elif key == readchar.key.UP:
-            selected_index = compiler_options.index(selected_option)
-            prev_index = (selected_index - 1) % len(compiler_options)
-            selected_option = compiler_options[prev_index]
-            typer.clear()
-            start()
-            break
-        # left key, q, ESC
+def handle_keyboard_input() -> str:
+    """
+    Captures and returns a keyboard input from the user.
+
+    Returns:
+        str: The pressed key
+    """
+    return readchar.readkey()
+
+
+def update_selected_option(key: str, current_option: str) -> str:
+    """
+    Updates the selected option based on keyboard input.
+
+    Args:
+        key: The pressed key
+        current_option: Currently selected option
+
+    Returns:
+        str: New selected option after navigation
+    """
+    if key == readchar.key.DOWN:
+        selected_index = compiler_options.index(current_option)
+        next_index = (selected_index + 1) % len(compiler_options)
+        return compiler_options[next_index]
+    elif key == readchar.key.UP:
+        selected_index = compiler_options.index(current_option)
+        prev_index = (selected_index - 1) % len(compiler_options)
+        return compiler_options[prev_index]
+
+    return current_option
+
+
+def execute_selected_option(option: str) -> None:
+    """
+    Executes the action associated with the selected option.
+
+    Args:
+        option: The selected option string
+    """
+    typer.clear()
+    print(f'{yellow} Selected option: {green}{option}')
+    option_index = str(compiler_options.index(option) + 1)
+    typer.clear()
+    select_option(option_index, app_name)
+
+
+def start():
+    """
+    Orchestrates the interactive menu system with rendering, input handling,
+    and navigation.
+
+    This function coordinates menu display, keyboard input processing,
+    option navigation, and action execution in a clean event loop.
+    """
+    global selected_option
+
+    navigate_compiler_options()
+
+    while True:
+        # Step 1: Render the current menu state
+        render_option_menu(selected_option)
+
+        # Step 2: Get user input
+        key = handle_keyboard_input()
+
+        # Step 3: Handle navigation keys
+        if key in {readchar.key.DOWN, readchar.key.UP}:
+            selected_option = update_selected_option(key, selected_option)
+            continue
+
+        # Step 4: Handle exit keys
         elif key in {readchar.key.LEFT, 'q', readchar.key.ESC * 2}:
             sys.exit()
+
+        # Step 5: Handle selection keys
         elif key in {'\n', readchar.key.RIGHT, readchar.key.ENTER}:
-            typer.clear()
-            print(f'{yellow} Selected option: {green}{selected_option}')
-            option = str(compiler_options.index(selected_option) + 1)
-            typer.clear()
-            select_option(option, app_name)
+            execute_selected_option(selected_option)
             break
