@@ -349,12 +349,56 @@ def clear_logcat():
 def debug_on_wifi():
     """
     Debugging over WiFi.
+    If config.PHONE_IPS is empty, operate on all connected devices.
+    If not empty, operate only on devices whose wifi_ip is in config.PHONE_IPS.
     """
-    subprocess.run(["adb", "tcpip", f"{config.PORT}"])
+    logging.info("Switching ADB to TCP/IP mode...")
+    devices = get_connected_devices()
+    logging.debug(f"Connected devices: {devices}")
 
-    for IP in config.PHONE_IPS:
+    # Determine targets
+    if not config.PHONE_IPS:
+        target_usb_devices = [d for d in devices if d["transport"] == "usb"]
+        target_tcpip_ips = [
+            d["wifi_ip"] for d in devices if d["transport"] == "tcpip" and d["wifi_ip"]
+        ]
+    else:
+        target_usb_devices = [
+            d
+            for d in devices
+            if d["transport"] == "usb" and d["wifi_ip"] in config.PHONE_IPS
+        ]
+        target_tcpip_ips = [
+            ip
+            for ip in config.PHONE_IPS
+            if any(d["wifi_ip"] == ip and d["transport"] == "tcpip" for d in devices)
+        ]
+
+    for d in target_usb_devices:
+        logging.info(f"Enabling tcpip mode for {d['model']} ({d['serial']})")
+        subprocess.run(["adb", "-s", d["serial"], "tcpip", f"{config.ADB_PORT}"], check=True)
+
+        if not d["wifi_ip"]:
+            d["wifi_ip"] = get_wifi_ip(d["serial"])
+
+        ip_with_port = f"{d['wifi_ip']}:{config.ADB_PORT}"
+        logging.info(f"Connecting to {ip_with_port}")
+        try:
+            subprocess.run(["adb", "connect", ip_with_port], check=True)
+        except FileNotFoundError:
+            logging.error("adb not found")
+            print(
+                f"{red}Please, install `scrcpy`: {yellow}https://github.com/Genymobile/scrcpy{Fore.RESET}"
+            )
+
+        # Now the device is in tcpip mode, we can run logcat
+        # but we need to add it to the list of target_tcpip_ips
+        if d["wifi_ip"] not in target_tcpip_ips:
+            target_tcpip_ips.append(d["wifi_ip"])
+
+    for ip in target_tcpip_ips:
         # start each logcat on a thread
-        t = Thread(target=run_logcat, args=(IP,))
+        t = Thread(target=run_logcat, args=(ip,))
         t.start()
 
 
