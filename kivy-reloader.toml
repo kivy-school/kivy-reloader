@@ -12,6 +12,10 @@
 # This is the main feature - enables live coding on your phone
 HOT_RELOAD_ON_PHONE = false
 
+# Connection method: "USB" (faster) or "WIFI" (wireless)
+# (WIFI requires you to connect the cable once to set up)
+STREAM_USING = "WIFI"
+
 # Files that trigger a complete app restart when changed
 # Example: ["main.py", "settings.py"] - main app files
 FULL_RELOAD_FILES = ["main.py", "beautifulapp/__init__.py"]
@@ -30,12 +34,8 @@ WATCHED_FILES = []
 WATCHED_FOLDERS = []
 
 # Patterns to ignore during file watching
-# Default covers compiled files and cache folders
-DO_NOT_WATCH_PATTERNS = ["*.pyc", "*__pycache__*"]
-
-# Connection method: "USB" (faster) or "WIFI" (wireless)
-# (WIFI requires you to connect the cable once to set up)
-STREAM_USING = "USB"
+# Default covers compiled files, cache folders, and build directories
+DO_NOT_WATCH_PATTERNS = ["*.pyc", "*__pycache__*", "*.buildozer*", "*.venv*", "*.git*", "*bin*", "*dist*", "*build*", "*.pytest_cache*", "*.vscode*", "*.idea*", "*node_modules*", "*.mypy_cache*", "kivy_reloader"]
 
 # ════════════════════════════════════════════════════════════════
 # 🛠️ SERVICES & BACKGROUND PROCESSES
