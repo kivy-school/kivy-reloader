@@ -82,6 +82,10 @@ if platform != 'android':
             self.AUTORELOADER_PATHS: list = get_auto_reloader_paths()
             self.HOT_RELOAD_ON_PHONE: bool = config.HOT_RELOAD_ON_PHONE
             self.KV_FILES: list = get_kv_files_paths()
+
+            # Extract the actual directories being watched for unloading
+            self._watched_directories = self._extract_watched_directories()
+
             self._build()
             if (
                 platform == 'win'
@@ -90,6 +94,17 @@ if platform != 'android':
                 # is closed normally
                 Window.bind(on_request_close=self.on_request_close)
                 # https://stackoverflow.com/questions/54501099/how-to-run-a-method-on-the-exit-of-a-kivy-app
+
+        def _extract_watched_directories(self):
+            """Extract the actual directories being watched from AUTORELOADER_PATHS"""
+            watched_dirs = []
+            for path_tuple in self.AUTORELOADER_PATHS:
+                path, options = path_tuple
+                if options.get('recursive', False):
+                    # Convert to relative path for consistency with config usage
+                    rel_path = os.path.relpath(path, os.getcwd())
+                    watched_dirs.append(rel_path)
+            return watched_dirs
 
         def on_request_close(self, *args, **kwargs):
             # if this is a child process, you must stop the initial process,
@@ -241,8 +256,8 @@ if platform != 'android':
         def unload_python_files_on_desktop(self):
             files_to_unload = []
 
-            # Gather files from recursively watched folders
-            for folder in config.WATCHED_FOLDERS_RECURSIVELY:
+            # Use the actual watched directories instead of raw config
+            for folder in self._watched_directories:
                 for root, _, files in os.walk(folder):
                     files_to_unload.extend(
                         os.path.join(root, file)
@@ -250,7 +265,7 @@ if platform != 'android':
                         if file.endswith('.py')
                     )
 
-            # Gather files from watched folders
+            # Gather files from watched folders (non-recursive)
             for folder in config.WATCHED_FOLDERS:
                 files_to_unload.extend(
                     os.path.join(folder, file)
