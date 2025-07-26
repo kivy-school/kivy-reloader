@@ -158,9 +158,9 @@ if platform != 'win':
         subprocess.run(['stty', _ORIGINAL_STTY], check=False)
 
     def _sigint_handler(_sig, _frame) -> None:
-        """Handle Ctrl-C: restore terminal, then exit."""
-        _restore_terminal()
-        sys.exit(130)
+        """Handle Ctrl-C: restore terminal, cleanup processes, then exit."""
+        logging.info('Received interrupt signal (Ctrl+C)')
+        safe_exit(130)
 
     signal.signal(signal.SIGINT, _sigint_handler)
 else:
@@ -174,6 +174,72 @@ def _terminate(proc: subprocess.Popen) -> None:
     with suppress(Exception):
         if proc and proc.poll() is None:
             proc.terminate()
+
+
+def validate_devices_connected() -> list:
+    """
+    Validates that devices are connected and returns them.
+
+    Returns:
+        list: Connected devices
+
+    Raises:
+        SystemExit: If no devices are connected
+    """
+    devices = get_connected_devices()
+    if not devices:
+        logging.error('No connected devices found.')
+        print(
+            f'{red}No devices connected. Please connect a device and try again.'
+            f'{Style.RESET_ALL}'
+        )
+        print(f'{yellow}Make sure:')
+        print('  • USB debugging is enabled on your device')
+        print('  • Device is properly connected via USB or WiFi')
+        print(f'  • Device is turned on.{Style.RESET_ALL}')
+        sys.exit(1)
+
+    logging.info(f'Found {len(devices)} connected device(s)')
+    return devices
+
+
+def terminate_processes(*processes) -> None:
+    """
+    Safely terminates multiple processes with timeout handling.
+
+    Args:
+        *processes: Variable number of Process objects to terminate
+    """
+    for proc in processes:
+        if proc and proc.is_alive():
+            logging.info(f'Terminating process {proc.name}')
+            proc.terminate()
+
+            # Give process time to terminate gracefully
+            try:
+                proc.join(timeout=3.0)
+            except Exception:
+                logging.warning(f'Force killing process {proc.name}')
+                proc.kill()
+
+
+def safe_exit(exit_code: int = 0) -> None:
+    """
+    Safely exits the application with proper cleanup.
+
+    Args:
+        exit_code: Exit code to use (0 for success, non-zero for error)
+    """
+    logging.info('Shutting down application...')
+
+    # Clean up global processes
+    cleanup_processes(logcat_proc, filter_proc)
+
+    # Restore terminal state
+    _restore_terminal()
+
+    logging.info('Application shutdown complete')
+    sys.exit(exit_code)
 
 
 logcat_proc: subprocess.Popen | None = None
@@ -378,18 +444,29 @@ def compile_app():
 def debug_and_livestream() -> None:
     """
     Executes `adb logcat` and `scrcpy` in parallel.
+    Validates devices once at the start instead of in each subprocess.
     """
+    # Early validation - exit immediately if no devices
+    validate_devices_connected()
+
     try:
         adb_logcat = Process(target=debug)
         scrcpy = Process(target=livestream)
 
         adb_logcat.start()
         scrcpy.start()
-    except KeyboardInterrupt:
-        logging.info('Terminating processes')
-        adb_logcat.terminate()
-        scrcpy.terminate()
-        sys.exit(0)
+
+        # Wait for processes and handle termination
+        try:
+            adb_logcat.join()
+            scrcpy.join()
+        except KeyboardInterrupt:
+            logging.info('Terminating processes due to user interrupt')
+            terminate_processes(adb_logcat, scrcpy)
+
+    except Exception as e:
+        logging.error(f'Error in debug_and_livestream: {e}')
+        sys.exit(1)
 
 
 def debug():
@@ -464,10 +541,6 @@ def clear_logcat():
 
     try:
         devices = get_connected_devices()
-        if not devices:
-            logging.error('No connected devices found. Logcat will not be cleared.')
-            return
-
         # Reuse existing device filtering logic
         filtered_devices = filter_target_devices(devices)
         logging.debug(f'Estimated physical devices connected: {len(filtered_devices)}')
@@ -617,16 +690,13 @@ def build_logcat_command(ip: str = None) -> list:
         ip: Optional IP address for TCP/IP connection
 
     Returns:
-        list: Command array for logcat or empty list if no devices
+        list: Command array for logcat or empty list if multiple devices
     """
     if ip:
         return ['adb', '-s', f'{ip}:{config.ADB_PORT}', 'logcat']
 
     # Handle USB/local device connection
     connected = get_connected_devices()
-    if not connected:
-        logging.error('No connected devices found. Logcat will not start.')
-        return []
 
     unique_devices = {
         (d['wifi_ip'], d['model']) for d in connected if d['wifi_ip'] != 'unknown'
@@ -824,21 +894,15 @@ def start_scrcpy():
     """
     Orchestrates scrcpy screen mirroring with command building, execution, and cleanup.
 
-    This function coordinates device validation, command construction,
-    process execution, and proper cleanup of resources.
+    This function coordinates command construction, process execution, and proper
+    cleanup of resources.
     """
     logging.info('Starting scrcpy')
 
-    # Step 1: Validate devices are connected
-    devices = get_connected_devices()
-    if not devices:
-        logging.error('No connected devices found. Scrcpy will not start.')
-        return
-
-    # Step 2: Build scrcpy command
+    # Step 1: Build scrcpy command
     scrcpy_cmd = build_scrcpy_command()
 
-    # Step 3: Execute scrcpy process with cleanup
+    # Step 2: Execute scrcpy process with cleanup
     scrcpy_proc = None
     try:
         scrcpy_proc = execute_scrcpy_process(scrcpy_cmd)
