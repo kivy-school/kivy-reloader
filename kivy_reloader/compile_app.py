@@ -748,7 +748,6 @@ def start_logcat_processes(logcat_cmd: list, filter_cmd: list) -> tuple:
 
     try:
         if platform == 'win':
-            logging.info(f'LOGCAT_CMD + FILTER_CMD {logcat_cmd + filter_cmd}')
             logcat_proc = subprocess.Popen(logcat_cmd + filter_cmd)
             filter_proc = None
         else:
@@ -811,6 +810,108 @@ def livestream():
     start_scrcpy()
 
 
+def add_window_options(scrcpy_cmd: list) -> None:
+    """Add window configuration options to scrcpy command."""
+    scrcpy_cmd.extend(['--window-x', str(config.WINDOW_X)])
+    scrcpy_cmd.extend(['--window-y', str(config.WINDOW_Y)])
+    scrcpy_cmd.extend(['--window-width', str(config.WINDOW_WIDTH)])
+
+    if config.WINDOW_HEIGHT > 0:
+        scrcpy_cmd.extend(['--window-height', str(config.WINDOW_HEIGHT)])
+
+    if config.WINDOW_TITLE:
+        scrcpy_cmd.append(f'--window-title={config.WINDOW_TITLE}')
+
+
+def add_display_options(scrcpy_cmd: list) -> None:
+    """Add display configuration options to scrcpy command."""
+    if config.FULLSCREEN:
+        scrcpy_cmd.append('--fullscreen')
+    if config.WINDOW_BORDERLESS:
+        scrcpy_cmd.append('--window-borderless')
+    if config.ALWAYS_ON_TOP:
+        scrcpy_cmd.append('--always-on-top')
+    if config.DISPLAY_ORIENTATION != 0:
+        scrcpy_cmd.extend(['--display-orientation', str(config.DISPLAY_ORIENTATION)])
+    if config.CROP_AREA:
+        scrcpy_cmd.extend(['--crop', config.CROP_AREA])
+
+
+def add_performance_options(scrcpy_cmd: list) -> None:
+    """Add performance and quality options to scrcpy command."""
+    if config.MAX_SIZE > 0:
+        scrcpy_cmd.extend(['--max-size', str(config.MAX_SIZE)])
+    if config.MAX_FPS > 0:
+        scrcpy_cmd.extend(['--max-fps', str(config.MAX_FPS)])
+    if config.VIDEO_BIT_RATE != '8M':
+        scrcpy_cmd.extend(['--video-bit-rate', config.VIDEO_BIT_RATE])
+    if config.PRINT_FPS:
+        scrcpy_cmd.append('--print-fps')
+
+    # Performance optimizations (especially important for VMs/VirtualBox)
+    if config.RENDER_DRIVER:
+        print('aisuhdauisdhiuashduis')
+        scrcpy_cmd.extend(['--render-driver', config.RENDER_DRIVER])
+    if config.NO_MOUSE_HOVER:
+        scrcpy_cmd.append('--no-mouse-hover')
+    if config.DISABLE_SCREENSAVER:
+        scrcpy_cmd.append('--disable-screensaver')
+
+
+def add_audio_options(scrcpy_cmd: list) -> None:
+    """Add audio configuration options to scrcpy command."""
+    if config.NO_AUDIO:
+        scrcpy_cmd.append('--no-audio')
+    elif config.NO_AUDIO_PLAYBACK:
+        scrcpy_cmd.append('--no-audio-playback')
+
+    if not config.NO_AUDIO:
+        if config.AUDIO_SOURCE != 'output':
+            scrcpy_cmd.extend(['--audio-source', config.AUDIO_SOURCE])
+        if config.AUDIO_BIT_RATE != '128K':
+            scrcpy_cmd.extend(['--audio-bit-rate', config.AUDIO_BIT_RATE])
+
+
+def add_control_options(scrcpy_cmd: list) -> None:
+    """Add device control options to scrcpy command."""
+    if config.TURN_SCREEN_OFF:
+        scrcpy_cmd.append('--turn-screen-off')
+    if config.STAY_AWAKE:
+        scrcpy_cmd.append('--stay-awake')
+    if config.SHOW_TOUCHES:
+        scrcpy_cmd.append('--show-touches')
+    if config.NO_CONTROL:
+        scrcpy_cmd.append('--no-control')
+
+
+def add_advanced_options(scrcpy_cmd: list) -> None:
+    """Add advanced configuration options to scrcpy command."""
+    if config.KILL_ADB_ON_CLOSE:
+        scrcpy_cmd.append('--kill-adb-on-close')
+    if config.POWER_OFF_ON_CLOSE:
+        scrcpy_cmd.append('--power-off-on-close')
+    if config.TIME_LIMIT > 0:
+        scrcpy_cmd.extend(['--time-limit', str(config.TIME_LIMIT)])
+    if config.SCREEN_OFF_TIMEOUT > 0:
+        scrcpy_cmd.extend(['--screen-off-timeout', str(config.SCREEN_OFF_TIMEOUT)])
+    if config.SHORTCUT_MOD != 'lalt,lsuper':
+        scrcpy_cmd.extend(['--shortcut-mod', config.SHORTCUT_MOD])
+
+
+def add_recording_options(scrcpy_cmd: list) -> None:
+    """Add recording options to scrcpy command."""
+    if config.RECORD_SESSION and config.RECORD_FILE_PATH:
+        scrcpy_cmd.extend(['--record', config.RECORD_FILE_PATH])
+
+
+def add_connection_options(scrcpy_cmd: list) -> None:
+    """Add connection method options to scrcpy command."""
+    if config.STREAM_USING == 'USB':
+        scrcpy_cmd.append('-d')
+    elif config.STREAM_USING == 'WIFI':
+        scrcpy_cmd.append('-e')
+
+
 def build_scrcpy_command() -> list:
     """
     Builds the scrcpy command with all configuration options.
@@ -818,36 +919,17 @@ def build_scrcpy_command() -> list:
     Returns:
         list: Complete scrcpy command array with all configured options
     """
-    scrcpy_cmd = [
-        'scrcpy',
-        '--window-x',
-        config.WINDOW_X,
-        '--window-y',
-        config.WINDOW_Y,
-        '--window-width',
-        config.WINDOW_WIDTH,
-        '--no-mouse-hover',
-    ]
+    scrcpy_cmd = ['scrcpy']
 
-    # Add optional features based on configuration
-    if config.ALWAYS_ON_TOP:
-        scrcpy_cmd.append('--always-on-top')
-    if config.TURN_SCREEN_OFF:
-        scrcpy_cmd.append('--turn-screen-off')
-    if config.STAY_AWAKE:
-        scrcpy_cmd.append('--stay-awake')
-    if config.SHOW_TOUCHES:
-        scrcpy_cmd.append('--show-touches')
-    if config.WINDOW_TITLE:
-        scrcpy_cmd.append(f"--window-title='{config.WINDOW_TITLE}'")
-    if config.NO_AUDIO:
-        scrcpy_cmd.append('--no-audio')
-
-    # Add connection method
-    if config.STREAM_USING == 'USB':
-        scrcpy_cmd.append('-d')
-    elif config.STREAM_USING == 'WIFI':
-        scrcpy_cmd.append('-e')
+    # Add configuration options in logical groups
+    add_window_options(scrcpy_cmd)
+    add_display_options(scrcpy_cmd)
+    add_performance_options(scrcpy_cmd)
+    add_audio_options(scrcpy_cmd)
+    add_control_options(scrcpy_cmd)
+    add_advanced_options(scrcpy_cmd)
+    add_recording_options(scrcpy_cmd)
+    add_connection_options(scrcpy_cmd)
 
     return scrcpy_cmd
 
