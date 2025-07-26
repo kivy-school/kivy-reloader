@@ -150,11 +150,70 @@ class Config:  # noqa: PLR0904
                 self.config.pop(port_key, None)
 
         # Validate window dimensions
-        for dimension in ('WINDOW_X', 'WINDOW_Y', 'WINDOW_WIDTH'):
+        for dimension in ('WINDOW_X', 'WINDOW_Y', 'WINDOW_WIDTH', 'WINDOW_HEIGHT'):
             value = self.config.get(dimension)
             if value is not None and not isinstance(value, (int, str)):
                 logging.warning(f'Invalid {dimension}: {value}. Using default.')
                 self.config.pop(dimension, None)
+
+        # Validate display orientation
+        orientation = self.config.get('DISPLAY_ORIENTATION')
+        if orientation is not None and orientation not in {0, 90, 180, 270}:
+            logging.warning(f'Invalid DISPLAY_ORIENTATION: {orientation}. Using 0.')
+            logging.warning('Valid values are 0, 90, 180, or 270 degrees.')
+            self.config['DISPLAY_ORIENTATION'] = 0
+
+        # Validate audio source
+        audio_source = self.config.get('AUDIO_SOURCE', 'output')
+        valid_audio_sources = {
+            'output',
+            'playback',
+            'mic',
+            'mic-unprocessed',
+            'mic-camcorder',
+            'mic-voice-recognition',
+            'mic-voice-communication',
+            'voice-call',
+            'voice-call-uplink',
+            'voice-call-downlink',
+            'voice-performance',
+        }
+        if audio_source not in valid_audio_sources:
+            logging.warning(f'Invalid AUDIO_SOURCE: {audio_source}. Using output.')
+            self.config['AUDIO_SOURCE'] = 'output'
+
+        # Validate time limits
+        for time_key in ('TIME_LIMIT', 'SCREEN_OFF_TIMEOUT'):
+            value = self.config.get(time_key)
+            if value is not None and (not isinstance(value, int) or value < 0):
+                logging.warning(f'Invalid {time_key}: {value}. Using 0.')
+                self.config[time_key] = 0
+
+        # Validate performance settings
+        for perf_key in ('MAX_SIZE', 'MAX_FPS'):
+            value = self.config.get(perf_key)
+            if value is not None and (not isinstance(value, int) or value < 0):
+                logging.warning(f'Invalid {perf_key}: {value}. Using 0.')
+                self.config[perf_key] = 0
+
+        # Validate render driver
+        render_driver = self.config.get('RENDER_DRIVER', '')
+        valid_drivers = {
+            'direct3d',
+            'direct3d11',
+            'direct3d12',
+            'opengl',
+            'opengles2',
+            'opengles',
+            'metal',
+            'vulkan',
+            'gpu',
+            'software',
+        }
+        if render_driver and render_driver not in valid_drivers:
+            logging.warning(f'Invalid RENDER_DRIVER: {render_driver}.')
+            logging.warning(f'Valid values: {", ".join(valid_drivers)}')
+            self.config['RENDER_DRIVER'] = ''
 
     def get(self, key: str, default: Any = None) -> Any:
         """
@@ -277,6 +336,22 @@ class Config:  # noqa: PLR0904
         return int(value) if isinstance(value, (int, str)) else 280
 
     @property
+    def WINDOW_HEIGHT(self) -> int:
+        """Window height."""
+        value = self.get('WINDOW_HEIGHT', 0)
+        return int(value) if isinstance(value, (int, str)) else 0
+
+    @property
+    def FULLSCREEN(self) -> bool:
+        """Start scrcpy in fullscreen mode."""
+        return self.get('FULLSCREEN', False)
+
+    @property
+    def WINDOW_BORDERLESS(self) -> bool:
+        """Disable window decorations (borderless window)."""
+        return self.get('WINDOW_BORDERLESS', False)
+
+    @property
     def SHOW_TOUCHES(self) -> bool:
         """Show touch indicators in scrcpy."""
         return self.get('SHOW_TOUCHES', False)
@@ -297,9 +372,117 @@ class Config:  # noqa: PLR0904
         return self.get('ALWAYS_ON_TOP', True)
 
     @property
+    def DISPLAY_ORIENTATION(self) -> int:
+        """Set initial display orientation (0, 90, 180, 270)."""
+        return self.get('DISPLAY_ORIENTATION', 0)
+
+    @property
+    def CROP_AREA(self) -> str:
+        """Crop device screen. Format: 'width:height:x:y' or empty for no crop."""
+        return self.get('CROP_AREA', '')
+
+    # === Performance & Quality Properties ===
+
+    @property
+    def MAX_SIZE(self) -> int:
+        """Maximum video resolution (0 = unlimited)."""
+        return self.get('MAX_SIZE', 0)
+
+    @property
+    def MAX_FPS(self) -> int:
+        """Maximum frame rate (0 = unlimited)."""
+        return self.get('MAX_FPS', 0)
+
+    @property
+    def VIDEO_BIT_RATE(self) -> str:
+        """Video bit rate (e.g., '8M', '4M', '2M')."""
+        return self.get('VIDEO_BIT_RATE', '8M')
+
+    @property
+    def PRINT_FPS(self) -> bool:
+        """Print framerate logs to console."""
+        return self.get('PRINT_FPS', False)
+
+    @property
+    def RENDER_DRIVER(self) -> str:
+        """SDL render driver. Use 'software' for VMs, or 'opengl'/'direct3d'/'metal'."""
+        return self.get('RENDER_DRIVER', '')
+
+    @property
+    def NO_MOUSE_HOVER(self) -> bool:
+        """Disable mouse hover events (improves performance)."""
+        return self.get('NO_MOUSE_HOVER', True)
+
+    @property
+    def DISABLE_SCREENSAVER(self) -> bool:
+        """Disable screensaver during mirroring (prevents interruptions)."""
+        return self.get('DISABLE_SCREENSAVER', True)
+
+    # === Audio Properties ===
+
+    @property
     def NO_AUDIO(self) -> bool:
-        """Disable audio in scrcpy."""
+        """Disable audio forwarding."""
         return self.get('NO_AUDIO', True)
+
+    @property
+    def NO_AUDIO_PLAYBACK(self) -> bool:
+        """Disable audio playback on computer (but keep device audio)."""
+        return self.get('NO_AUDIO_PLAYBACK', False)
+
+    @property
+    def AUDIO_SOURCE(self) -> str:
+        """Audio source: output, playback, mic, mic-unprocessed, etc."""
+        return self.get('AUDIO_SOURCE', 'output')
+
+    @property
+    def AUDIO_BIT_RATE(self) -> str:
+        """Audio bit rate (e.g., '128K', '64K')."""
+        return self.get('AUDIO_BIT_RATE', '128K')
+
+    # === Control & Interaction Properties ===
+
+    @property
+    def NO_CONTROL(self) -> bool:
+        """Disable device control (read-only mirror)."""
+        return self.get('NO_CONTROL', False)
+
+    @property
+    def SHORTCUT_MOD(self) -> str:
+        """Shortcut modifier keys (e.g., 'lalt,lsuper')."""
+        return self.get('SHORTCUT_MOD', 'lalt,lsuper')
+
+    # === Advanced Properties ===
+
+    @property
+    def KILL_ADB_ON_CLOSE(self) -> bool:
+        """Kill ADB when scrcpy terminates."""
+        return self.get('KILL_ADB_ON_CLOSE', False)
+
+    @property
+    def POWER_OFF_ON_CLOSE(self) -> bool:
+        """Turn device screen off when closing scrcpy."""
+        return self.get('POWER_OFF_ON_CLOSE', False)
+
+    @property
+    def TIME_LIMIT(self) -> int:
+        """Maximum mirroring time in seconds (0 = unlimited)."""
+        return self.get('TIME_LIMIT', 0)
+
+    @property
+    def SCREEN_OFF_TIMEOUT(self) -> int:
+        """Screen off timeout in seconds (0 = no change)."""
+        return self.get('SCREEN_OFF_TIMEOUT', 0)
+
+    @property
+    def RECORD_SESSION(self) -> bool:
+        """Enable session recording."""
+        return self.get('RECORD_SESSION', False)
+
+    @property
+    def RECORD_FILE_PATH(self) -> str:
+        """Path for recorded session file."""
+        return self.get('RECORD_FILE_PATH', 'session_recording.mp4')
 
     # === Service Properties ===
 
