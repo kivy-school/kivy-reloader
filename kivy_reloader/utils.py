@@ -59,18 +59,66 @@ def get_auto_reloader_paths():
     def create_path_tuples(paths, recursive):
         return [(os.path.join(base_dir, x), {'recursive': recursive}) for x in paths]
 
+    def should_exclude_directory(dir_path):
+        """Check if a directory should be excluded based on DO_NOT_WATCH_PATTERNS"""
+        dir_name = os.path.basename(dir_path)
+
+        for pattern in config.DO_NOT_WATCH_PATTERNS:
+            if pattern.startswith('*') and pattern.endswith('*'):
+                substring = pattern.strip('*')
+                if substring in dir_path or substring in dir_name:
+                    return True
+            elif fnmatch(dir_path, pattern):
+                return True
+            elif fnmatch(dir_name, pattern):
+                return True
+
+        return False
+
+    def expand_current_directory():
+        """
+        Instead of watching '.' recursively, enumerate subdirectories
+        and exclude unwanted ones
+        """
+        directories_to_watch = []
+
+        # Get all subdirectories in the current directory
+        try:
+            for item in os.listdir(base_dir):
+                item_path = os.path.join(base_dir, item)
+                if os.path.isdir(item_path):
+                    # Check if this directory should be excluded
+                    if not should_exclude_directory(item_path):
+                        directories_to_watch.append((item_path, {'recursive': True}))
+        except OSError:
+            # Fallback to watching current directory
+            directories_to_watch.append((base_dir, {'recursive': True}))
+
+        return directories_to_watch
+
     non_recursive_paths = (
         config.WATCHED_FILES + config.WATCHED_FOLDERS + config.FULL_RELOAD_FILES
     )
     recursive_paths = config.WATCHED_FOLDERS_RECURSIVELY
-    if platform == 'win':
-        return create_path_tuples(non_recursive_paths, False) + create_path_tuples(
-            recursive_paths, True
-        )
+
+    # Check if user wants to watch current directory recursively
+    if '.' in recursive_paths:
+        # Remove '.' from the list and expand it to individual directories
+        other_recursive_paths = [p for p in recursive_paths if p != '.']
+        expanded_directories = expand_current_directory()
+        other_recursive_tuples = create_path_tuples(other_recursive_paths, True)
+        recursive_tuples = expanded_directories + other_recursive_tuples
+
+        # IMPORTANT: Remove "." from non_recursive_paths to avoid duplicate watchers
+        # when using smart directory expansion
+        non_recursive_paths = [p for p in non_recursive_paths if p != '.']
     else:
-        return create_path_tuples(non_recursive_paths, True) + create_path_tuples(
-            recursive_paths, True
-        )
+        recursive_tuples = create_path_tuples(recursive_paths, True)
+
+    if platform == 'win':
+        return create_path_tuples(non_recursive_paths, False) + recursive_tuples
+    else:
+        return create_path_tuples(non_recursive_paths, True) + recursive_tuples
 
 
 def find_kv_files_in_folder(folder):
