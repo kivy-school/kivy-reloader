@@ -7,6 +7,7 @@ Handles development on desktop (Windows/Linux/macOS):
 - Sends app changes to Android via network
 """
 
+# Standard library imports
 import importlib
 import inspect
 import logging
@@ -18,6 +19,7 @@ import traceback
 from fnmatch import fnmatch
 from shutil import copytree, ignore_patterns, rmtree
 
+# Third-party imports
 import trio
 from kaki.app import App as KakiApp
 from kivy.base import EventLoop, async_runTouchApp
@@ -28,6 +30,7 @@ from kivy.lang import Builder
 from kivy.logger import Logger
 from kivy.utils import platform
 
+# Watchdog imports (optional dependency)
 try:
     from watchdog.events import (
         FileModifiedEvent,
@@ -40,9 +43,15 @@ try:
 except ImportError:
     WATCHDOG_AVAILABLE = False
 
+# Local imports
 from .base_app import BaseReloaderApp
 from .config import config
 from .utils import get_auto_reloader_paths, get_kv_files_paths
+
+# Constants
+F5_KEYCODE = 286
+CTRL_R_KEYCODE = 114
+WINDOWS_SLEEP_DURATION = 10000
 
 
 def keep_windows_host_alive():
@@ -58,56 +67,77 @@ def keep_windows_host_alive():
     Logger.info('Reloader: Keeping Windows host process alive for signal handling')
     try:
         while True:
-            time.sleep(10000)
+            time.sleep(WINDOWS_SLEEP_DURATION)
     except KeyboardInterrupt:
         Logger.info('Reloader: Host process received KeyboardInterrupt, exiting')
         sys.exit(0)
 
 
-# Configure logging for desktop environment
-Window.always_on_top = True
-logging.getLogger('watchdog').setLevel(logging.ERROR)
+def _configure_desktop_environment():
+    """Configure desktop-specific settings"""
+    Window.always_on_top = True
+    logging.getLogger('watchdog').setLevel(logging.ERROR)
+
+
+def _extract_watched_directories_from_paths(autoreloader_paths):
+    """Extract recursive directories from autoreloader paths"""
+    watched_dirs = []
+    for path_tuple in autoreloader_paths:
+        path, options = path_tuple
+        if options.get('recursive', False):
+            rel_path = os.path.relpath(path, os.getcwd())
+            watched_dirs.append(rel_path)
+    return watched_dirs
+
+
+# Configure desktop environment
+_configure_desktop_environment()
 
 
 class DesktopApp(BaseReloaderApp, KakiApp):
+    """Desktop development app with hot reload capabilities"""
+
     subprocesses = []
 
     # ==================== INITIALIZATION ====================
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self._initialize_app_state()
+        self._setup_autoreloader()
+        self._setup_windows_event_handling()
+        self._build()
+
+    def _initialize_app_state(self):
+        """Initialize basic app state variables"""
         self.built = False
         self.root = None
         self.DEBUG = 1
-        self.AUTORELOADER_PATHS: list = get_auto_reloader_paths()
-        self.HOT_RELOAD_ON_PHONE: bool = config.HOT_RELOAD_ON_PHONE
-        self.KV_FILES: list = get_kv_files_paths()
+        self.state = {}
 
-        # Extract the actual directories being watched for unloading
-        self._watched_directories = self._extract_watched_directories()
+    def _setup_autoreloader(self):
+        """Configure autoreloader paths and settings"""
+        self.AUTORELOADER_PATHS = get_auto_reloader_paths()
+        self.HOT_RELOAD_ON_PHONE = config.HOT_RELOAD_ON_PHONE
+        self.KV_FILES = get_kv_files_paths()
+        self._watched_directories = _extract_watched_directories_from_paths(
+            self.AUTORELOADER_PATHS
+        )
 
-        self._build()
-        if (
-            platform == 'win'
-        ):  # this is to make sure last spawned process on windows calls
-            # for parent Python process to be exited by PID when window
-            # is closed normally
-            Window.bind(on_request_close=self.on_request_close)
+    def _setup_windows_event_handling(self):
+        """Setup Windows-specific process management"""
+        if platform == 'win':
+            # Ensure last spawned process on Windows calls for parent Python
+            # process to be exited by PID when window is closed normally
             # https://stackoverflow.com/questions/54501099/how-to-run-a-method-on-the-exit-of-a-kivy-app
-
-    def _extract_watched_directories(self):
-        """Extract the actual directories being watched from AUTORELOADER_PATHS"""
-        watched_dirs = []
-        for path_tuple in self.AUTORELOADER_PATHS:
-            path, options = path_tuple
-            if options.get('recursive', False):
-                # Convert to relative path for consistency with config usage
-                rel_path = os.path.relpath(path, os.getcwd())
-                watched_dirs.append(rel_path)
-        return watched_dirs
+            Window.bind(on_request_close=self.on_request_close)
 
     # ==================== APP LIFECYCLE ====================
+
     def _build(self):
+        """Build the initial application"""
         Logger.info('Reloader: Building the first screen')
+
         if self.DEBUG:
             Logger.info('Kaki: Debug mode activated')
             self.enable_autoreload()
@@ -117,14 +147,13 @@ class DesktopApp(BaseReloaderApp, KakiApp):
         if self.FOREGROUND_LOCK:
             self.prepare_foreground_lock()
 
-        self.state = {}
-
         self.rebuild(first=True)
 
         if self.IDLE_DETECTION:
             self.install_idle(timeout=self.IDLE_TIMEOUT)
 
     async def async_run(self, async_lib='trio'):
+        """Run the app asynchronously using trio"""
         async with trio.open_nursery() as nursery:
             Logger.info('Reloader: Starting Async Kivy app')
             self.nursery = nursery
