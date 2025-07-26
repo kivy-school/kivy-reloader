@@ -4,4 +4,4 @@ from kivy_reloader.app import App
 
 class MainApp(App):
     def build(self):
-        return MainScreen(name="Main Screen")
+        return MainScreen(name='Main Screen')
