@@ -4,8 +4,6 @@ Base Reloader App
 Contains shared functionality between Desktop and Android apps.
 """
 
-import time
-
 from kivy.clock import Clock
 from kivy.core.window import Window
 from kivy.factory import Factory as F
@@ -59,23 +57,3 @@ class BaseReloaderApp:
                 raise Exception('Invalid instance in App.root')
 
             Window.add_widget(self.root)
-
-
-def infiniteloop():
-    """
-    This is unironically required to keep the original host python process open
-    on Windows. This is because os.spawnv does not exist on Windows and so
-    exiting the host early means that KeyboardInterrupt will not be caught by
-    child processes.
-
-    For example, you have a reloader open, you Ctrl+S to reload/start a new
-    (child) process, then the old process closes. when you Ctrl+C the original
-    process does not exist to send KeyboardInterrupt to the children whereas in
-    linux spawnv children get access to the parent's env and also receive
-    Ctrl+C KeyboardInterrupts).
-
-    You need to keep the host open so that when KeyboardInterrupt happens, it
-    also gets sent to the child.
-    """
-    while True:
-        time.sleep(10000)

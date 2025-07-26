@@ -13,6 +13,7 @@ import logging
 import os
 import subprocess
 import sys
+import time
 import traceback
 from fnmatch import fnmatch
 from shutil import copytree, ignore_patterns, rmtree
@@ -39,9 +40,29 @@ try:
 except ImportError:
     WATCHDOG_AVAILABLE = False
 
-from .base_app import BaseReloaderApp, infiniteloop
+from .base_app import BaseReloaderApp
 from .config import config
 from .utils import get_auto_reloader_paths, get_kv_files_paths
+
+
+def keep_windows_host_alive():
+    """
+    Windows-specific workaround to keep the host Python process alive.
+
+    This prevents KeyboardInterrupt from being lost when child processes
+    are spawned on Windows (since os.spawnv doesn't exist on Windows).
+
+    Without this, when you Ctrl+C, the original process may have already
+    exited and cannot send KeyboardInterrupt to child processes.
+    """
+    Logger.info('Reloader: Keeping Windows host process alive for signal handling')
+    try:
+        while True:
+            time.sleep(10000)
+    except KeyboardInterrupt:
+        Logger.info('Reloader: Host process received KeyboardInterrupt, exiting')
+        sys.exit(0)
+
 
 # Configure logging for desktop environment
 Window.always_on_top = True
@@ -169,7 +190,7 @@ class DesktopApp(BaseReloaderApp, KakiApp):
                 # need to keep it open so you can intercept
                 # KeyboardInterrupt
                 self.root_window.close()
-                infiniteloop()
+                keep_windows_host_alive()
         else:
             # linux spawnv
             try:
