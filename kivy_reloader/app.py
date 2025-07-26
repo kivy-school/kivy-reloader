@@ -18,21 +18,6 @@ from .config import config
 from .utils import get_kv_files_paths
 
 
-class Reloader(F.Screen):
-    pass
-
-
-# fmt: off
-kv = Builder.load_string("""
-<Reloader>:
-    screen_manager: screen_manager
-    ScreenManager:
-        id: screen_manager
-"""
-)
-# fmt: on
-
-
 def infiniteloop():
     """
     This is unironically required to keep the original host python process open
