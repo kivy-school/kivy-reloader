@@ -1,3 +1,28 @@
+"""
+Kivy Reloader Application Classes
+
+This module provides hot reload functionality for Kivy applications across
+different platforms.
+
+Architecture:
+- DesktopApp: Handles development on desktop (Windows/Linux/macOS)
+  - Uses watchdog for file system monitoring
+  - Manages child processes for hot reload
+  - Sends app changes to Android via network
+
+- AndroidApp: Handles hot reload on Android devices
+  - Receives app updates via TCP server
+  - Uses file hashing to detect changes
+  - Manages service restarts and compilation
+
+Key Features:
+- Hot reload of .kv files and Python modules
+- Cross-platform desktop development
+- Network-based Android deployment
+- Service management for Android
+- Smart file watching with exclusion patterns
+"""
+
 import os
 
 os.environ['KIVY_LOG_MODE'] = 'MIXED'
@@ -8,6 +33,7 @@ import sys
 
 import trio
 from kivy.base import async_runTouchApp
+from kivy.clock import Clock
 from kivy.core.window import Window
 from kivy.factory import Factory as F
 from kivy.lang import Builder
@@ -16,6 +42,54 @@ from kivy.utils import platform
 
 from .config import config
 from .utils import get_kv_files_paths
+
+
+class BaseReloaderApp:
+    """
+    Base class containing shared functionality between Desktop and Android apps
+    """
+
+    def _unregister_factory_from_module(self, module_name):
+        """Unregister all Factory classes from a specific module"""
+        to_remove = [x for x in F.classes if F.classes[x]['module'] == module_name]
+
+        # check class name
+        for x in F.classes:
+            cls = F.classes[x]['cls']
+            if not cls:
+                continue
+            if getattr(cls, '__module__', None) == module_name:
+                to_remove.append(x)
+
+        for name in set(to_remove):
+            del F.classes[name]
+
+    def build_root_and_add_to_window(self):
+        """Common UI building logic for both platforms"""
+        Logger.info('Reloader: Building root widget and adding to window')
+        if self.root is not None:
+            self.root.clear_widgets()
+
+            # Handle window children removal differently per platform
+            if platform == 'android':
+                if Window.children:
+                    Window.remove_widget(Window.children[0])
+            else:
+                while Window.children:
+                    Window.remove_widget(Window.children[0])
+
+        Clock.schedule_once(self.delayed_build)
+
+    def delayed_build(self, *args):
+        """Common delayed build logic for both platforms"""
+        self.root = self.build()
+
+        if self.root:
+            if not isinstance(self.root, F.Widget):
+                Logger.critical('App.root must be an _instance_ of Widget')
+                raise Exception('Invalid instance in App.root')
+
+            Window.add_widget(self.root)
 
 
 def infiniteloop():
@@ -46,7 +120,7 @@ if platform != 'android':
     from fnmatch import fnmatch
     from shutil import copytree, ignore_patterns, rmtree
 
-    from kaki.app import App
+    from kaki.app import App as KakiApp
     from kivy.clock import Clock, mainthread
     from kivy.core.window import Window
 
@@ -55,10 +129,10 @@ if platform != 'android':
     Window.always_on_top = True
     logging.getLogger('watchdog').setLevel(logging.ERROR)
 
-    # Desktop BaseApp
-    class App(App):
+    class DesktopApp(BaseReloaderApp, KakiApp):
         subprocesses = []
 
+        # ==================== INITIALIZATION ====================
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
             self.built = False
@@ -91,6 +165,59 @@ if platform != 'android':
                     watched_dirs.append(rel_path)
             return watched_dirs
 
+        # ==================== APP LIFECYCLE ====================
+        def _build(self):
+            Logger.info('Reloader: Building the first screen')
+            if self.DEBUG:
+                Logger.info('Kaki: Debug mode activated')
+                self.enable_autoreload()
+                self.patch_builder()
+                self.listen_for_reload()
+
+            if self.FOREGROUND_LOCK:
+                self.prepare_foreground_lock()
+
+            self.state = {}
+
+            self.rebuild(first=True)
+
+            if self.IDLE_DETECTION:
+                self.install_idle(timeout=self.IDLE_TIMEOUT)
+
+        async def async_run(self, async_lib='trio'):
+            async with trio.open_nursery() as nursery:
+                Logger.info('Reloader: Starting Async Kivy app')
+                self.nursery = nursery
+                self._run_prepare()
+                await async_runTouchApp(async_lib=async_lib)
+                self._stop()
+                nursery.cancel_scope.cancel()
+
+        def _run_prepare(self):
+            if not self.built:
+                self.load_config()
+                self.load_kv(filename=self.kv_file)
+
+            # Check if the window is already created
+            from kivy.base import EventLoop
+
+            window = EventLoop.window
+            if window:
+                self._app_window = window
+                window.set_title(self.get_application_name())
+                icon = self.get_application_icon()
+                if icon:
+                    window.set_icon(icon)
+                self._install_settings_keys(window)
+            else:
+                Logger.critical(
+                    'Application: No window is created. Terminating application run.'
+                )
+                return
+
+            self.dispatch('on_start')
+
+        # ==================== PROCESS MANAGEMENT ====================
         def on_request_close(self, *args, **kwargs):
             # if this is a child process, you must stop the initial process,
             # check argv for the PID (only on windows)
@@ -134,23 +261,7 @@ if platform != 'android':
                     os.spawnv(os.P_NOWAIT, sys.executable, cmd)
                     os._exit(0)
 
-        def _build(self):
-            Logger.info('Reloader: Building the first screen')
-            if self.DEBUG:
-                Logger.info('Kaki: Debug mode activated')
-                self.enable_autoreload()
-                self.patch_builder()
-                self.listen_for_reload()
-
-            if self.FOREGROUND_LOCK:
-                self.prepare_foreground_lock()
-
-            self.state = {}
-
-            self.rebuild(first=True)
-
-            if self.IDLE_DETECTION:
-                self.install_idle(timeout=self.IDLE_TIMEOUT)
+        # ==================== UI BUILDING ====================
 
         def listen_for_reload(self):
             """
@@ -190,39 +301,7 @@ if platform != 'android':
 
                 Window.add_widget(self.root)
 
-        def _run_prepare(self):
-            if not self.built:
-                self.load_config()
-                self.load_kv(filename=self.kv_file)
-
-            # Check if the window is already created
-            from kivy.base import EventLoop
-
-            window = EventLoop.window
-            if window:
-                self._app_window = window
-                window.set_title(self.get_application_name())
-                icon = self.get_application_icon()
-                if icon:
-                    window.set_icon(icon)
-                self._install_settings_keys(window)
-            else:
-                Logger.critical(
-                    'Application: No window is created. Terminating application run.'
-                )
-                return
-
-            self.dispatch('on_start')
-
-        async def async_run(self, async_lib='trio'):
-            async with trio.open_nursery() as nursery:
-                Logger.info('Reloader: Starting Async Kivy app')
-                self.nursery = nursery
-                self._run_prepare()
-                await async_runTouchApp(async_lib=async_lib)
-                self._stop()
-                nursery.cancel_scope.cancel()
-
+        # ==================== HOT RELOAD CORE ====================
         def unload_python_file(self, filename, module_name):
             if module_name == 'main':
                 return
@@ -488,10 +567,11 @@ else:
     import hashlib
     import shutil
 
-    from kivy.app import App
+    from kivy.app import App as KivyApp
     from kivy.clock import Clock
 
-    class App(App):
+    class AndroidApp(BaseReloaderApp, KivyApp):
+        # ==================== INITIALIZATION ====================
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
             main_py_file_path = os.path.join(os.getcwd(), 'main.py')
@@ -524,19 +604,7 @@ else:
 
             self.bind_key(114, self.restart_app_on_android)
 
-        def bind_key(self, key, callback):
-            """
-            Reload the app when pressing Ctrl+R from scrcpy
-            """
-
-            def _on_keyboard(window, keycode, scancode, codepoint, modifier_keys):
-                pressed_modifiers = set(modifier_keys)
-
-                if key == keycode and 'ctrl' in pressed_modifiers:
-                    return callback()
-
-            Window.bind(on_keyboard=_on_keyboard)
-
+        # ==================== APP LIFECYCLE ====================
         async def async_run(self, async_lib='trio'):
             async with trio.open_nursery() as nursery:
                 Logger.info('Reloader: Starting Async Kivy app')
@@ -563,6 +631,20 @@ else:
             activity.startActivity(intent)
             System.exit(0)
 
+        # ==================== UTILITY FUNCTIONS ====================
+        def bind_key(self, key, callback):
+            """
+            Reload the app when pressing Ctrl+R from scrcpy
+            """
+
+            def _on_keyboard(window, keycode, scancode, codepoint, modifier_keys):
+                pressed_modifiers = set(modifier_keys)
+
+                if key == keycode and 'ctrl' in pressed_modifiers:
+                    return callback()
+
+            Window.bind(on_keyboard=_on_keyboard)
+
         def get_hash_of_file(self, file_name):
             """
             Returns the hash of the file using md5 hash
@@ -583,6 +665,22 @@ else:
 
             for name in set(to_remove):
                 del F.classes[name]
+
+        def recompile_main(self):
+            if platform == 'android':
+                files = os.listdir()
+                if 'main.pyc' in files and 'main.py' in files:
+                    Logger.info('Deleting main.pyc')
+                    os.remove('main.pyc')
+                    Logger.info('Compiling main.py')
+                    main_py_path = os.path.join(os.getcwd(), 'main.py')
+                    subprocess.run(
+                        f'python -m compileall {main_py_path}',
+                        shell=True,
+                        check=True,
+                    )
+
+        # ==================== HOT RELOAD CORE ====================
 
         def reload_kv(self, *args):
             """
@@ -676,24 +774,6 @@ else:
 
             self.build_root_and_add_to_window()
 
-        def build_root_and_add_to_window(self):
-            Logger.info('Reloader: Building root widget and adding to window')
-            if self.root is not None:
-                self.root.clear_widgets()
-                Window.remove_widget(Window.children[0])
-
-            Clock.schedule_once(self.delayed_build)
-
-        def delayed_build(self, *args):
-            self.root = self.build()
-
-            if self.root:
-                if not isinstance(self.root, F.Widget):
-                    Logger.critical('App.root must be an _instance_ of Widget')
-                    raise Exception('Invalid instance in App.root')
-
-                Window.add_widget(self.root)
-
         def unload_python_file(self, filename, module):
             if module == 'main':
                 return None
@@ -760,29 +840,29 @@ else:
             # Process the files and get the modules to reload
             modules_to_reload = self.process_unload_files(files_to_reload)
 
+            # Performance optimization: Only reload if we have modules to reload
+            if not modules_to_reload:
+                Logger.info('Reloader: No modules to reload, skipping reload step')
+                return
+
             # We need to reload the modules twice, because some modules
             # may depend on other modules, and the order of reloading
             # matters, so the first pass won't reload necessarily
             # on the correct order, on the second pass the
             # references will be updated correctly
-            for _ in range(2):
+            Logger.info(
+                f'Reloader: Reloading {len(modules_to_reload)} modules (2 passes)'
+            )
+            for pass_num in range(2):
                 for module in modules_to_reload:
-                    importlib.reload(module)
+                    try:
+                        importlib.reload(module)
+                    except Exception as e:
+                        Logger.warning(
+                            f'Failed to reload {module} on pass {pass_num + 1}: {e}'
+                        )
 
-        def recompile_main(self):
-            if platform == 'android':
-                files = os.listdir()
-                if 'main.pyc' in files and 'main.py' in files:
-                    Logger.info('Deleting main.pyc')
-                    os.remove('main.pyc')
-                    Logger.info('Compiling main.py')
-                    main_py_path = os.path.join(os.getcwd(), 'main.py')
-                    subprocess.run(
-                        f'python -m compileall {main_py_path}',
-                        shell=True,
-                        check=True,
-                    )
-
+        # ==================== NETWORK SERVER ====================
         def initialize_server(self):
             """
             Starts the server
@@ -868,3 +948,10 @@ else:
                     'Full exception:',
                     ''.join(traceback.format_exception(*sys.exc_info())),
                 )
+
+
+# Export the appropriate App class based on platform
+if platform != 'android':
+    App = DesktopApp
+else:
+    App = AndroidApp
