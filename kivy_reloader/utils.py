@@ -3,6 +3,7 @@ import os
 import pathlib
 import subprocess
 import sys
+from fnmatch import fnmatch
 
 from kivy.lang import Builder
 from kivy.resources import resource_add_path, resource_find
@@ -35,8 +36,7 @@ def load_kv_path(path):
             # last resort: do a naive search with resource find
             kv_path = resource_find(path)
             logging.info(
-                'kv path might be a duplicate, '
-                f'please double check {path}, {kv_path}'
+                f'kv path might be a duplicate, please double check {path}, {kv_path}'
             )
 
     else:
@@ -57,33 +57,48 @@ def get_auto_reloader_paths():
     """
 
     def create_path_tuples(paths, recursive):
-        return [
-            (os.path.join(base_dir, x), {'recursive': recursive})
-            for x in paths
-        ]
+        return [(os.path.join(base_dir, x), {'recursive': recursive}) for x in paths]
 
     non_recursive_paths = (
-        config.WATCHED_FILES
-        + config.WATCHED_FOLDERS
-        + config.FULL_RELOAD_FILES
+        config.WATCHED_FILES + config.WATCHED_FOLDERS + config.FULL_RELOAD_FILES
     )
     recursive_paths = config.WATCHED_FOLDERS_RECURSIVELY
     if platform == 'win':
-        return create_path_tuples(
-            non_recursive_paths, False
-        ) + create_path_tuples(recursive_paths, True)
+        return create_path_tuples(non_recursive_paths, False) + create_path_tuples(
+            recursive_paths, True
+        )
     else:
-        return create_path_tuples(
-            non_recursive_paths, True
-        ) + create_path_tuples(recursive_paths, True)
+        return create_path_tuples(non_recursive_paths, True) + create_path_tuples(
+            recursive_paths, True
+        )
 
 
 def find_kv_files_in_folder(folder):
     kv_files = []
     for root, _, files in os.walk(os.path.join(base_dir, folder)):
+        # Check if the directory path should be excluded
+        should_exclude_dir = False
+        for pattern in config.DO_NOT_WATCH_PATTERNS:
+            if fnmatch(root, f'*{pattern.replace("*", "")}*'):
+                should_exclude_dir = True
+                break
+
+        if should_exclude_dir:
+            continue
+
         for file in files:
             if file.endswith('.kv'):
-                kv_files.append(os.path.join(root, file))
+                full_path = os.path.join(root, file)
+
+                # Check if the file path should be excluded
+                should_exclude_file = False
+                for pattern in config.DO_NOT_WATCH_PATTERNS:
+                    if fnmatch(full_path, f'*{pattern.replace("*", "")}*'):
+                        should_exclude_file = True
+                        break
+
+                if not should_exclude_file:
+                    kv_files.append(full_path)
     return kv_files
 
 
@@ -97,9 +112,7 @@ def get_kv_files_paths():
     for folder in config.WATCHED_FOLDERS:
         for file_name in os.listdir(folder):
             if file_name.endswith('.kv'):
-                KV_FILES.append(
-                    os.path.join(base_dir, f'{folder}/{file_name}')
-                )
+                KV_FILES.append(os.path.join(base_dir, f'{folder}/{file_name}'))
 
     for folder in config.WATCHED_FOLDERS_RECURSIVELY:
         for file_name in find_kv_files_in_folder(folder):
@@ -136,10 +149,7 @@ def get_connected_devices() -> list[dict[str, str]]:
         )
 
         logging.info(
-            f'Detected device: '
-            f'serial={serial}, '
-            f'transport={transport}, '
-            f'model={model}'
+            f'Detected device: serial={serial}, transport={transport}, model={model}'
         )
         wifi_ip = get_wifi_ip(serial)
 
