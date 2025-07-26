@@ -160,9 +160,7 @@ if platform != 'android':
             F5_KEYCODE = 286  # Named constant for F5 key
             CTRL_R_KEYCODE = 114  # Named constant for Ctrl+R key
 
-            def _on_keyboard(
-                window, keycode, scancode, codepoint, modifier_keys
-            ):
+            def _on_keyboard(window, keycode, scancode, codepoint, modifier_keys):
                 pressed_modifiers = set(modifier_keys)
 
                 if keycode == F5_KEYCODE or (
@@ -210,8 +208,7 @@ if platform != 'android':
                 self._install_settings_keys(window)
             else:
                 Logger.critical(
-                    'Application: No window is created.'
-                    ' Terminating application run.'
+                    'Application: No window is created. Terminating application run.'
                 )
                 return
 
@@ -238,9 +235,7 @@ if platform != 'android':
 
         def unload_files(self, files):
             for filename in files:
-                module_name = os.path.relpath(filename).replace(
-                    os.path.sep, '.'
-                )[:-3]
+                module_name = os.path.relpath(filename).replace(os.path.sep, '.')[:-3]
                 self.unload_python_file(filename, module_name)
 
         def unload_python_files_on_desktop(self):
@@ -265,14 +260,12 @@ if platform != 'android':
 
             # Gather individual watched files
             files_to_unload.extend(
-                os.path.join(os.getcwd(), file)
-                for file in config.WATCHED_FILES
+                os.path.join(os.getcwd(), file) for file in config.WATCHED_FILES
             )
 
             # Gather files that require full reload
             files_to_unload.extend(
-                os.path.join(os.getcwd(), file)
-                for file in config.FULL_RELOAD_FILES
+                os.path.join(os.getcwd(), file) for file in config.FULL_RELOAD_FILES
             )
 
             # Process all gathered files
@@ -353,9 +346,7 @@ if platform != 'android':
             )
 
             for dir in dirs_to_watch_from_watched_files:
-                file_observer.schedule(
-                    file_handler, dir, **{'recursive': False}
-                )
+                file_observer.schedule(file_handler, dir, **{'recursive': False})
 
             for path_tuple in self.AUTORELOADER_PATHS:
                 path, options = path_tuple
@@ -384,9 +375,7 @@ if platform != 'android':
             for path in config.FULL_RELOAD_FILES:
                 full_path = os.path.join(self.get_root_path(), path)
                 if fnmatch(event.src_path, full_path):
-                    Logger.info(
-                        f'Reloader: Full reload triggered by {event.src_path}'
-                    )
+                    Logger.info(f'Reloader: Full reload triggered by {event.src_path}')
                     mod = sys.modules[self.__class__.__module__]
                     mod_filename = os.path.realpath(mod.__file__)
                     self._restart_app(mod_filename)
@@ -474,9 +463,7 @@ if platform != 'android':
                 ),
                 'send_app_to_phone.py',
             )
-            subprocess.run(
-                f'python {path_of_send_app}', shell=True, check=True
-            )
+            subprocess.run(f'python {path_of_send_app}', shell=True, check=True)
 
             # Deleting the temp folder and the zip file
             self.clear_temp_folder_and_zip_file(destination, zip_file)
@@ -542,9 +529,7 @@ else:
             Reload the app when pressing Ctrl+R from scrcpy
             """
 
-            def _on_keyboard(
-                window, keycode, scancode, codepoint, modifier_keys
-            ):
+            def _on_keyboard(window, keycode, scancode, codepoint, modifier_keys):
                 pressed_modifiers = set(modifier_keys)
 
                 if key == keycode and 'ctrl' in pressed_modifiers:
@@ -586,9 +571,7 @@ else:
                 return hashlib.md5(f.read()).hexdigest()
 
         def _unregister_factory_from_module(self, module):
-            to_remove = [
-                x for x in F.classes if F.classes[x]['module'] == module
-            ]
+            to_remove = [x for x in F.classes if F.classes[x]['module'] == module]
 
             # check class name
             for x in F.classes:
@@ -633,14 +616,10 @@ else:
                     Logger.info(f'Stopping service {service_name}')
                     from jnius import autoclass  # type: ignore
 
-                    mActivity = autoclass(
-                        'org.kivy.android.PythonActivity'
-                    ).mActivity
+                    mActivity = autoclass('org.kivy.android.PythonActivity').mActivity
                     context = mActivity.getApplicationContext()
                     SERVICE_NAME = (
-                        str(context.getPackageName())
-                        + '.Service'
-                        + service_name
+                        str(context.getPackageName()) + '.Service' + service_name
                     )
                     service = autoclass(SERVICE_NAME)
                     service.stop(mActivity)
@@ -652,14 +631,12 @@ else:
 
             for file_name in config.FULL_RELOAD_FILES:
                 if not os.path.exists(file_name):
-                    Logger.info(
-                        f'Reloader: File {file_name} does not exist. Skipping!'
-                    )
+                    Logger.info(f'Reloader: File {file_name} does not exist. Skipping!')
                     continue
 
                 if file_name not in self.full_reload_file_hashes:
-                    self.full_reload_file_hashes[file_name] = (
-                        self.get_hash_of_file(file_name)
+                    self.full_reload_file_hashes[file_name] = self.get_hash_of_file(
+                        file_name
                     )
                     continue
 
@@ -674,10 +651,7 @@ else:
                     self.restart_app_on_android()
 
             if os.path.exists(main_py_file_path):
-                if (
-                    self.get_hash_of_file(main_py_file_path)
-                    != self.main_py_hash
-                ):
+                if self.get_hash_of_file(main_py_file_path) != self.main_py_hash:
                     # `main.py` changed, restarting app
                     self.restart_app_on_android()
                     return
@@ -753,9 +727,7 @@ else:
         def process_unload_files(self, files):
             modules_to_reload = []
             for filename in files:
-                module_name = os.path.relpath(filename).replace(
-                    os.path.sep, '.'
-                )[:-3]
+                module_name = os.path.relpath(filename).replace(os.path.sep, '.')[:-3]
                 to_reload = self.unload_python_file(filename, module_name)
                 if to_reload is not None:
                     modules_to_reload.append(to_reload)
@@ -773,20 +745,16 @@ else:
             )
 
             # Gather files from watched folders
-            files_to_reload.extend(
-                self.gather_files_to_reload(config.WATCHED_FOLDERS)
-            )
+            files_to_reload.extend(self.gather_files_to_reload(config.WATCHED_FOLDERS))
 
             # Add individual watched files
             files_to_reload.extend(
-                os.path.join(os.getcwd(), file)
-                for file in config.WATCHED_FILES
+                os.path.join(os.getcwd(), file) for file in config.WATCHED_FILES
             )
 
             # Add files that require full reload
             files_to_reload.extend(
-                os.path.join(os.getcwd(), file)
-                for file in config.FULL_RELOAD_FILES
+                os.path.join(os.getcwd(), file) for file in config.FULL_RELOAD_FILES
             )
 
             # Process the files and get the modules to reload
@@ -857,9 +825,7 @@ else:
             and the app is reloaded
             """
             Logger.info('Reloader: ************** SERVER **************')
-            Logger.info(
-                'Reloader: Server started: receiving data from computer...'
-            )
+            Logger.info('Reloader: Server started: receiving data from computer...')
 
             try:
                 zip_file_path = os.path.join(os.getcwd(), 'app_copy.zip')
@@ -870,9 +836,7 @@ else:
                         Logger.info('Reloader: Server: connection closed')
                         myzip.write(data)
 
-                Logger.info(
-                    'Reloader: Finished receiving all files from computer'
-                )
+                Logger.info('Reloader: Finished receiving all files from computer')
                 Logger.info('Reloader: Unpacking app')
 
                 # first print the size of the zip file
@@ -888,12 +852,8 @@ else:
                 # Logger.info("Recompiling main.py")
                 # self.recompile_main()
 
-                Logger.info(
-                    'Reloader: App updated, restarting app for refresh'
-                )
-                Logger.info(
-                    'Reloader: ************** END SERVER **************'
-                )
+                Logger.info('Reloader: App updated, restarting app for refresh')
+                Logger.info('Reloader: ************** END SERVER **************')
 
                 self.unload_python_files_on_android()
                 if self.__module__ != '__main__':
