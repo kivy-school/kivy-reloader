@@ -1,187 +1,119 @@
 import os
 import sys
-from typing import Any, List
+from dataclasses import dataclass, field
+from typing import Any, Dict
 
 import toml
 
+DEFAULTS: Dict[str, Any] = {
+    'FULL_RELOAD_FILES': [],
+    'WATCHED_FILES': [],
+    'WATCHED_FOLDERS': [],
+    'WATCHED_FOLDERS_RECURSIVELY': [],
+    'DO_NOT_WATCH_PATTERNS': ['*.pyc', '*__pycache__*'],
+    'HOT_RELOAD_ON_PHONE': False,
+    'STREAM_USING': 'USB',
+    'PORT': 5555,
+    'ADB_PORT': 5555,
+    'RELOADER_PORT': 8050,
+    'PHONE_IPS': [],
+    'WINDOW_TITLE': 'Kivy Reloader',
+    'SHOW_TOUCHES': False,
+    'STAY_AWAKE': False,
+    'TURN_SCREEN_OFF': False,
+    'ALWAYS_ON_TOP': True,
+    'WINDOW_X': '1200',
+    'WINDOW_Y': '100',
+    'WINDOW_WIDTH': '280',
+    'SERVICE_FILES': [],
+    'SERVICE_NAMES': [],
+    'FOLDERS_AND_FILES_TO_EXCLUDE_FROM_PHONE': [
+        '*.pyc',
+        '__pycache__',
+        '.buildozer',
+        '.venv',
+        '.vscode',
+        '.git',
+        '.pytest_cache',
+        '.DS_Store',
+        '.env',
+        '.dmypy.json',
+        '.mypy_cache/',
+        '.dmypy.json',
+        'dmypy.json',
+        'env/',
+        'ENV/',
+        'env.bak/',
+        'venv/',
+        'venv.bak/',
+        'bin',
+        'buildozer.spec',
+        'poetry.lock',
+        'pyproject.toml',
+        'temp',
+        'tests',
+        'app_copy.zip',
+        'send_app_to_phone.py',
+        '.gitignore',
+        'README.md',
+    ],
+    'NO_AUDIO': True,
+}
 
-class Config:  # noqa: PLR0904
-    def __init__(self):
-        self.config_file = os.path.join(os.getcwd(), 'kivy-reloader.toml')
-        self.constants_to_import = [
-            'FULL_RELOAD_FILES',
-            'WATCHED_FILES',
-            'WATCHED_FOLDERS',
-            'WATCHED_FOLDERS_RECURSIVELY',
-            'DO_NOT_WATCH_PATTERNS',
-            'HOT_RELOAD_ON_PHONE',
-            'STREAM_USING',
-            'PORT',
-            'PHONE_IPS',
-            'WINDOW_TITLE',
-            'SHOW_TOUCHES',
-            'STAY_AWAKE',
-            'TURN_SCREEN_OFF',
-            'ALWAYS_ON_TOP',
-            'WINDOW_X',
-            'WINDOW_Y',
-            'WINDOW_WIDTH',
-            'SERVICE_FILES',
-            'SERVICE_NAMES',
-            'NO_AUDIO',
-        ]
+
+@dataclass
+class Config:
+    """Configuration handler for ``kivy-reloader``."""
+
+    config_file: str = field(
+        default_factory=lambda: os.path.join(
+            os.getcwd(),
+            'kivy-reloader.toml',
+        ),
+    )
+    config: Dict[str, Any] = field(init=False, default_factory=dict)
+
+    def __post_init__(self) -> None:
         if not hasattr(sys, '_MEIPASS'):
-            self._load_config()
-        elif hasattr(sys, '_MEIPASS'):
+            self.load()
+        else:
             print(
                 'PyInstaller environment detected.'
                 'Make sure to turn your kivy_reloader app into a kivy app:'
                 'https://kivyschool.com/kivy-reloader/windows/setup-and-how-to-use/'
             )
 
-    def _load_config(self):
+    def load(self) -> None:
+        """Load configuration from ``self.config_file``."""
         if os.path.exists(self.config_file):
             with open(self.config_file, 'r', encoding='utf-8') as f:
-                self.config = toml.load(f)['kivy_reloader']
+                data = toml.load(f)
+            self.config = data.get('kivy_reloader', data)
         else:
             raise FileNotFoundError(
                 f'Config file not found: {self.config_file}. '
                 'Please execute `kivy-reloader init` first.'
             )
 
-    def get(self, key: str, default: Any = None) -> Any:
-        return self.config.get(key, default)
+    def get(self, key: str, default: Any | None = None) -> Any:
+        return self.config.get(key, DEFAULTS.get(key, default))
 
-    def set(self, key: str, value: Any):
+    def set(self, key: str, value: Any) -> None:
         self.config[key] = value
 
-    def save(self):
+    def save(self) -> "Config":
         with open(self.config_file, 'w', encoding='utf-8') as f:
-            toml.dump(self.config, f)
+            toml.dump({'kivy_reloader': self.config}, f)
 
-        self._load_config()
+        self.load()
 
         return self
 
-    @property
-    def WATCHED_FILES(self) -> List[str]:
-        return self.get('WATCHED_FILES', [])
-
-    @property
-    def WATCHED_FOLDERS(self) -> List[str]:
-        return self.get('WATCHED_FOLDERS', [])
-
-    @property
-    def WATCHED_FOLDERS_RECURSIVELY(self) -> List[str]:
-        return self.get('WATCHED_FOLDERS_RECURSIVELY', [])
-
-    @property
-    def DO_NOT_WATCH_PATTERNS(self) -> List[str]:
-        return self.get('DO_NOT_WATCH_PATTERNS', ['*.pyc', '*__pycache__*'])
-
-    @property
-    def HOT_RELOAD_ON_PHONE(self) -> bool:
-        return self.get('HOT_RELOAD_ON_PHONE', False)
-
-    @property
-    def STREAM_USING(self) -> str:
-        return self.get('STREAM_USING', 'USB')
-
-    @property
-    def ADB_PORT(self) -> int:
-        return self.get('ADB_PORT', 5555)
-
-    @property
-    def RELOADER_PORT(self) -> int:
-        return self.get('RELOADER_PORT', 8050)
-
-    @property
-    def PHONE_IPS(self) -> List[str]:
-        return self.get('PHONE_IPS', [])
-
-    @property
-    def WINDOW_TITLE(self) -> str:
-        return self.get('WINDOW_TITLE', 'Kivy Reloader')
-
-    @property
-    def SHOW_TOUCHES(self) -> bool:
-        return self.get('SHOW_TOUCHES', False)
-
-    @property
-    def STAY_AWAKE(self) -> bool:
-        return self.get('STAY_AWAKE', False)
-
-    @property
-    def TURN_SCREEN_OFF(self) -> bool:
-        return self.get('TURN_SCREEN_OFF', False)
-
-    @property
-    def ALWAYS_ON_TOP(self) -> bool:
-        return self.get('ALWAYS_ON_TOP', True)
-
-    @property
-    def WINDOW_X(self) -> str:
-        return self.get('WINDOW_X', '1200')
-
-    @property
-    def WINDOW_Y(self) -> str:
-        return self.get('WINDOW_Y', '100')
-
-    @property
-    def WINDOW_WIDTH(self) -> str:
-        return self.get('WINDOW_WIDTH', '280')
-
-    @property
-    def SERVICE_FILES(self) -> List[str]:
-        return self.get('SERVICE_FILES', [])
-
-    @property
-    def SERVICE_NAMES(self) -> List[str]:
-        return self.get('SERVICE_NAMES', [])
-
-    @property
-    def FOLDERS_AND_FILES_TO_EXCLUDE_FROM_PHONE(self) -> List[str]:
-        return self.get(
-            'FOLDERS_AND_FILES_TO_EXCLUDE_FROM_PHONE',
-            [
-                '*.pyc',
-                '__pycache__',
-                '.buildozer',
-                '.venv',
-                '.vscode',
-                '.git',
-                '.pytest_cache',
-                '.DS_Store',
-                '.env',
-                '.dmypy.json',
-                '.mypy_cache/',
-                '.dmypy.json',
-                'dmypy.json',
-                'env/',
-                'ENV/',
-                'env.bak/',
-                'venv/',
-                'venv.bak/',
-                'bin',
-                'buildozer.spec',
-                'poetry.lock',
-                'pyproject.toml',
-                'temp',
-                'tests',
-                'app_copy.zip',
-                'send_app_to_phone.py',
-                '.gitignore',
-                'README.md',
-            ],
-        )
-
-    @property
-    def NO_AUDIO(self) -> str:
-        return self.get('NO_AUDIO', True)
-
-    @property
-    def FULL_RELOAD_FILES(self) -> List[str]:
-        return self.get('FULL_RELOAD_FILES', [])
+    def __getattr__(self, item: str) -> Any:
+        try:
+            return self.get(item)
+        except KeyError as exc:  # pragma: no cover - defensive
+            raise AttributeError(item) from exc
 
 
 config = Config()
