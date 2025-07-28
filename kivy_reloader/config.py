@@ -276,7 +276,25 @@ class Config:  # noqa: PLR0904
     @property
     def DO_NOT_WATCH_PATTERNS(self) -> List[str]:
         """Patterns to exclude from watching."""
-        return self.get('DO_NOT_WATCH_PATTERNS', ['*.pyc', '*__pycache__*'])
+        return self.get(
+            'DO_NOT_WATCH_PATTERNS',
+            [
+                '*.pyc',
+                '*__pycache__*',
+                '*.buildozer*',
+                '*.venv*',
+                '*.git*',
+                '*bin*',
+                '*dist*',
+                '*build*',
+                '*.pytest_cache*',
+                '*.vscode*',
+                '*.idea*',
+                '*node_modules*',
+                '*.mypy_cache*',
+                'kivy_reloader',
+            ],
+        )
 
     @property
     def FULL_RELOAD_FILES(self) -> List[str]:
