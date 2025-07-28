@@ -224,11 +224,13 @@ class AndroidApp(BaseReloaderApp, KivyApp):
             os.remove('main.pyc')
             Logger.info('Compiling main.py')
             main_py_path = os.path.join(os.getcwd(), 'main.py')
-            subprocess.run(
-                f'python -m compileall {main_py_path}',
-                shell=True,
-                check=True,
-            )
+            import py_compile
+
+            try:
+                Logger.info(f'Reloader: Compiling main.py: {main_py_path}')
+                py_compile.compile(main_py_path, doraise=True)
+            except py_compile.PyCompileError as e:
+                Logger.error(f'Failed to compile main.py: {e}')
 
     # ==================== HOT RELOAD CORE ====================
 
@@ -289,11 +291,13 @@ class AndroidApp(BaseReloaderApp, KivyApp):
         if os.path.exists(compiled_file):
             os.remove(compiled_file)
 
-        subprocess.run(
-            f'python -m compileall {file_name}',
-            shell=True,
-            check=True,
-        )
+        import py_compile
+
+        try:
+            Logger.info(f'Reloader: Recompiling service file: {file_name}')
+            py_compile.compile(file_name, doraise=True)
+        except py_compile.PyCompileError as e:
+            Logger.error(f'Failed to compile {file_name}: {e}')
 
     def _stop_android_service(self, service_name):
         """
