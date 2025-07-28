@@ -46,7 +46,7 @@ except ImportError:
 # Local imports
 from .base_app import BaseReloaderApp
 from .config import config
-from .utils import get_auto_reloader_paths, get_kv_files_paths
+from .utils import get_auto_reloader_paths, get_connected_devices, get_kv_files_paths
 
 # Constants
 F5_KEYCODE = 286
@@ -414,8 +414,24 @@ class DesktopApp(BaseReloaderApp, KakiApp):
 
     def _handle_android_reload(self):
         """Handle Android hot reload if configured and available."""
-        if self.HOT_RELOAD_ON_PHONE:
-            self.send_app_to_phone()
+        if not self.HOT_RELOAD_ON_PHONE:
+            return
+
+        # Check if any devices are connected before processing
+        connected_devices = get_connected_devices()
+        if not connected_devices:
+            Logger.warning('Reloader: No devices connected, skipping app transfer')
+            Logger.warning(
+                'Reloader: Connect your Android device via USB and enable USB debugging.'
+            )
+            Logger.warning('Reloader: Make sure your device is turned on and unlocked.')
+            Logger.warning(
+                'Change HOT_RELOAD_ON_PHONE to False in config.py to disable this log.'
+            )
+            return
+
+        Logger.info(f'Reloader: Sending app to {len(connected_devices)} device(s)')
+        self.send_app_to_phone()
 
     # ==================== FILE WATCHING & AUTORELOAD ====================
 
@@ -622,7 +638,8 @@ class DesktopApp(BaseReloaderApp, KakiApp):
         # Clean up temporary files
         self.clear_temp_folder_and_zip_file(destination, zip_file)
 
-    def _create_app_archive(self, temp_directory):
+    @staticmethod
+    def _create_app_archive(temp_directory):
         """Create a zip archive of the application files."""
         subprocess.run(
             f'cd {temp_directory} && zip -r ../app_copy.zip ./* -x ./temp',
@@ -631,7 +648,8 @@ class DesktopApp(BaseReloaderApp, KakiApp):
             check=True,
         )
 
-    def _transfer_to_android(self):
+    @staticmethod
+    def _transfer_to_android():
         """Transfer the zipped application to the Android device."""
         # Get path to send_app_to_phone.py script
         current_frame = inspect.currentframe().f_back
