@@ -28,35 +28,51 @@ class Config:  # noqa: PLR0904
     MAX_PORT_NUMBER = 65535
     MIN_PORT_NUMBER = 1
 
-    # Default exclusion patterns for phone deployment
-    DEFAULT_EXCLUSIONS = [
-        '*.pyc',
-        '__pycache__',
+    # Built-in exclusion patterns that are always recommended
+    # Users can override this via DEFAULT_EXCLUSIONS in TOML if really needed
+    _BUILTIN_EXCLUSIONS = [
+        '.DS_Store',
         '.buildozer',
+        '.dmypy.json',
+        '.env',
+        '.git',
+        '.gitignore',
+        '.ipynb_checkpoints',
+        '.mypy_cache/',
+        '.pytest_cache',
         '.venv',
         '.vscode',
-        '.git',
-        '.pytest_cache',
-        '.DS_Store',
-        '.env',
-        '.dmypy.json',
-        '.mypy_cache/',
-        'dmypy.json',
-        'env/',
+        '*.bak',
+        '*.db',
+        '*.egg-info',
+        '*.log',
+        '*.npy',
+        '*.orig',
+        '*.pyc',
+        '*.sqlite',
         'ENV/',
-        'env.bak/',
-        'venv/',
-        'venv.bak/',
+        'README.md',
+        'app_copy.zip',
         'bin',
+        'build',
         'buildozer.spec',
+        'coverage',
+        'dist',
+        'dmypy.json',
+        'docs',
+        'env/',
+        'env.bak/',
+        'examples',
+        'htmlcov',
+        'media',
+        'node_modules',
         'poetry.lock',
         'pyproject.toml',
+        'screenshots',
         'temp',
         'tests',
-        'app_copy.zip',
-        'send_app_to_phone.py',
-        '.gitignore',
-        'README.md',
+        'venv/',
+        'venv.bak/',
     ]
 
     def __init__(self, config_path: Union[str, Path] = None):
@@ -259,6 +275,25 @@ class Config:  # noqa: PLR0904
     # === File Watching Properties ===
 
     @property
+    def DEFAULT_EXCLUSIONS(self) -> List[str]:
+        """
+        Default exclusion patterns used by DO_NOT_WATCH_PATTERNS and
+        FOLDERS_AND_FILES_TO_EXCLUDE_FROM_PHONE.
+
+        This can be overridden by users in TOML if needed, but it's hidden
+        from the default template since most users should use the built-in defaults.
+
+        Advanced users can add this to their kivy-reloader.toml if they need
+        to customize the base exclusion patterns:
+
+        DEFAULT_EXCLUSIONS = [
+            ".git", ".venv", "*.pyc", "__pycache__",
+            # ... their custom base patterns
+        ]
+        """
+        return self.get('DEFAULT_EXCLUSIONS', self._BUILTIN_EXCLUSIONS)
+
+    @property
     def WATCHED_FILES(self) -> List[str]:
         """Files to watch for changes."""
         return self.get('WATCHED_FILES', [])
@@ -271,42 +306,37 @@ class Config:  # noqa: PLR0904
     @property
     def WATCHED_FOLDERS_RECURSIVELY(self) -> List[str]:
         """Folders to watch for changes (recursive)."""
-        return self.get('WATCHED_FOLDERS_RECURSIVELY', [])
+        return self.get('WATCHED_FOLDERS_RECURSIVELY', ['.'])
 
     @property
     def DO_NOT_WATCH_PATTERNS(self) -> List[str]:
-        """Patterns to exclude from watching."""
-        return self.get(
-            'DO_NOT_WATCH_PATTERNS',
-            [
-                '*.pyc',
-                '*__pycache__*',
-                '*.buildozer*',
-                '*.venv*',
-                '*.git*',
-                '*bin*',
-                '*dist*',
-                '*build*',
-                '*.pytest_cache*',
-                '*.vscode*',
-                '*.idea*',
-                '*node_modules*',
-                '*.mypy_cache*',
-                'kivy_reloader',
-            ],
-        )
+        """
+        Patterns to exclude from watching.
+
+        Always includes DEFAULT_EXCLUSIONS plus any user-defined patterns.
+        Users can override DEFAULT_EXCLUSIONS if they want, but this should
+        be avoided unless necessary, since we already exclude many common
+        files and folders that are not relevant for Kivy apps.
+        """
+        user_patterns = self.get('DO_NOT_WATCH_PATTERNS', [])
+
+        # Always include default exclusions + user patterns
+        # Use set to avoid duplicates, then convert back to list
+        all_patterns = list(set(self.DEFAULT_EXCLUSIONS + user_patterns))
+
+        return all_patterns
 
     @property
     def FULL_RELOAD_FILES(self) -> List[str]:
         """Files that trigger a full app reload when changed."""
-        return self.get('FULL_RELOAD_FILES', [])
+        return self.get('FULL_RELOAD_FILES', ['main.py'])
 
     # === Reload & Connection Properties ===
 
     @property
     def HOT_RELOAD_ON_PHONE(self) -> bool:
         """Enable hot reload functionality on phone."""
-        return self.get('HOT_RELOAD_ON_PHONE', False)
+        return self.get('HOT_RELOAD_ON_PHONE', True)
 
     @property
     def STREAM_USING(self) -> str:
@@ -518,10 +548,21 @@ class Config:  # noqa: PLR0904
 
     @property
     def FOLDERS_AND_FILES_TO_EXCLUDE_FROM_PHONE(self) -> List[str]:
-        """Files and folders to exclude when deploying to phone."""
-        return self.get(
-            'FOLDERS_AND_FILES_TO_EXCLUDE_FROM_PHONE', self.DEFAULT_EXCLUSIONS
-        )
+        """
+        Files and folders to exclude when deploying to phone.
+
+        Always includes DEFAULT_EXCLUSIONS plus any user-defined patterns.
+        Users can override DEFAULT_EXCLUSIONS if they want, but this should
+        be avoided unless necessary, since we already exclude many common
+        files and folders that are not relevant for Kivy apps.
+        """
+        user_patterns = self.get('FOLDERS_AND_FILES_TO_EXCLUDE_FROM_PHONE', [])
+
+        # Always include default exclusions + user patterns
+        # Use set to avoid duplicates, then convert back to list
+        all_patterns = list(set(self.DEFAULT_EXCLUSIONS + user_patterns))
+
+        return all_patterns
 
 
 # Global configuration instance
