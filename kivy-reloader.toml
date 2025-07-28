@@ -10,7 +10,7 @@
 
 # Automatically send app to device on file changes (Ctrl+S)
 # This is the main feature - enables live coding on your phone
-HOT_RELOAD_ON_PHONE = false
+HOT_RELOAD_ON_PHONE = true
 
 # Connection method: "USB" (faster) or "WIFI" (wireless)
 # (WIFI requires you to connect the cable once to set up)
@@ -34,8 +34,10 @@ WATCHED_FILES = []
 WATCHED_FOLDERS = []
 
 # Patterns to ignore during file watching
-# Default covers compiled files, cache folders, and build directories
-DO_NOT_WATCH_PATTERNS = ["*.pyc", "*__pycache__*", "*.buildozer*", "*.venv*", "*.git*", "*bin*", "*dist*", "*build*", "*.pytest_cache*", "*.vscode*", "*.idea*", "*node_modules*", "*.mypy_cache*", "kivy_reloader"]
+# Built-in exclusions are automatically applied (.git, .buildozer, .venv, *.pyc, __pycache__, etc.)
+# Add your own patterns here for additional files/folders to ignore
+# Example: ["*.tmp", "cache/", "logs/*.log"]
+DO_NOT_WATCH_PATTERNS = ["kivy_reloader/"]
 
 # ════════════════════════════════════════════════════════════════
 # 🛠️ SERVICES & BACKGROUND PROCESSES
@@ -132,7 +134,7 @@ TIME_LIMIT = 0             # Auto-stop after seconds (0 = unlimited)
 SCREEN_OFF_TIMEOUT = 0     # Screen timeout in seconds (0 = system default)
 
 # Session recording (for documentation/demos)
-RECORD_SESSION = true                     # Enable session recording
+RECORD_SESSION = false                     # Enable session recording
 RECORD_FILE_PATH = "session_recording.mp4" # Recording output file
 
 # ════════════════════════════════════════════════════════════════
@@ -140,28 +142,20 @@ RECORD_FILE_PATH = "session_recording.mp4" # Recording output file
 # ════════════════════════════════════════════════════════════════
 
 # Files and folders to exclude when deploying to phone
-# Keep this list to avoid transferring unnecessary files
-FOLDERS_AND_FILES_TO_EXCLUDE_FROM_PHONE = [
-    "*.pyc",
-    "__pycache__",
-    ".buildozer",
-    ".venv",
-    ".vscode",
-    ".git",
-    ".pytest_cache",
-    ".DS_Store",
-    ".env",
-    ".mypy_cache/",
-    "env/",
-    "venv/",
-    "bin",
-    "dist",
-    "buildozer.spec",
-    "poetry.lock",
-    "pyproject.toml",
-    "temp",
-    "tests",
-    "app_copy.zip",
-    ".gitignore",
-    "README.md",
-]
+# Built-in exclusions are automatically applied (.git, .venv, *.pyc, build/, etc.)
+# Add your own patterns here for additional files/folders to exclude
+# Example: ["my_secrets.txt", "local_config/", "*.backup"]
+FOLDERS_AND_FILES_TO_EXCLUDE_FROM_PHONE = []
+
+
+# 📋 Built-in Exclusions: 
+# The following patterns are automatically excluded from watching and deployment:
+# .git, .venv, *.pyc, __pycache__, .buildozer, build/, dist/, tests/, docs/,
+# node_modules/, .vscode/, *.log, *.db, buildozer.spec, poetry.lock, and many more.
+# 
+
+# 🔧 Advanced  
+# (NON RECOMMENDED, you should only use DO_NOT_WATCH_PATTERNS and
+# FOLDERS_AND_FILES_TO_EXCLUDE_FROM_PHONE to manage exclusions):
+# To override built-in exclusions, add this to your config:
+# DEFAULT_EXCLUSIONS = [".git", ".venv", "*.pyc"]  # your custom base patterns
