@@ -10,12 +10,14 @@ Handles hot reload on Android devices:
 # Standard library imports
 import hashlib
 import importlib
+import json
 import os
-import shutil
 import socket
-import subprocess
 import sys
 import traceback
+import zipfile
+from fnmatch import fnmatch
+from pathlib import Path
 
 # Third-party imports
 import trio
@@ -35,9 +37,12 @@ try:
 except ImportError:
     JNIUS_AVAILABLE = False
 
+from kivy_reloader import tree_formatter
+
 # Local imports
 from .base_app import BaseReloaderApp
 from .config import config
+from .tree_formatter import format_file_tree
 from .utils import get_kv_files_paths
 
 # Constants
@@ -234,9 +239,10 @@ class AndroidApp(BaseReloaderApp, KivyApp):
 
     # ==================== HOT RELOAD CORE ====================
 
-    def reload_kv(self, *args):
+    def reload_app(self, *args):
         """
-        Comprehensive hot reload for KV files, services, and Python modules.
+        Reloads the whole application:
+        - KV files, services, and Python modules.
 
         Handles multiple types of reload scenarios:
         - Service file changes (triggers app restart)
@@ -244,7 +250,7 @@ class AndroidApp(BaseReloaderApp, KivyApp):
         - Main.py changes (triggers app restart)
         - KV file changes (hot reload)
         """
-        Logger.info('Reloading kv files')
+        Logger.info('Reloading app')
 
         # Check for service updates that require app restart
         if self._check_and_handle_service_updates():
@@ -361,11 +367,21 @@ class AndroidApp(BaseReloaderApp, KivyApp):
             bool: True if app restart was triggered, False otherwise
         """
         main_py_file_path = os.path.join(os.getcwd(), 'main.py')
+        if self.main_py_hash is None:
+            Logger.info('main.py hash not initialized, skipping check')
+            if os.path.exists(main_py_file_path):
+                self.main_py_hash = self.get_hash_of_file(main_py_file_path)
+            return False
 
         if os.path.exists(main_py_file_path):
             current_hash = self.get_hash_of_file(main_py_file_path)
             if current_hash != self.main_py_hash:
                 Logger.info('main.py changed, restarting app')
+                Logger.info(
+                    'current_hash: %s, previous_hash: %s',
+                    current_hash,
+                    self.main_py_hash,
+                )
                 self.restart_app_on_android()
                 return True
 
@@ -629,30 +645,274 @@ class AndroidApp(BaseReloaderApp, KivyApp):
 
     async def _process_app_update(self, zip_file_path):
         """
-        Process the received app update and trigger reload.
+        Process the received app update (delta or full) and trigger reload.
 
         Args:
             zip_file_path: Path to the received zip file
         """
         Logger.info('Reloader: Finished receiving all files from computer')
-        Logger.info('Reloader: Unpacking app')
+        Logger.info('Reloader: Processing app update')
 
-        # Log zip file information
+        # Log zip file information and extract
         zip_file_size = os.path.getsize(zip_file_path)
-        Logger.info(f'Reloader: Zip file size: {zip_file_size}')
 
-        # Extract the update
-        shutil.unpack_archive(zip_file_path)
+        # Check if this is a delta or full transfer
+        transfer_type = self._detect_transfer_type(zip_file_path)
+
+        # Log transfer metadata
+        self._log_transfer_metadata(zip_file_path, transfer_type)
+
+        if transfer_type == 'delta':
+            self._process_delta_update(zip_file_path)
+        else:
+            # Full transfer - extract everything and handle deletions
+            self._process_full_update(zip_file_path)
+
         os.remove(zip_file_path)
 
-        Logger.info('Reloader: App updated, restarting app for refresh')
+        Logger.info('Reloader: App updated, triggering hot reload')
         Logger.info('Reloader: ************** END SERVER **************')
 
         # Trigger hot reload
         self.unload_python_files_on_android()
         if self.__module__ != '__main__':
             importlib.reload(importlib.import_module(self.__module__))
-        self.reload_kv()
+
+        self.reload_app()
+
+    def _detect_transfer_type(self, zip_file_path):
+        """
+        Detect if the received archive is a delta or full transfer.
+
+        Args:
+            zip_file_path: Path to the zip file
+
+        Returns:
+            str: 'delta' or 'full'
+        """
+        try:
+            with zipfile.ZipFile(zip_file_path, 'r') as zip_file:
+                if '_delta_metadata.json' in zip_file.namelist():
+                    metadata_content = zip_file.read('_delta_metadata.json')
+                    metadata = json.loads(metadata_content.decode('utf-8'))
+                    return metadata.get('type', 'full')
+        except (zipfile.BadZipFile, json.JSONDecodeError, KeyError):
+            Logger.warning('Could not detect transfer type, assuming full transfer')
+
+        return 'full'
+
+    def _log_transfer_metadata(self, zip_file_path, transfer_type):
+        """Log detailed information about the transfer metadata."""
+        try:
+            with zipfile.ZipFile(zip_file_path, 'r') as zip_file:
+                if '_delta_metadata.json' in zip_file.namelist():
+                    metadata_content = zip_file.read('_delta_metadata.json')
+                    metadata = json.loads(metadata_content.decode('utf-8'))
+
+                    if transfer_type == 'delta':
+                        changed_files = metadata.get('files', [])
+                        deleted_files = metadata.get('deleted_files', [])
+
+                        Logger.info(
+                            f'Android: Received {transfer_type} transfer - '
+                            f'{len(changed_files)} changed, '
+                            f'{len(deleted_files)} deleted files'
+                        )
+
+                        # Log changed files as tree
+                        if changed_files:
+                            Logger.info(
+                                format_file_tree(
+                                    changed_files, 'Android: Changed files'
+                                )
+                            )
+
+                        # Log deleted files as tree
+                        if deleted_files:
+                            Logger.info(
+                                format_file_tree(
+                                    deleted_files, 'Android: Files to delete'
+                                )
+                            )
+                    else:
+                        all_files = metadata.get('files', [])
+                        Logger.info(
+                            f'Android: Received {transfer_type} transfer '
+                            f'with {len(all_files)} files'
+                        )
+
+                        # Log complete project state from desktop
+                        if all_files:
+                            Logger.info(
+                                format_file_tree(
+                                    all_files, 'Android: Complete project from desktop'
+                                )
+                            )
+                else:
+                    # Legacy transfer without metadata
+                    file_count = len(zip_file.namelist())
+                    Logger.info(
+                        f'Android: Received {transfer_type} transfer '
+                        f'with {file_count} files'
+                    )
+        except Exception as e:
+            Logger.warning(f'Android: Failed to read transfer metadata: {e}')
+
+    def _process_delta_update(self, zip_file_path):
+        """
+        Process a delta update by extracting only changed files.
+
+        Args:
+            zip_file_path: Path to the delta zip file
+        """
+        with zipfile.ZipFile(zip_file_path, 'r') as zip_file:
+            # Read metadata
+            metadata_content = zip_file.read('_delta_metadata.json')
+            metadata = json.loads(metadata_content.decode('utf-8'))
+
+            Logger.info(f'Delta metadata: {metadata}')
+
+            changed_files = metadata.get('files', [])
+            deleted_files = metadata.get('deleted_files', [])
+
+            Logger.info(
+                f'Delta update: {len(changed_files)} changed, '
+                f'{len(deleted_files)} deleted'
+            )
+
+            # Extract changed files
+            for file_path in changed_files:
+                if file_path in zip_file.namelist():
+                    # Extract to current directory
+                    zip_file.extract(file_path, os.getcwd())
+                    Logger.debug(f'Updated: {file_path}')
+
+            # Delete removed files
+            for file_path in deleted_files:
+                full_path = os.path.join(os.getcwd(), file_path)
+                if os.path.exists(full_path):
+                    os.remove(full_path)
+                    Logger.debug(f'Deleted: {file_path}')
+
+    def _process_full_update(self, zip_file_path):
+        """
+        Process a full update by synchronizing Android file system with desktop state.
+
+        Full update process:
+        1. Scan current Android file system
+        2. Extract new files from desktop
+        3. Delete files that no longer exist on desktop
+
+        Args:
+            zip_file_path: Path to the ZIP file containing new desktop state
+        """
+        # Step 1: Snapshot current Android file system
+        files_on_android_before = self._get_current_project_files()
+        Logger.info('Full update: Scanning current Android file system')
+        Logger.info(
+            tree_formatter.format_file_tree(
+                files_on_android_before, 'Android: Files currently on device'
+            )
+        )
+
+        # Step 2: Extract new desktop state
+        with zipfile.ZipFile(zip_file_path, 'r') as zip_file:
+            # Get list of files that should exist after update (new desktop state)
+            new_desktop_state = set()
+            for file_info in zip_file.filelist:
+                if not file_info.filename.startswith('_delta_metadata.json'):
+                    new_desktop_state.add(file_info.filename)
+
+            # Extract all files (overwrites existing + adds new)
+            zip_file.extractall(os.getcwd())
+            Logger.info(
+                f'Full update: Extracted {len(new_desktop_state)} files from desktop'
+            )
+
+            # Step 3: Clean up obsolete files
+            # Files to delete = files that exist on Android but not in new desktop state
+            obsolete_files = files_on_android_before - new_desktop_state
+
+            if obsolete_files:
+                Logger.info(
+                    tree_formatter.format_file_tree(
+                        obsolete_files, 'Android: Obsolete files to delete'
+                    )
+                )
+
+                # Delete obsolete files
+                deleted_count = 0
+                for file_path in obsolete_files:
+                    full_path = os.path.join(os.getcwd(), file_path)
+                    if os.path.exists(full_path):
+                        try:
+                            os.remove(full_path)
+                            deleted_count += 1
+                            Logger.debug(f'Deleted obsolete file: {file_path}')
+                        except OSError as e:
+                            Logger.warning(f'Failed to delete {file_path}: {e}')
+
+                Logger.info(f'Full update: Deleted {deleted_count} obsolete files')
+            else:
+                Logger.info('Full update: No obsolete files to delete')
+
+    def _get_current_project_files(self):
+        """
+        Get current project files using same exclusion logic as delta transfer.
+
+        Returns:
+            set: Set of relative file paths that are part of the project
+        """
+        exclude_patterns = config.FOLDERS_AND_FILES_TO_EXCLUDE_FROM_PHONE + [
+            '.kivy',
+            'libpybundle.version',
+            'p4a_env_vars.txt',
+            '_delta_metadata.json',
+        ]
+        project_files = set()
+
+        for root, dirs, files in os.walk(os.getcwd()):
+            # Convert to relative path
+            rel_root = os.path.relpath(root, os.getcwd())
+            if rel_root == '.':
+                rel_root = ''
+
+            # Filter directories based on exclude patterns
+            dirs[:] = [
+                d
+                for d in dirs
+                if not self._should_exclude_path(
+                    os.path.join(rel_root, d) if rel_root else d, exclude_patterns
+                )
+            ]
+
+            for file in files:
+                if rel_root:
+                    rel_path = os.path.join(rel_root, file).replace('\\', '/')
+                else:
+                    rel_path = file
+
+                if not self._should_exclude_path(rel_path, exclude_patterns):
+                    project_files.add(rel_path)
+
+        return project_files
+
+    def _should_exclude_path(self, rel_path, exclude_patterns):
+        """Check if a path should be excluded using fnmatch patterns."""
+        path_str = rel_path.replace('\\', '/')
+        rel_path_obj = Path(rel_path)
+
+        for pattern in exclude_patterns:
+            # Handle directory patterns (ending with /)
+            if pattern.endswith('/'):
+                clean_pattern = pattern.rstrip('/')
+                if fnmatch(path_str, f'{clean_pattern}/*') or path_str == clean_pattern:
+                    return True
+            # Handle file patterns
+            elif fnmatch(path_str, pattern) or fnmatch(rel_path_obj.name, pattern):
+                return True
+
+        return False
 
     def _log_server_error(self, error):
         """Log server error with full traceback."""
