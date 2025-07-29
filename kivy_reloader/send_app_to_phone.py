@@ -26,6 +26,7 @@ async def connect_to_server(IP):
 async def send_app():
     print('*' * 50)
     print(green + 'Connecting to smartphone...')
+
     devices = get_connected_devices()
     if not devices:
         print(f'{yellow}No connected devices found.')
@@ -34,23 +35,41 @@ async def send_app():
     unique_physical = {
         (d['wifi_ip'], d['model']) for d in devices if d['wifi_ip'] is not None
     }
+
     for device in unique_physical:
         IP = device[0]
+
         client_socket = await connect_to_server(IP)
         if not client_socket:
             print(f"{yellow}Couldn't connect to smartphone: {IP}")
             return
+
         print(f'{yellow} Phone connected successfully: {IP}')
         print(f'\n{green}Sending app to smartphone...')
-        CHUNK_SIZE = 4096
-        with open(
-            'app_copy.zip',
-            'rb',
-        ) as myzip:
-            for chunk in iter(lambda: myzip.read(CHUNK_SIZE), b''):
-                print('Sending chunk')
+
+        CHUNK_SIZE = 256 * 1024  # 64KB chunks for better throughput
+        total_bytes = 0
+        chunks_sent = 0
+
+        with open('app_copy.zip', 'rb') as myzip:
+            while True:
+                chunk = myzip.read(CHUNK_SIZE)
+                if not chunk:
+                    break
+
+                chunks_sent += 1
                 await client_socket.send_all(chunk)
+                total_bytes += len(chunk)
+
+                # Less frequent progress updates to reduce I/O overhead
+                if chunks_sent % 10 == 0:
+                    mb_sent = total_bytes / (1024 * 1024)
+                    print(f'\rSent {mb_sent:.1f} MB', end='', flush=True)
+
+        print()  # New line after completion
+
         print(green + 'Finished sending app!')
+
     print('\n')
     print(yellow + f'Sent app to {len(unique_physical)} smartphone(s)')
     print('*' * 50)
