@@ -12,12 +12,13 @@ import importlib
 import inspect
 import logging
 import os
+import stat
 import subprocess
 import sys
 import time
 import traceback
 from fnmatch import fnmatch
-from shutil import copytree, ignore_patterns, rmtree
+from shutil import rmtree
 
 # Third-party imports
 import trio
@@ -46,6 +47,7 @@ except ImportError:
 # Local imports
 from .base_app import BaseReloaderApp
 from .config import config
+from .delta_transfer import DeltaTransferManager
 from .utils import get_auto_reloader_paths, get_connected_devices, get_kv_files_paths
 
 # Constants
@@ -186,7 +188,8 @@ class DesktopApp(BaseReloaderApp, KakiApp):
 
     # ==================== PROCESS MANAGEMENT ====================
 
-    def on_request_close(self, *args, **kwargs):
+    @staticmethod
+    def on_request_close(*args, **kwargs):
         """
         Handle window close request.
 
@@ -241,7 +244,8 @@ class DesktopApp(BaseReloaderApp, KakiApp):
             self.root_window.close()
             keep_windows_host_alive()
 
-    def _restart_app_unix(self, cmd):
+    @staticmethod
+    def _restart_app_unix(cmd):
         """Handle Unix/Linux app restart logic"""
         try:
             os.execv(sys.executable, cmd)
@@ -422,7 +426,7 @@ class DesktopApp(BaseReloaderApp, KakiApp):
         if not connected_devices:
             Logger.warning('Reloader: No devices connected, skipping app transfer')
             Logger.warning(
-                'Reloader: Connect your Android device via USB and enable USB debugging.'
+                'Reloader: Connect your Android device via USB and enable USB debugging'
             )
             Logger.warning('Reloader: Make sure your device is turned on and unlocked.')
             Logger.warning(
@@ -551,7 +555,8 @@ class DesktopApp(BaseReloaderApp, KakiApp):
                 return True
         return False
 
-    def _should_ignore_file(self, file_path):
+    @staticmethod
+    def _should_ignore_file(file_path):
         """Check if the file should be ignored based on DO_NOT_WATCH_PATTERNS."""
         for pattern in config.DO_NOT_WATCH_PATTERNS:
             if fnmatch(file_path, pattern):
@@ -608,35 +613,38 @@ class DesktopApp(BaseReloaderApp, KakiApp):
 
     def send_app_to_phone(self):
         """
-        Package and send the application to an Android device.
+        Package and send the application to an Android device using delta transfer.
 
-        Creates a temporary copy of the project, zips it (excluding specified
-        files/folders), and transfers it to the connected Android device.
+        Uses differential transfer to send only changed files for improved performance,
+        falling back to full transfer when necessary.
         """
-        source = os.getcwd()
-        destination = os.path.join(os.getcwd(), 'temp')
-        zip_file = os.path.join(os.getcwd(), 'app_copy.zip')
+        # Initialize delta transfer manager
+        delta_manager = DeltaTransferManager(os.getcwd())
 
-        # Clean up any existing temp files
-        self.clear_temp_folder_and_zip_file(destination, zip_file)
+        # Apply only exclusions (include everything else)
+        exclude_patterns = config.FOLDERS_AND_FILES_TO_EXCLUDE_FROM_PHONE
 
-        # Create project copy excluding specified patterns
-        copytree(
-            source,
-            destination,
-            ignore=ignore_patterns(
-                *config.FOLDERS_AND_FILES_TO_EXCLUDE_FROM_PHONE,
-            ),
-        )
+        # Prepare transfer (delta or full)
+        archive_path, metadata = delta_manager.prepare_transfer(exclude_patterns)
 
-        # Create zip archive
-        self._create_app_archive(destination)
+        if metadata['type'] == 'delta':
+            # Transfer to Android device
+            self._transfer_to_android_device()
 
-        # Send to Android device
-        self._transfer_to_android()
+            # Clean up
+            if os.path.exists(archive_path):
+                os.remove(archive_path)
 
-        # Clean up temporary files
-        self.clear_temp_folder_and_zip_file(destination, zip_file)
+    @staticmethod
+    def _transfer_to_android_device():
+        """Transfer the application archive to the Android device."""
+        # Get path to send_app_to_phone.py script
+        current_frame = inspect.currentframe().f_back
+        current_file_path = os.path.abspath(current_frame.f_code.co_filename)
+        script_directory = os.path.dirname(current_file_path)
+        send_app_script = os.path.join(script_directory, 'send_app_to_phone.py')
+
+        subprocess.run(f'python {send_app_script}', shell=True, check=True)
 
     @staticmethod
     def _create_app_archive(temp_directory):
