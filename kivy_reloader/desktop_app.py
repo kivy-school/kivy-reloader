@@ -12,13 +12,11 @@ import importlib
 import inspect
 import logging
 import os
-import stat
 import subprocess
 import sys
 import time
 import traceback
 from fnmatch import fnmatch
-from shutil import rmtree
 
 # Third-party imports
 import trio
@@ -603,14 +601,6 @@ class DesktopApp(BaseReloaderApp, KakiApp):
 
     # ==================== ANDROID COMMUNICATION ====================
 
-    @staticmethod
-    def clear_temp_folder_and_zip_file(folder, zip_file):
-        """Clean up temporary files and folders used for Android deployment."""
-        if os.path.exists(folder):
-            rmtree(folder)
-        if os.path.exists(zip_file):
-            os.remove(zip_file)
-
     def send_app_to_phone(self):
         """
         Package and send the application to an Android device using delta transfer.
@@ -627,38 +617,16 @@ class DesktopApp(BaseReloaderApp, KakiApp):
         # Prepare transfer (delta or full)
         archive_path, metadata = delta_manager.prepare_transfer(exclude_patterns)
 
-        if metadata['type'] == 'delta':
-            # Transfer to Android device
-            self._transfer_to_android_device()
+        # Transfer to Android device
+        self._transfer_to_android_device()
 
-            # Clean up
-            if os.path.exists(archive_path):
-                os.remove(archive_path)
+        # Clean up the archive file (for both delta and full transfers)
+        if os.path.exists(archive_path):
+            os.remove(archive_path)
 
     @staticmethod
     def _transfer_to_android_device():
         """Transfer the application archive to the Android device."""
-        # Get path to send_app_to_phone.py script
-        current_frame = inspect.currentframe().f_back
-        current_file_path = os.path.abspath(current_frame.f_code.co_filename)
-        script_directory = os.path.dirname(current_file_path)
-        send_app_script = os.path.join(script_directory, 'send_app_to_phone.py')
-
-        subprocess.run(f'python {send_app_script}', shell=True, check=True)
-
-    @staticmethod
-    def _create_app_archive(temp_directory):
-        """Create a zip archive of the application files."""
-        subprocess.run(
-            f'cd {temp_directory} && zip -r ../app_copy.zip ./* -x ./temp',
-            shell=True,
-            stdout=subprocess.DEVNULL,
-            check=True,
-        )
-
-    @staticmethod
-    def _transfer_to_android():
-        """Transfer the zipped application to the Android device."""
         # Get path to send_app_to_phone.py script
         current_frame = inspect.currentframe().f_back
         current_file_path = os.path.abspath(current_frame.f_code.co_filename)
