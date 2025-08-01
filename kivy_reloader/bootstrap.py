@@ -4,8 +4,6 @@ import shutil
 
 from colorama import Fore, init
 
-from .compile_app import compile_app, debug_and_livestream, start
-
 yellow = Fore.YELLOW
 green = Fore.GREEN
 red = Fore.RED
@@ -36,8 +34,7 @@ def create_settings_file():
 
     if 'kivy-reloader.toml' in files_in_base_dir:
         klprint(
-            'kivy-reloader.toml already exists, '
-            'creating kivy-reloader-template.toml'
+            'kivy-reloader.toml already exists, creating kivy-reloader-template.toml'
         )
         shutil.copyfile(
             os.path.join(current_file_dir, 'kivy-reloader.toml'),
@@ -45,8 +42,7 @@ def create_settings_file():
         )
     else:
         klprint(
-            'kivy-reloader.toml not found, '
-            'creating it on current working directory'
+            'kivy-reloader.toml not found, creating it on current working directory'
         )
         shutil.copyfile(
             os.path.join(current_file_dir, 'kivy-reloader.toml'),
@@ -70,10 +66,7 @@ def create_buildozer_spec_file():
                 os.path.join(base_dir, 'buildozer-template.spec'),
             )
     else:
-        klprint(
-            'buildozer.spec not found, '
-            'creating it on current working directory'
-        )
+        klprint('buildozer.spec not found, creating it on current working directory')
         shutil.copyfile(
             os.path.join(current_file_dir, 'buildozer.spec'),
             os.path.join(base_dir, 'buildozer.spec'),
@@ -112,6 +105,8 @@ def main():
         create_buildozer_spec_file()
 
     elif args.command in {'start', 'run', 'compile'}:
+        from .compile_app import compile_app, debug_and_livestream, start
+
         if getattr(args, 'action', None) == 'build':
             compile_app()
             debug_and_livestream()
