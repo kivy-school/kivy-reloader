@@ -1,15 +1,18 @@
+import ipaddress
 import logging
 import os
 import pathlib
+import re
 import subprocess
 import sys
 from fnmatch import fnmatch
+from typing import Optional
 
 from kivy.lang import Builder
 from kivy.resources import resource_add_path, resource_find
 from kivy.utils import platform
 
-from .config import config
+from kivy_reloader.config import config
 
 logging.basicConfig(
     level=logging.INFO,
@@ -215,32 +218,251 @@ def get_connected_devices() -> list[dict[str, str]]:
     return devices
 
 
-def get_wifi_ip(serial: str) -> str | None:
+def get_wifi_ip(serial: str) -> Optional[str]:
+    """
+    Get Wi-Fi IP address from Android device using intelligent interface detection.
+
+    This function identifies the correct Wi-Fi interface by analyzing interface flags
+    and filtering out known mobile/cellular interfaces, making it more reliable than
+    hardcoded interface name matching.
+
+    Args:
+        serial: Android device serial number
+
+    Returns:
+        Wi-Fi IP address as string, or None if not found
+    """
     logging.debug(f'Querying Wi-Fi IP for serial: {serial}')
+
     try:
         result = subprocess.run(
-            [
-                'adb',
-                '-s',
-                serial,
-                'shell',
-                'ip',
-                '-f',
-                'inet',
-                'addr',
-                'show',
-                'wlan0',
-            ],
+            ['adb', '-s', serial, 'shell', 'ip', '-f', 'inet', 'addr', 'show'],
             capture_output=True,
             text=True,
             check=True,
+            timeout=15,
         )
-        for line in result.stdout.splitlines():
-            stripped_line = line.strip()
-            if stripped_line.startswith('inet '):
-                ip = stripped_line.split()[1].split('/')[0]
-                logging.debug(f'Found Wi-Fi IP {ip} for serial: {serial}')
-                return ip
+
+        return _parse_ip_output(result.stdout, serial)
+
     except subprocess.CalledProcessError as e:
-        logging.warning(f'Failed to query Wi-Fi IP for {serial}: {e}')
+        logging.warning(f'Primary command failed for {serial}: {e}')
+        return _get_wifi_ip_fallback(serial)
+    except subprocess.TimeoutExpired:
+        logging.warning(f'Timeout querying interfaces on {serial}')
+        return _get_wifi_ip_fallback(serial)
+
+
+def _parse_ip_output(output: str, serial: str) -> Optional[str]:
+    """Parse the output from 'ip addr show' command."""
+    lines = output.splitlines()
+
+    current_interface = None
+    current_flags = ''
+
+    for line in lines:
+        line = line.strip()
+
+        # Match interface definition line (e.g., "34: wlan1: <BROADCAST,MULTICAST,UP,LOWER_UP>")
+        interface_match = re.match(r'\d+:\s+(\S+):\s+<([^>]*)>', line)
+        if interface_match:
+            current_interface = interface_match.group(1)
+            current_flags = interface_match.group(2)
+            continue
+
+        # Match IP address line (e.g., "inet 192.168.1.69/24 brd ...")
+        ip_match = re.search(r'inet\s+(\d+\.\d+\.\d+\.\d+)(?:/\d+)?', line)
+        if ip_match and current_interface and current_flags:
+            ip = ip_match.group(1)
+
+            # Skip loopback
+            if ip.startswith('127.'):
+                continue
+
+            # Skip known cellular/mobile interfaces
+            if _is_cellular_interface(current_interface):
+                logging.debug(f'Skipping cellular interface {current_interface}: {ip}')
+                continue
+
+            # Look for interfaces that are likely Wi-Fi based on flags and IP
+            if _is_wifi_interface(current_interface, current_flags, ip):
+                logging.debug(
+                    f'Found Wi-Fi IP {ip} on {current_interface} for serial: {serial}'
+                )
+                return ip
+
     return None
+
+
+def _is_cellular_interface(interface_name: str) -> bool:
+    """Check if interface name indicates a cellular/mobile connection."""
+    cellular_prefixes = [
+        'ccmni',  # MediaTek cellular
+        'rmnet',  # Qualcomm cellular
+        'v4-ccmni',  # IPv4 over cellular
+        'v6-ccmni',  # IPv6 over cellular
+        'pdp',  # Packet Data Protocol
+        'ppp',  # Point-to-Point Protocol
+        'usb',  # USB tethering (usually not Wi-Fi)
+        'rndis',  # Remote NDIS (USB)
+    ]
+
+    interface_lower = interface_name.lower()
+    return any(interface_lower.startswith(prefix) for prefix in cellular_prefixes)
+
+
+def _is_wifi_interface(interface_name: str, flags: str, ip: str) -> bool:
+    """
+    Determine if an interface is likely Wi-Fi based on name, flags, and IP.
+
+    Wi-Fi interfaces typically have:
+    - BROADCAST and MULTICAST flags (for network discovery)
+    - UP flag (interface is active)
+    - Private IP address (for local network)
+    - Interface name suggesting Wi-Fi (wlan, wifi, etc.)
+    """
+    # Must have these flags for a proper Wi-Fi interface
+    required_flags = ['BROADCAST', 'MULTICAST', 'UP']
+    if not all(flag in flags for flag in required_flags):
+        return False
+
+    # Must be a private IP (not public internet)
+    if not _is_private_ip(ip):
+        return False
+
+    # Prefer interfaces with Wi-Fi-like names
+    wifi_indicators = ['wlan', 'wifi', 'wl']
+    interface_lower = interface_name.lower()
+
+    # Strong preference for obvious Wi-Fi interface names
+    if any(indicator in interface_lower for indicator in wifi_indicators):
+        return True
+
+    # For interfaces without obvious Wi-Fi names, be more conservative
+    # Accept only if it's in a common Wi-Fi subnet and not obviously something else
+    if _is_common_wifi_subnet(ip) and not _is_cellular_interface(interface_name):
+        return True
+
+    return False
+
+
+def _is_private_ip(ip: str) -> bool:
+    """Check if IP address is in private ranges (RFC 1918)."""
+    try:
+        ip_obj = ipaddress.IPv4Address(ip)
+        return ip_obj.is_private
+    except ipaddress.AddressValueError:
+        return False
+
+
+def _is_common_wifi_subnet(ip: str) -> bool:
+    """Check if IP is in commonly used Wi-Fi subnets."""
+    common_wifi_prefixes = [
+        '192.168.',  # Most common home/office Wi-Fi
+        '10.0.',  # Common in enterprise
+        '172.16.',  # Less common but used
+    ]
+    return any(ip.startswith(prefix) for prefix in common_wifi_prefixes)
+
+
+def _get_wifi_ip_fallback(serial: str) -> Optional[str]:
+    """Fallback method using ifconfig command."""
+    logging.debug(f'Trying fallback method for serial: {serial}')
+
+    try:
+        result = subprocess.run(
+            ['adb', '-s', serial, 'shell', 'ifconfig'],
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=15,
+        )
+
+        return _parse_ifconfig_output(result.stdout, serial)
+
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
+        logging.warning(f'Fallback method failed for {serial}: {e}')
+        return None
+
+
+def _parse_ifconfig_output(output: str, serial: str) -> Optional[str]:
+    """Parse ifconfig output to find Wi-Fi IP."""
+    lines = output.splitlines()
+    current_interface = None
+
+    for line in lines:
+        # Interface start line (doesn't start with space)
+        if not line.startswith(' ') and line.strip():
+            current_interface = line.split()[0] if line.split() else None
+            continue
+
+        # IP address line (starts with space, contains inet)
+        if not (line.startswith(' ') and 'inet' in line and current_interface):
+            continue
+
+        ip = _extract_ip_from_ifconfig_line(line)
+        if not ip:
+            continue
+
+        wifi_ip = _validate_wifi_ip_ifconfig(ip, current_interface, serial)
+        if wifi_ip:
+            return wifi_ip
+
+    logging.warning(f'No Wi-Fi IP found for {serial}')
+    return None
+
+
+def _extract_ip_from_ifconfig_line(line: str) -> Optional[str]:
+    """Extract IP address from ifconfig line using multiple patterns."""
+    ip_patterns = [
+        r'inet addr:(\d+\.\d+\.\d+\.\d+)',  # Android/Linux format
+        r'inet (\d+\.\d+\.\d+\.\d+)',  # Alternative format
+    ]
+
+    for pattern in ip_patterns:
+        match = re.search(pattern, line)
+        if match:
+            return match.group(1)
+
+    return None
+
+
+def _validate_wifi_ip_ifconfig(ip: str, interface: str, serial: str) -> Optional[str]:
+    """Validate if IP and interface represent a Wi-Fi connection."""
+    # Skip loopback
+    if ip.startswith('127.'):
+        return None
+
+    # Skip cellular interfaces
+    if _is_cellular_interface(interface):
+        return None
+
+    # Accept private IPs on likely Wi-Fi interfaces
+    if not _is_private_ip(ip):
+        return None
+
+    interface_lower = interface.lower()
+    wifi_indicators = ['wlan', 'wifi', 'wl']
+
+    if any(indicator in interface_lower for indicator in wifi_indicators):
+        logging.debug(
+            f'Fallback found Wi-Fi IP {ip} on {interface} for serial: {serial}'
+        )
+        return ip
+
+    return None
+
+
+# Example usage and testing
+if __name__ == '__main__':
+    # Configure logging for testing
+    logging.basicConfig(level=logging.DEBUG)
+
+    # Test with your device
+    serial = '0084045001'
+    wifi_ip = get_wifi_ip(serial)
+
+    if wifi_ip:
+        print(f'Wi-Fi IP found: {wifi_ip}')
+    else:
+        print('No Wi-Fi IP found')
