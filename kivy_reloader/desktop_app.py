@@ -430,7 +430,7 @@ class DesktopApp(BaseReloaderApp, KakiApp):
             )
             Logger.warning('Reloader: Make sure your device is turned on and unlocked.')
             Logger.warning(
-                'Change HOT_RELOAD_ON_PHONE to False in config.py to disable this log.'
+                'Change HOT_RELOAD_ON_PHONE to false in config.py to disable this log.'
             )
             return
 
