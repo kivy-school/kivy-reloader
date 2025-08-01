@@ -410,7 +410,10 @@ class DesktopApp(BaseReloaderApp, KakiApp):
         """Execute the hot reload sequence for desktop development."""
         self.unload_app_dependencies()
         self.unload_python_files_on_desktop()
-        importlib.reload(importlib.import_module(self.__module__))
+
+        if self.__module__ != '__main__':
+            importlib.reload(importlib.import_module(self.__module__))
+
         Builder.rulectx = {}
         self.load_app_dependencies()
 
