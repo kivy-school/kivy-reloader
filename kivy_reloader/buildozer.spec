@@ -19,7 +19,7 @@ source.include_exts = py,png,jpg,kv,atlas,toml
 #source.include_patterns = assets/*,images/*.png
 
 # (list) Source files to exclude (let empty to not exclude anything)
-source.exclude_exts = app_copy.zip
+# source.exclude_exts =
 
 # (list) List of directory to exclude (let empty to not exclude anything)
 source.exclude_dirs = temp, tests, bin, dist, .vscode, .venv, __pycache__
