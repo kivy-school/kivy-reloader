@@ -104,6 +104,19 @@ def get_auto_reloader_paths():
 
         return directories_to_watch
 
+    missing_files = validate_watched_files()
+    if missing_files:
+        logging.error(
+            f'Found {len(missing_files)} missing files in watched paths: {missing_files}'
+        )
+        logging.error(
+            'Please fix your WATCHED_FILES or FULL_RELOAD_FILES in kivy-reloader.toml'
+        )
+        raise FileNotFoundError(
+            f'Missing files in watched paths: {missing_files}. '
+            'Fix your WATCHED_FILES or FULL_RELOAD_FILES in kivy-reloader.toml'
+        )
+
     non_recursive_paths = (
         config.WATCHED_FILES + config.WATCHED_FOLDERS + config.FULL_RELOAD_FILES
     )
@@ -127,6 +140,62 @@ def get_auto_reloader_paths():
         return create_path_tuples(non_recursive_paths, False) + recursive_tuples
     else:
         return create_path_tuples(non_recursive_paths, True) + recursive_tuples
+
+
+def validate_watched_files():
+    """
+    Check if all files in WATCHED_FILES and FULL_RELOAD_FILES exist.
+    Logs warnings for missing files and filters out invalid entries.
+    """
+    missing_files = []
+
+    # Check WATCHED_FILES
+    for file_path in config.WATCHED_FILES:
+        # Skip empty strings and whitespace-only entries
+        if not file_path or not file_path.strip():
+            logging.warning(
+                f'Empty or whitespace-only entry in WATCHED_FILES: "{file_path}". '
+                'Remove it'
+            )
+            missing_files.append(file_path)
+            continue
+
+        full_path = os.path.join(base_dir, file_path.strip())
+        if not os.path.exists(full_path):
+            missing_files.append(file_path)
+            logging.warning(f'Watched file does not exist: {file_path}')
+        elif os.path.isdir(full_path):
+            logging.warning(
+                f'WATCHED_FILES entry is a directory, not a file: {file_path}'
+            )
+            missing_files.append(file_path)
+
+    # Check FULL_RELOAD_FILES
+    for file_path in config.FULL_RELOAD_FILES:
+        # Skip empty strings and whitespace-only entries
+        if not file_path or not file_path.strip():
+            logging.warning(
+                f'Empty or whitespace-only entry in FULL_RELOAD_FILES: "{file_path}"'
+            )
+            missing_files.append(file_path)
+            continue
+
+        full_path = os.path.join(base_dir, file_path.strip())
+        if not os.path.exists(full_path):
+            missing_files.append(file_path)
+            logging.warning(f'Full reload file does not exist: {file_path}')
+        elif os.path.isdir(full_path):
+            logging.warning(
+                f'FULL_RELOAD_FILES entry is a directory, not a file: {file_path}'
+            )
+            missing_files.append(file_path)
+
+    if missing_files:
+        logging.warning(f'Found {len(missing_files)} invalid/missing files')
+    else:
+        logging.info('All watched files exist ✓')
+
+    return missing_files
 
 
 def find_kv_files_in_folder(folder):
