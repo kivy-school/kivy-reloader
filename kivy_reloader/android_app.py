@@ -786,6 +786,10 @@ class AndroidApp(BaseReloaderApp, KivyApp):
                     # Extract to current directory
                     zip_file.extract(file_path, os.getcwd())
                     Logger.debug(f'Updated: {file_path}')
+                else:
+                    Logger.warning(f'File not found in zip: {file_path}')
+                    Logger.warning(f'Current zip_file contents: {zip_file.namelist()}')
+                    Logger.warning(f'Current changed_files: {changed_files}\n')
 
             # Delete removed files
             for file_path in deleted_files:
