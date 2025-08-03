@@ -25,6 +25,11 @@ def load_kv_path(path):
     """
     Loads a kv file from a path
     """
+    if path.endswith('.pyc'):
+        path = path.replace('.pyc', '.kv')
+    elif path.endswith('.py'):
+        path = path.replace('.py', '.kv')
+
     if hasattr(sys, '_MEIPASS'):
         resource_add_path(sys._MEIPASS)
         test_path = pathlib.Path(path)
