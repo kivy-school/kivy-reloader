@@ -67,7 +67,6 @@ class Config:  # noqa: PLR0904
         'env.bak/',
         'examples',
         'htmlcov',
-        'media',
         'node_modules',
         'poetry.lock',
         'private.version',
