@@ -21,9 +21,33 @@ logging.basicConfig(
 base_dir = os.getcwd()
 
 
-def load_kv_path(path):
+def load_kv_path(path: str) -> None:
     """
-    Loads a kv file from a path
+    Load a .kv file safely for hot reloading (prevents duplicate loading warnings).
+
+    This is a simple wrapper around Kivy's Builder.load_file() that:
+    1. Unloads the file first if it was already loaded
+    2. Then loads it fresh
+
+    This prevents Kivy from showing "file loaded twice" warnings during hot reload.
+
+    Args:
+        path: Path to the .kv file to load. Can be:
+            - Direct .kv file path: 'my_widget.kv'
+            - Python file path: 'my_widget.py' (auto-converts to 'my_widget.kv')
+            - Compiled file path: 'my_widget.pyc' (auto-converts to 'my_widget.kv')
+
+    Common Usage:
+        Most developers place .kv files alongside .py files with the same name.
+        Instead of manually constructing paths, you can use `__file__`:
+
+        project/
+        ├── widgets/
+        │   ├── my_button.py    ← load_kv_path(__file__)
+        │   └── my_button.kv    ← Gets loaded automatically
+
+        load_kv_path('my_widget.kv')    # Direct path
+        load_kv_path(__file__)          # Same-named .kv file (common pattern)
     """
     if path.endswith('.pyc'):
         path = path.replace('.pyc', '.kv')
