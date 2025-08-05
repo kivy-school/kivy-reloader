@@ -349,6 +349,11 @@ class Config:  # noqa: PLR0904
         return self.get('STREAM_USING', 'USB')
 
     @property
+    def SHOW_NOTIFICATIONS(self) -> bool:
+        """Enable desktop notifications during compilation and deployment."""
+        return self.get('SHOW_NOTIFICATIONS', True)
+
+    @property
     def ADB_PORT(self) -> int:
         """ADB TCP/IP port number."""
         return self.get('ADB_PORT', 5555)
