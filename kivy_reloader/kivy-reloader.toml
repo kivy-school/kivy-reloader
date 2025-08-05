@@ -159,3 +159,11 @@ FOLDERS_AND_FILES_TO_EXCLUDE_FROM_PHONE = []
 # FOLDERS_AND_FILES_TO_EXCLUDE_FROM_PHONE to manage exclusions):
 # To override built-in exclusions, add this to your config:
 # DEFAULT_EXCLUSIONS = [".git", ".venv", "*.pyc"]  # your custom base patterns
+
+# ════════════════════════════════════════════════════════════════
+# 🔔 NOTIFICATIONS
+# ════════════════════════════════════════════════════════════════
+
+# Show desktop notifications during compilation and deployment
+# Set to false to disable notifications completely
+SHOW_NOTIFICATIONS = true
