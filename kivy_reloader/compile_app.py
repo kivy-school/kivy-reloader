@@ -151,11 +151,17 @@ else:
 
 if platform != 'win':
     # ── terminal state capture ────────────────────────────────────────────────────
-    _ORIGINAL_STTY = subprocess.check_output(['stty', '-g']).decode().strip()
+    try:
+        _ORIGINAL_STTY = subprocess.check_output(['stty', '-g']).decode().strip()
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        # No TTY available (CI environment, etc.) - disable terminal restoration
+        _ORIGINAL_STTY = None
+        logging.debug('No TTY available, terminal restoration disabled')
 
     def _restore_terminal() -> None:
         """Return terminal to the settings captured at startup."""
-        subprocess.run(['stty', _ORIGINAL_STTY], check=False)
+        if _ORIGINAL_STTY is not None:
+            subprocess.run(['stty', _ORIGINAL_STTY], check=False)
 
     def _sigint_handler(_sig, _frame) -> None:
         """Handle Ctrl-C: restore terminal, cleanup processes, then exit."""
