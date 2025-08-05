@@ -279,6 +279,10 @@ def notify(title: str, message: str) -> None:
     Send a notification to the user's desktop.
     No support for Windows yet.
     """
+    # Check if notifications are enabled
+    if not config.SHOW_NOTIFICATIONS:
+        return
+
     try:
         if platform in {'linux', 'macosx'} and 'microsoft' not in platform_release:
             notification.notify(message=message, title=title)
