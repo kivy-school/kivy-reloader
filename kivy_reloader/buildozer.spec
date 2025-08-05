@@ -22,7 +22,7 @@ source.include_exts = py,png,jpg,kv,atlas,toml
 # source.exclude_exts =
 
 # (list) List of directory to exclude (let empty to not exclude anything)
-source.exclude_dirs = temp, tests, bin, dist, .vscode, .venv, __pycache__
+source.exclude_dirs = temp, tests, bin, dist, .vscode, .venv, __pycache__, .github
 
 # (list) List of exclusions using pattern matching
 # Do not prefix with './'
