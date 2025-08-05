@@ -36,6 +36,7 @@ class Config:  # noqa: PLR0904
         '.dmypy.json',
         '.env',
         '.git',
+        '.github',
         '.gitignore',
         '.ipynb_checkpoints',
         '.mypy_cache/',
