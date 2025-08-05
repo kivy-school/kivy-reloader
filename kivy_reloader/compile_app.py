@@ -18,6 +18,30 @@ from colorama import Fore, Style, init
 from .config import config
 from .utils import get_connected_devices, get_wifi_ip
 
+
+def is_ci_environment() -> bool:
+    """
+    Check if running in a CI/CD environment.
+
+    Returns:
+        bool: True if running in CI, False otherwise
+    """
+    ci_indicators = [
+        'CI',  # Generic CI indicator
+        'GITHUB_ACTIONS',  # GitHub Actions
+        'GITLAB_CI',  # GitLab CI
+        'JENKINS_URL',  # Jenkins
+        'TRAVIS',  # Travis CI
+        'CIRCLECI',  # Circle CI
+        'BUILDKITE',  # Buildkite
+        'DRONE',  # Drone CI
+        'TF_BUILD',  # Azure DevOps
+        'BITBUCKET_BUILD_NUMBER',  # Bitbucket Pipelines
+    ]
+
+    return any(os.environ.get(var) for var in ci_indicators)
+
+
 # ── colorama ──────────────────────────────
 init(autoreset=True)
 green = Fore.GREEN
@@ -455,7 +479,14 @@ def debug_and_livestream() -> None:
     """
     Executes `adb logcat` and `scrcpy` in parallel.
     Validates devices once at the start instead of in each subprocess.
+
+    In CI environments, this function gracefully exits without device validation.
     """
+    # Skip device operations in CI environments
+    if is_ci_environment():
+        logging.info('CI environment detected, skipping debug and livestream')
+        return
+
     # Early validation - exit immediately if no devices
     validate_devices_connected()
 
