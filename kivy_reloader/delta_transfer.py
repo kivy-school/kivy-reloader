@@ -289,7 +289,7 @@ class DeltaTransferManager:
 
     def prepare_transfer(
         self, exclude_patterns: List[str]
-    ) -> Tuple[str, Dict[str, any]]:
+    ) -> Tuple[str, Dict[str, any], Dict[str, str]]:
         """
         Prepare transfer archive (delta or full) based on detected changes.
 
@@ -297,7 +297,7 @@ class DeltaTransferManager:
             exclude_patterns: List of glob patterns for files to exclude
 
         Returns:
-            Tuple of (archive_path, metadata)
+            Tuple of (archive_path, metadata, current_state)
         """
         # Scan current project state
         current_state = self.scan_project_files(exclude_patterns)
@@ -341,7 +341,5 @@ class DeltaTransferManager:
             # Create full archive
             metadata = self.create_full_archive(current_state, output_path)
 
-        # Update state after successful archive creation
-        self.save_state(current_state)
-
-        return output_path, metadata
+        # Do NOT save state here. Caller should persist only after ACK.
+        return output_path, metadata, current_state
