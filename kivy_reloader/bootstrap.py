@@ -4,6 +4,8 @@ import shutil
 
 from colorama import Fore, init
 
+from . import __version__ as _kl_version
+
 yellow = Fore.YELLOW
 green = Fore.GREEN
 red = Fore.RED
@@ -99,6 +101,7 @@ def main():
         help='Initializes Kivy Reloader',
     )
     args = parser.parse_args()
+    klprint(f'Kivy Reloader v{_kl_version}')
 
     if args.command == 'init':
         create_settings_file()

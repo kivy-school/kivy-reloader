@@ -40,6 +40,7 @@ except ImportError:
 from kivy_reloader import tree_formatter
 
 # Local imports
+from . import __version__
 from .base_app import BaseReloaderApp
 from .config import config
 from .tree_formatter import format_file_tree
@@ -59,6 +60,7 @@ class AndroidApp(BaseReloaderApp, KivyApp):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        Logger.info(f'Reloader: Kivy Reloader v{__version__}')
         self._initialize_file_hashing()
         self._setup_android_environment()
         self._setup_key_bindings()

@@ -43,6 +43,7 @@ except ImportError:
     WATCHDOG_AVAILABLE = False
 
 # Local imports
+from . import __version__
 from .base_app import BaseReloaderApp
 from .config import config
 from .delta_transfer import DeltaTransferManager
@@ -103,6 +104,7 @@ class DesktopApp(BaseReloaderApp, KakiApp):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        Logger.info(f'Reloader: Kivy Reloader v{__version__}')
         self._initialize_app_state()
         self._setup_autoreloader()
         self._setup_windows_event_handling()
