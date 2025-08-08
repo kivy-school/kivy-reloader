@@ -620,10 +620,21 @@ class DesktopApp(BaseReloaderApp, KakiApp):
         exclude_patterns = config.FOLDERS_AND_FILES_TO_EXCLUDE_FROM_PHONE
 
         # Prepare transfer (delta or full)
-        archive_path, metadata = delta_manager.prepare_transfer(exclude_patterns)
+        archive_path, metadata, current_state = delta_manager.prepare_transfer(
+            exclude_patterns
+        )
 
         # Transfer to Android device
-        self._transfer_to_android_device()
+        exit_code = self._transfer_to_android_device()
+
+        # Persist state only if at least one device acknowledged applying update
+        if exit_code == 0:
+            delta_manager.save_state(current_state)
+        else:
+            Logger.warning(
+                'Reloader: Transfer completed but no device ACK received; '
+                'deferring state save to avoid inconsistency.'
+            )
 
         # Clean up the archive file (for both delta and full transfers)
         if os.path.exists(archive_path):
@@ -638,7 +649,10 @@ class DesktopApp(BaseReloaderApp, KakiApp):
         script_directory = os.path.dirname(current_file_path)
         send_app_script = os.path.join(script_directory, 'send_app_to_phone.py')
 
-        subprocess.run(f'python {send_app_script}', shell=True, check=True)
+        completed = subprocess.run(
+            f'python {send_app_script}', shell=True, check=False
+        )
+        return completed.returncode
 
     def _filename_to_module(self, filename: str):
         """
