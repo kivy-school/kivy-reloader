@@ -18,6 +18,7 @@ import traceback
 import zipfile
 from fnmatch import fnmatch
 from pathlib import Path
+from uuid import uuid4
 
 # Third-party imports
 import trio
@@ -64,6 +65,9 @@ class AndroidApp(BaseReloaderApp, KivyApp):
         self._initialize_file_hashing()
         self._setup_android_environment()
         self._setup_key_bindings()
+
+        # Serialize update application to avoid concurrent extract/delete races
+        self._update_lock = trio.Lock()
 
     def _initialize_file_hashing(self):
         """Initialize file hash tracking for hot reload detection."""
@@ -615,34 +619,45 @@ class AndroidApp(BaseReloaderApp, KivyApp):
         Logger.info('Reloader: Server started: receiving data from computer...')
 
         try:
-            # Receive and save the zip file
-            zip_file_path = await self._receive_zip_file(data_stream)
+            # Ensure only one update is applied at a time
+            async with self._update_lock:
+                # Use a unique filename per connection to prevent collisions
+                zip_file_path = os.path.join(os.getcwd(), f'app_copy_{uuid4().hex}.zip')
 
-            # Process the received update
-            await self._process_app_update(zip_file_path)
+                # Receive and save the zip file
+                await self._receive_zip_file(data_stream, zip_file_path)
+
+                # Process the received update
+                await self._process_app_update(zip_file_path)
+
+                # Send ACK back to the desktop after successful processing
+                try:
+                    await data_stream.send_all(b'OK')
+                except Exception as ack_err:
+                    Logger.warning(
+                        f'Reloader: Failed to send ACK to desktop: {ack_err}'
+                    )
 
         except Exception as e:
             self._log_server_error(e)
 
-    async def _receive_zip_file(self, data_stream):
+    async def _receive_zip_file(self, data_stream, zip_file_path):
         """
         Receive zip file data from the TCP stream.
 
         Args:
             data_stream: The incoming TCP data stream
+            zip_file_path: Destination path where to write the received zip
 
         Returns:
             str: Path to the saved zip file
         """
-        zip_file_path = os.path.join(os.getcwd(), 'app_copy.zip')
-
         with open(zip_file_path, 'wb') as zip_file:
+            Logger.info('Reloader: Server: receiving data')
             async for data in data_stream:
-                Logger.info('Reloader: Server: received data')
                 Logger.info(f'Reloader: Data size: {len(data)}')
-                Logger.info('Reloader: Server: connection closed')
+                # Data arrives in chunks until client half-closes
                 zip_file.write(data)
-
         return zip_file_path
 
     async def _process_app_update(self, zip_file_path):
@@ -656,8 +671,6 @@ class AndroidApp(BaseReloaderApp, KivyApp):
         Logger.info('Reloader: Processing app update')
 
         # Log zip file information and extract
-        zip_file_size = os.path.getsize(zip_file_path)
-
         # Check if this is a delta or full transfer
         transfer_type = self._detect_transfer_type(zip_file_path)
 
@@ -670,7 +683,12 @@ class AndroidApp(BaseReloaderApp, KivyApp):
             # Full transfer - extract everything and handle deletions
             self._process_full_update(zip_file_path)
 
-        os.remove(zip_file_path)
+        # Best-effort cleanup of temp file
+        try:
+            if os.path.exists(zip_file_path):
+                os.remove(zip_file_path)
+        except Exception as e:
+            Logger.warning(f'Reloader: Failed to remove temp file {zip_file_path}: {e}')
 
         Logger.info('Reloader: App updated, triggering hot reload')
         Logger.info('Reloader: ************** END SERVER **************')
