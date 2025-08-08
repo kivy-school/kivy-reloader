@@ -1,3 +1,5 @@
+import sys
+
 import trio
 from colorama import Fore, init
 
@@ -30,11 +32,13 @@ async def send_app():
     devices = get_connected_devices()
     if not devices:
         print(f'{yellow}No connected devices found.')
-        return
+        return 1
 
     unique_physical = {
         (d['wifi_ip'], d['model']) for d in devices if d['wifi_ip'] is not None
     }
+
+    acked_count = 0
 
     for device in unique_physical:
         IP = device[0]
@@ -42,7 +46,7 @@ async def send_app():
         client_socket = await connect_to_server(IP)
         if not client_socket:
             print(f"{yellow}Couldn't connect to smartphone: {IP}")
-            return
+            continue
 
         print(f'{yellow} Phone connected successfully: {IP}')
         print(f'\n{green}Sending app to smartphone...')
@@ -68,11 +72,49 @@ async def send_app():
 
         print()  # New line after completion
 
+        # Signal that we're done sending
+        try:
+            await client_socket.send_eof()
+        except Exception as e:
+            print(f'{yellow}Warning: failed to half-close send to {IP}: {e}')
+
         print(green + 'Finished sending app!')
+
+        # Wait for ACK from phone confirming update applied
+        print(f'{yellow}Waiting (3 seconds) for ACK from smartphone {IP}...')
+        ack_ok = False
+        try:
+            with trio.move_on_after(3):  # wait up to 3s for device to process
+                data = await client_socket.receive_some(16)
+                if data and data.startswith(b'OK'):
+                    ack_ok = True
+        except Exception as e:
+            print(f'{red}Error while waiting for ACK: {e}')
+
+        if ack_ok:
+            print(f'{green}ACK received from {IP}')
+            acked_count += 1
+        else:
+            print(f'{yellow}No ACK received from {IP} (device may be busy/minimized)')
+
+        # Close socket gracefully
+        try:
+            await client_socket.aclose()
+        except Exception:
+            pass
 
     print('\n')
     print(yellow + f'Sent app to {len(unique_physical)} smartphone(s)')
+    if acked_count:
+        print(green + f'ACK confirmed on {acked_count} smartphone(s)')
+    else:
+        print(red + 'No ACKs received')
     print('*' * 50)
 
+    # Exit code: 0 if at least one device acknowledged; 1 otherwise
+    return 0 if acked_count > 0 else 1
 
-trio.run(send_app)
+
+if __name__ == '__main__':
+    exit_code = trio.run(send_app)
+    sys.exit(exit_code)
