@@ -13,7 +13,7 @@ dependencies = [
     "kaki>=0.1.9",
     "pip>=25.1.1",
     "plyer>=2.1.0",
-    "psutil>=7.0.0",
+    "psutil>=7.0.0; sys_platform == 'win32' or sys_platform == 'darwin' or sys_platform == 'linux'",
     "readchar>=4.2.1",
     "toml>=0.10.2",
     "trio>=0.30.0",
@@ -63,7 +63,7 @@ kaki = "^0.1.9"
 pip = "^25.1.1"
 plyer = "^2.1.0"
 python = "^3.10"
-psutil = "^7.0.0"
+psutil = { version = "^7.0.0", markers = "sys_platform == 'win32' or sys_platform == 'darwin' or sys_platform == 'linux'" }
 readchar = "^4.2.1"
 toml = "^0.10.2"
 trio = "^0.30.0"
