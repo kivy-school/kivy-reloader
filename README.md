@@ -6,8 +6,6 @@
   <img src="https://kivyschool.com/kivy-reloader/assets/kivy-reloader.gif" alt="Kivy Reloader Demo" width="720" />
 </p>
 
-Hot reload your Kivy app on multiple Android phones, emulators and computer at the same time, in real-time.
-
 This tool allows you to instantly update your Kivy app on multiple devices simultaneously by pressing <kbd>Ctrl</kbd> + <kbd>S</kbd>, without having to restart / recompile every time you make a change, saving your precious development time and effort.
 It uses **[Kaki]** (file watching via `watchdog`) under the hood and a small **Trio** server on-device to receive file updates.
 
