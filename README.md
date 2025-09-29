@@ -1,6 +1,6 @@
 # Kivy Reloader
 
-> *Hot reload your Kivy app on multiple Android phones, emulators and computer at the same time, in real‑time.*
+> _Hot reload your Kivy app on multiple Android phones, emulators and computer at the same time, in real‑time._
 
 <p align="center">
   <img src="https://kivyschool.com/kivy-reloader/assets/kivy-reloader.gif" alt="Kivy Reloader Demo" width="720" />
@@ -156,19 +156,19 @@ class HelloWorldApp(App):
 
 ```yaml
 <MainScreen>:
-    BoxLayout:
-        orientation: 'vertical'
-        Button:
-            text: 'Welcome to Kivy Reloader!'
+  BoxLayout:
+    orientation: "vertical"
+    Button:
+      text: "Welcome to Kivy Reloader!"
 ```
 
 `hello_world/screens/main_screen.py`
 
 ```python
 from kivy.uix.screenmanager import Screen
-from kivy_reloader.utils import load_kv_path
+from kivy_reloader.lang import Builder
 
-load_kv_path(__file__)
+Builder.load_file(__file__)
 
 class MainScreen(Screen):
     pass
@@ -226,17 +226,17 @@ Select the first option to build + install the APK via Buildozer. Once running o
 
 When you save a watched file:
 
-* If it matches **`FULL_RELOAD_FILES`** → the app **restarts** on computer and device(s).
-* If it's inside **`WATCHED_FOLDERS_RECURSIVELY`**, **`WATCHED_FOLDERS`** or named in **`WATCHED_FILES`** → the app **hot reloads**.
-* With **`HOT_RELOAD_ON_PHONE = false`** only your desktop app reloads/restarts.
+- If it matches **`FULL_RELOAD_FILES`** → the app **restarts** on computer and device(s).
+- If it's inside **`WATCHED_FOLDERS_RECURSIVELY`**, **`WATCHED_FOLDERS`** or named in **`WATCHED_FILES`** → the app **hot reloads**.
+- With **`HOT_RELOAD_ON_PHONE = false`** only your desktop app reloads/restarts.
 
 ---
 
 ## How it works (high level)
 
-* Watches files using **watchdog** (via **Kaki**).
-* On change, syncs files and signals your app(s) to reload.
-* An on‑device Trio server receives files during development for instant updates.
+- Watches files using **watchdog** (via **Kaki**).
+- On change, syncs files and signals your app(s) to reload.
+- An on‑device Trio server receives files during development for instant updates.
 
 ---
 
