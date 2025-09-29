@@ -1,13 +1,9 @@
-import os
+from kivy.uix.screenmanager import Screen
 
-from kivy.factory import Factory as F
+from kivy_reloader.lang import Builder
 
-from kivy_reloader.utils import load_kv_path
-
-main_screen_kv = os.path.join('beautifulapp', 'screens', 'main_screen.kv')
-load_kv_path(main_screen_kv)
+Builder.load_file(__file__)
 
 
-class MainScreen(F.Screen):
-    def on_enter(self, *args):
-        print('MainScreen on_enter')
+class MainScreen(Screen):
+    pass
