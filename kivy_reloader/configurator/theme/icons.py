@@ -9,10 +9,10 @@ from kivy.lang import global_idmap
 
 __file__ = os.path.abspath(__file__)
 material_design_icons_font_path = os.path.join(
-    os.path.dirname(__file__), 'materialdesignicons.ttf'
+    os.path.dirname(__file__), 'assets', 'materialdesignicons.ttf'
 )
 twemoji_mozilla_font_path = os.path.join(
-    os.path.dirname(__file__), 'twemoji-mozilla.ttf'
+    os.path.dirname(__file__), 'assets', 'twemoji-mozilla.ttf'
 )
 
 icon_unicodes = {
