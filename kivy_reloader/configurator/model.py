@@ -23,8 +23,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
 
-from . import config_loader
-from .schema import FIELD_DEFS, FIELD_INDEX, FieldDef, FieldType
+from kivy_reloader.configurator import config_loader
+from kivy_reloader.configurator.schema import (
+    FIELD_DEFS,
+    FIELD_INDEX,
+    FieldDef,
+    FieldType,
+)
 
 
 @dataclass
