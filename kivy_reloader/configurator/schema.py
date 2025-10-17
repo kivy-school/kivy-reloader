@@ -8,10 +8,6 @@ Design goals:
 * Preserve ordering & grouping exactly like the template for intuitive UX
 * Provide short + long help, examples, enum choices, numeric ranges
 * Mark *advanced* options so the GUI can collapse them by default
-* Remain backwards-compatible with existing (early) GUI code that only used:
-    - ``FieldDef.key``
-    - ``FieldDef.default``
-    - ``FieldDef.category`` (section grouping)
 
 Forward looking (not all consumed yet):
 * ``help_long`` can power tooltips / side panel docs
