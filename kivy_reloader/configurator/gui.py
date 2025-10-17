@@ -9,13 +9,13 @@ from __future__ import annotations
 from pathlib import Path
 
 import trio
-from configurator.config_loader import merge_with_defaults
-from configurator.model import ConfigModel
-from configurator.schema import FIELD_DEFS
-from configurator.screens.core import CoreScreen
-from configurator.theme import load_theme
 
 from kivy_reloader.app import App
+from kivy_reloader.configurator.config_loader import merge_with_defaults
+from kivy_reloader.configurator.model import ConfigModel
+from kivy_reloader.configurator.schema import FIELD_DEFS
+from kivy_reloader.configurator.screens.core import CoreScreen
+from kivy_reloader.configurator.theme import load_theme
 
 
 def run_gui(
