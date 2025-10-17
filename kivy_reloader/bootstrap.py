@@ -1,6 +1,7 @@
 import argparse
 import os
 import shutil
+from pathlib import Path
 
 from colorama import Fore, init
 
@@ -123,12 +124,14 @@ def main():
         create_buildozer_spec_file()
 
     elif args.command == 'config':
-        from .configurator import launch_configurator  # noqa
+        from .configurator.gui import run_gui  # noqa
 
-        launch_configurator(
-            config_file=getattr(args, 'config_file', None),
-            debug=getattr(args, 'debug', False),
-        )
+        # Setup paths
+        project_dir = Path(os.getcwd())
+        config_path = project_dir / 'kivy-reloader.toml'
+
+        # Launch the GUI
+        run_gui(base=project_dir, config_path=config_path, debug=False)
 
     elif args.command in {'start', 'run', 'compile'}:
         from .compile_app import debug_and_livestream  # noqa
