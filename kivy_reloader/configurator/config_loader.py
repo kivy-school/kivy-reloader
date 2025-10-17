@@ -104,6 +104,8 @@ def save_config_values(
         # Also create timestamped backup if backup_dir provided
         if backup_dir:
             _create_timestamped_backup(config_path, backup_dir)
+            # Clean up old backups, keeping only the 10 most recent
+            cleanup_old_backups(backup_dir, keep=10)
 
     # Read existing file to preserve structure/comments if possible
     # (though toml library doesn't preserve comments, we keep other sections)
