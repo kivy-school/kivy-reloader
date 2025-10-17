@@ -1,0 +1,73 @@
+#:import SideBar configurator_ui.widgets.sidebar.SideBar
+#:import CoreCard configurator_ui.widgets.cards.CoreCard
+#:import ServicesCard configurator_ui.widgets.cards.ServicesCard
+#:import Toolbar configurator_ui.widgets.toolbar.Toolbar
+
+
+<SectionBox@BoxLayout>:
+    orientation: 'vertical'
+    padding: [dp(32), dp(24), dp(32), dp(24)]
+    spacing: dp(16)
+    size_hint_y: None
+    height: self.minimum_height
+
+    canvas.before:
+        Color:
+            rgba: background_color
+        Rectangle:
+            pos: self.pos
+            size: self.size
+
+
+<SectionScrollView@ScrollView>:
+    do_scroll_x: False
+    do_scroll_y: True
+    bar_width: dp(8)
+    bar_color: muted_color
+    bar_inactive_color: muted_color
+    scroll_type: ['bars', 'content']
+
+
+<SectionScreen>:
+    section_box: section_box.__self__
+
+    SectionScrollView:
+        SectionBox:
+            id: section_box
+
+
+<CoreScreen>:
+    toolbar: toolbar.__self__
+    sidebar: sidebar.__self__
+    section_manager: section_manager.__self__
+
+    canvas.before:
+        Color:
+            rgba: background_color
+        Rectangle:
+            pos: self.pos
+            size: self.size
+    
+    BoxLayout:
+        # Sidebar
+        SideBar:
+            id: sidebar
+        
+        # Main content area
+        BoxLayout:
+            orientation: 'vertical'
+            
+            # Toolbar at the top
+            Toolbar:
+                id: toolbar
+
+            ScreenManager:
+                id: section_manager
+
+                SectionScreen:
+                    card_cls: CoreCard
+                    name: 'Core'
+
+                SectionScreen:
+                    card_cls: ServicesCard
+                    name: 'Services'
