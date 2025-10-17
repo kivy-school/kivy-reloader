@@ -18,7 +18,7 @@ from typing import Any, Dict, List, Optional
 
 import toml
 
-from .schema import FieldType
+from kivy_reloader.configurator.schema import FieldType
 
 __all__ = [
     'load_config_values',
