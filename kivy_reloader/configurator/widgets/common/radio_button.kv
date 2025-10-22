@@ -1,0 +1,65 @@
+<RadioButton>:
+    orientation: 'horizontal'
+    size_hint: None, None
+    size: [self.minimum_width, dp(24)]
+    spacing: dp(8)
+    
+    Widget:
+        size_hint: None, None
+        size: [dp(20), dp(20)]
+        on_touch_down:
+            if self.collide_point(*args[1].pos): root.select()
+        
+        canvas.before:
+            # Outer circle
+            Color:
+                rgba: primary_color if root.selected else border_color
+            SmoothLine:
+                circle: [self.center_x, self.center_y, dp(9)]
+                width: dp(2)
+            
+            # Inner filled circle (when selected)
+            Color:
+                rgba: primary_color if root.selected else transparent
+            SmoothEllipse:
+                pos: [self.center_x - dp(5), self.center_y - dp(5)]
+                size: [dp(10), dp(10)]
+        
+    
+    Label:
+        text: root.label
+        font_size: font_size_sm
+        color: foreground_color
+        halign: 'left'
+        valign: 'middle'
+        size_hint: None, None
+        size: [self.texture_size[0], dp(24)]
+        text_size: None, None
+
+
+<RadioGroup>:
+    orientation: 'vertical'
+    size_hint_y: None
+    height: self.minimum_height
+    spacing: dp(8)
+
+    options_container: options_container.__self__
+    
+    Label:
+        text: root.title
+        font_size: font_size_sm
+        bold: True
+        color: foreground_color
+        halign: 'left'
+        valign: 'middle'
+        text_size: self.width, None
+        size_hint_y: None
+        height: self.texture_size[1] if root.title else 0
+        opacity: 1 if root.title else 0
+    
+    BoxLayout:
+        id: options_container
+        orientation: 'horizontal'
+        size_hint_y: None
+        height: dp(24)
+        spacing: dp(24)
