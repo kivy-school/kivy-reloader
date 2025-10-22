@@ -3,7 +3,7 @@
 from kivy.properties import BooleanProperty, ObjectProperty
 from kivy.uix.boxlayout import BoxLayout
 
-from kivy_reloader.configurator.widgets.common.gradient import GLGradient
+from kivy_reloader.configurator.graphics.gradients import GLGradient
 from kivy_reloader.lang import Builder
 
 Builder.load_file(__file__)
