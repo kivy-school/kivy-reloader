@@ -54,6 +54,12 @@ def toggle_theme():
     with open(current_theme_file, 'w', encoding='utf-8') as f:
         f.write('dark' if new_theme else 'light')
 
+    # Update the global theme instance (import here to avoid circular imports)
+    from ..styles import theme
+
+    theme.dark_mode = new_theme
+    theme.toggle_theme()
+
     # Load new theme
     load_theme(dark_mode=new_theme)
 
