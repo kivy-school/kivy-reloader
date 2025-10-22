@@ -1,8 +1,4 @@
-#:import SideBar configurator_ui.widgets.sidebar.SideBar
-#:import CoreCard configurator_ui.widgets.cards.CoreCard
-#:import ServicesCard configurator_ui.widgets.cards.ServicesCard
-#:import Toolbar configurator_ui.widgets.toolbar.Toolbar
-
+#:import cards kivy_reloader.configurator.widgets.cards
 
 <SectionBox@BoxLayout>:
     orientation: 'vertical'
@@ -65,9 +61,9 @@
                 id: section_manager
 
                 SectionScreen:
-                    card_cls: CoreCard
+                    card_cls: cards.CoreCard
                     name: 'Core'
 
                 SectionScreen:
-                    card_cls: ServicesCard
+                    card_cls: cards.ServicesCard
                     name: 'Services'
