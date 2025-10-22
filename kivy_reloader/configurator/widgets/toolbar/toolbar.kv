@@ -32,7 +32,7 @@
         
         canvas.before:
             Color:
-                rgba: muted_color if self.state == 'normal' else primary_color
+                rgba: muted_color if self.state == 'normal' else muted_active_color
             RoundedRectangle:
                 pos: self.pos
                 size: self.size
@@ -76,7 +76,7 @@
         
         canvas.before:
             Color:
-                rgba: accent_color if self.state == 'down' else primary_color
+                rgba: primary_active_color if self.state == 'down' else primary_color
             RoundedRectangle:
                 pos: self.pos
                 size: self.size
@@ -95,7 +95,7 @@
         
         canvas.before:
             Color:
-                rgba: muted_color if self.state == 'down' else secondary_color
+                rgba: secondary_active_color if self.state == 'down' else secondary_color
             RoundedRectangle:
                 pos: self.pos
                 size: self.size
@@ -114,7 +114,7 @@
         
         canvas.before:
             Color:
-                rgba: muted_color if self.state == 'down' else transparent
+                rgba: muted_active_color if self.state == 'down' else transparent
             RoundedRectangle:
                 pos: self.pos
                 size: self.size
@@ -133,7 +133,7 @@
         
         canvas.before:
             Color:
-                rgba: muted_color if self.state == 'down' else transparent
+                rgba: muted_active_color if self.state == 'down' else transparent
             RoundedRectangle:
                 pos: self.pos
                 size: self.size
@@ -152,7 +152,7 @@
         
         canvas.before:
             Color:
-                rgba: muted_color if self.state == 'down' else transparent
+                rgba: muted_active_color if self.state == 'down' else transparent
             RoundedRectangle:
                 pos: self.pos
                 size: self.size
