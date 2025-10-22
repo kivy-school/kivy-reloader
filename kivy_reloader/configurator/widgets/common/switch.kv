@@ -1,0 +1,72 @@
+<CustomSwitch>:
+    orientation: 'horizontal'
+    size_hint_y: None
+    height: self.minimum_height
+    padding: [dp(16), dp(12), dp(16), dp(12)]
+    spacing: dp(16)
+    
+    canvas.before:
+        Color:
+            rgba: card_color
+        SmoothRoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [border_radius_md]
+        Color:
+            rgba: border_color
+        SmoothLine:
+            rounded_rectangle: [self.x, self.y, self.width, self.height, border_radius_md]
+            width: dp(1)
+    
+    # Text content
+    BoxLayout:
+        orientation: 'vertical'
+        spacing: dp(4)
+        size_hint_y: None
+        height: self.minimum_height
+        
+        Label:
+            text: root.title
+            font_size: font_size_sm
+            bold: True
+            color: foreground_color
+            text_size: self.width, None
+            size_hint_y: None
+            height: self.texture_size[1]
+        
+        Label:
+            text: root.description
+            font_size: font_size_xs
+            color: muted_foreground_color
+            text_size: self.width, None
+            size_hint_y: None
+            height: self.texture_size[1] if root.description else 0
+    
+    # Toggle switch
+    AnchorLayout:
+        size_hint_x: None
+        width: dp(44)
+        anchor_y: "top"
+
+        Widget:
+            size_hint_x: None
+            width: dp(44)
+            size_hint_y: None
+            height: dp(24)
+            on_touch_down:
+                if self.collide_point(*args[1].pos): root.toggle()
+            
+            canvas.before:
+                Color:
+                    rgba: primary_color if root.active else muted_color
+                SmoothRoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [dp(12)]
+                
+                Color:
+                    rgba: white
+                SmoothEllipse:
+                    pos: [self.x + dp(22) if root.active else self.x + dp(2), self.center_y - dp(10)]
+                    size: [dp(20), dp(20)]
+            
