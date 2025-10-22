@@ -4,7 +4,8 @@ Handles loading font styles into Kivy's global_idmap for KV file accessibility.
 """
 
 from kivy.lang import global_idmap
-from styles import AppTheme, Typography
+
+from kivy_reloader.configurator.styles import AppTheme, Typography
 
 
 def load_font_styles():
