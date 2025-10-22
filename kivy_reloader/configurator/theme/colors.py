@@ -4,7 +4,8 @@ Handles loading colors into Kivy's global_idmap for KV file accessibility.
 """
 
 from kivy.lang import global_idmap
-from styles import DarkTheme, LightTheme
+
+from kivy_reloader.configurator.styles import DarkTheme, LightTheme
 
 
 def load_color_palette(dark_mode=False):
