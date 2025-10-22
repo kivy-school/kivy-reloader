@@ -2,6 +2,12 @@ from kivy.animation import Animation
 from kivy.properties import ObjectProperty, StringProperty
 from kivy.uix.screenmanager import Screen
 
+from kivy_reloader.configurator.widgets.cards import (  # noqa: F401
+    CoreCard,
+    ServicesCard,
+)
+from kivy_reloader.configurator.widgets.sidebar import SideBar  # noqa: F401
+from kivy_reloader.configurator.widgets.toolbar import Toolbar  # noqa: F401
 from kivy_reloader.lang import Builder
 
 Builder.load_file(__file__)
