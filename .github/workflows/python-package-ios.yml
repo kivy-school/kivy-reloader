@@ -24,4 +24,4 @@ jobs:
     - name: Modify dependencies
       run: |
         python .ci/modify_ios.py
-        echo "$(pyproject.toml)"
+        echo "$(<pyproject.toml)"
