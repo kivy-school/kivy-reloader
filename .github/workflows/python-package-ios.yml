@@ -1,4 +1,4 @@
-name: Setup.py iOS Wheels test
+name: create iOS Wheels
 
 
 on: 
@@ -17,6 +17,10 @@ jobs:
       uses: actions/setup-python@v3
       with:
         python-version: '3.13'
+    - name: pip installs
+      run: |
+        pip install toml
+    
     - name: Modify dependencies
       run: |
         python .ci/modify_ios.py
