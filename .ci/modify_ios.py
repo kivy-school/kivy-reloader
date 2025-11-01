@@ -16,9 +16,9 @@ def is_excluded(dependency: str) -> bool:
 def modify_pyproject_toml():
     with open("pyproject.toml", "r") as f:
         pyproject_data = toml.load(f)
-
+    project = pyproject_data["project"]
     # Modify the iOS deployment target
-    pyproject_data["project"]["requires"] = list(filter(is_excluded, pyproject_data["project"]["requires"]))
+    project["dependencies"] = list(filter(is_excluded, project["dependencies"]))
 
     with open("pyproject.toml", "w") as f:
         toml.dump(pyproject_data, f)
