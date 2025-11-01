@@ -19,4 +19,5 @@ jobs:
         python-version: '3.13'
     - name: Modify dependencies
       run: |
-        ls .
+        python .ci/modify_ios.py
+        echo "$(pyproject.toml)"
