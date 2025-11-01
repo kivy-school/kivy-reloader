@@ -22,3 +22,8 @@ def modify_pyproject_toml():
 
     with open("pyproject.toml", "w") as f:
         toml.dump(pyproject_data, f)
+
+
+
+if __name__ == "__main__":
+    modify_pyproject_toml()
