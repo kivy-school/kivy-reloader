@@ -198,12 +198,14 @@ class DesktopApp(BaseReloaderApp, KakiApp):
         """
         if platform == 'win' and len(sys.argv) > 1:
             parent_pid = sys.argv[1]
-            killstring = f'taskkill /F /PID {parent_pid}'
-            Logger.info(
-                'Reloader: Detected request close on Windows. '
-                f'Closing original host Python PID: {parent_pid}'
-            )
-            os.system(killstring)
+            # Only kill parent if we have a valid numeric PID (hot-reload mode)
+            if parent_pid.isdigit():
+                killstring = f'taskkill /F /PID {parent_pid}'
+                Logger.info(
+                    'Reloader: Detected request close on Windows. '
+                    f'Closing original host Python PID: {parent_pid}'
+                )
+                os.system(killstring)
 
     def _restart_app(self, mod):
         """
@@ -649,9 +651,7 @@ class DesktopApp(BaseReloaderApp, KakiApp):
         script_directory = os.path.dirname(current_file_path)
         send_app_script = os.path.join(script_directory, 'send_app_to_phone.py')
 
-        completed = subprocess.run(
-            f'python {send_app_script}', shell=True, check=False
-        )
+        completed = subprocess.run(f'python {send_app_script}', shell=True, check=False)
         return completed.returncode
 
     def _filename_to_module(self, filename: str):
