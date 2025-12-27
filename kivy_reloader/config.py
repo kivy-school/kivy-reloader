@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List, Union
 
-import toml
+import tomlkit
 
 
 class ConfigurationError(Exception):
@@ -39,7 +39,7 @@ class Config:  # noqa: PLR0904
         '.github',
         '.gitignore',
         '.ipynb_checkpoints',
-        '.mypy_cache/',
+        '.mypy_cache',
         '.nomedia',
         '.pytest_cache',
         '.python-version',
@@ -53,7 +53,7 @@ class Config:  # noqa: PLR0904
         '*.orig',
         '*.pyc',
         '*.sqlite',
-        'ENV/',
+        'ENV',
         'README.md',
         '_python_bundle',
         'app_copy.zip',
@@ -64,8 +64,8 @@ class Config:  # noqa: PLR0904
         'dist',
         'dmypy.json',
         'docs',
-        'env/',
-        'env.bak/',
+        'env',
+        'env.bak',
         'examples',
         'htmlcov',
         'node_modules',
@@ -76,8 +76,8 @@ class Config:  # noqa: PLR0904
         'temp',
         'tests',
         'uv.lock',
-        'venv/',
-        'venv.bak/',
+        'venv',
+        'venv.bak',
     ]
 
     def __init__(self, config_path: Union[str, Path] = None):
@@ -146,9 +146,9 @@ class Config:  # noqa: PLR0904
 
         try:
             with open(self.config_file, 'r', encoding='utf-8') as f:
-                config_data = toml.load(f)
+                config_data = tomlkit.load(f)
                 self.config = config_data.get('kivy_reloader', {})
-        except toml.TomlDecodeError as e:
+        except tomlkit.exceptions.TOMLKitError as e:
             raise ConfigurationError(f'Invalid TOML syntax in config file: {e}') from e
         except Exception as e:
             raise ConfigurationError(f'Failed to read config file: {e}') from e
@@ -271,7 +271,7 @@ class Config:  # noqa: PLR0904
         """
         try:
             with open(self.config_file, 'w', encoding='utf-8') as f:
-                toml.dump({'kivy_reloader': self.config}, f)
+                tomlkit.dump({'kivy_reloader': self.config}, f)
             self._load_config()
             return self
         except Exception as e:

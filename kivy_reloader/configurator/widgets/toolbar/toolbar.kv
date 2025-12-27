@@ -1,0 +1,169 @@
+<Toolbar>:
+    orientation: 'horizontal'
+    size_hint_y: None
+    height: dp(64)
+    padding: [dp(16), dp(12), dp(16), dp(12)]
+    spacing: dp(12)
+
+    canvas.before:
+        Color:
+            rgba: card_color
+        Rectangle:
+            pos: self.pos
+            size: self.size
+        # Bottom border
+        Color:
+            rgba: border_color
+        Line:
+            points: [self.x, self.y, self.right, self.y]
+            width: dp(1)
+    
+    # Sidebar toggle button (hamburger menu)
+    Button:
+        # text: unicode['menu']
+        text: unicode['arrow-collapse-horizontal'] if root.is_sidebar_visible else unicode['view-split-vertical']
+        font_name: icon_font
+        size_hint: None, None
+        size: [dp(40), dp(40)]
+        background_color: transparent
+        color: foreground_color
+        font_size: font_size_2xl
+        on_release: root.handle_toggle_sidebar()
+        
+        canvas.before:
+            Color:
+                rgba: muted_color if self.state == 'normal' else muted_active_color
+            SmoothRoundedRectangle:
+                pos: self.pos
+                size: self.size
+                radius: [border_radius_md]
+    
+    # Spacer to push buttons to the right
+    # Widget:
+    
+    # # Apply & Reload button (primary/hero button)
+    # Button:
+    #     text: f'[size=16][font={emoji_font}]▶️[/font][/size]   Apply & Reload'
+    #     markup: True
+    #     size_hint: None, None
+    #     size: [dp(180), dp(40)]
+    #     background_color: transparent
+    #     color: white
+    #     font_size: font_size_sm
+    #     bold: True
+    #     on_release: root.handle_apply_reload()
+        
+    #     canvas.before:
+    #         # Gradient background (purple to cyan)
+    #         Color:
+    #             rgba: (.7, .7, .7, 1) if self.state == 'down' else (1, 1, 1, 1)
+    #         SmoothRoundedRectangle:
+    #             pos: self.pos
+    #             size: self.size
+    #             texture: root.gradient_texture
+    
+    # Save button (primary button)
+    Button:
+        text: f'[size=16][font={emoji_font}]💾[/font][/size]   Save'
+        markup: True
+        size_hint: None, None
+        size: [dp(100), dp(40)]
+        background_color: transparent
+        color: primary_foreground_color
+        font_size: font_size_sm
+        bold: True
+        on_release: root.handle_save()
+        
+        canvas.before:
+            Color:
+                rgba: primary_active_color if self.state == 'down' else primary_color
+            SmoothRoundedRectangle:
+                pos: self.pos
+                size: self.size
+                radius: [border_radius_md]
+        
+        canvas.after:
+            # Unsaved changes indicator (orange dot)
+            Color:
+                rgba: (1, 0.6, 0.2, 1) if root.has_unsaved_changes else (0, 0, 0, 0)
+            SmoothEllipse:
+                pos: self.right - dp(12), self.top - dp(12)
+                size: dp(8), dp(8)
+
+    Widget:
+    
+    # Restore button (secondary button)
+    Button:
+        text: f'[size=16][font={icon_font}]{unicode["refresh"]}[/font][/size]   Restore'
+        markup: True
+        size_hint: None, None
+        size: [dp(110), dp(40)]
+        background_color: transparent
+        color: secondary_foreground_color
+        font_size: font_size_sm
+        on_release: root.handle_restore()
+        
+        canvas.before:
+            Color:
+                rgba: secondary_active_color if self.state == 'down' else secondary_color
+            SmoothRoundedRectangle:
+                pos: self.pos
+                size: self.size
+                radius: [border_radius_md]
+    
+    # Export button (ghost button)
+    Button:
+        text: f'[size=16][font={emoji_font}]📤[/font][/size]   Export'
+        markup: True
+        size_hint: None, None
+        size: [dp(100), dp(40)]
+        background_color: transparent
+        color: foreground_color
+        font_size: font_size_sm
+        on_release: root.handle_export()
+        
+        canvas.before:
+            Color:
+                rgba: muted_active_color if self.state == 'down' else transparent
+            SmoothRoundedRectangle:
+                pos: self.pos
+                size: self.size
+                radius: [border_radius_md]
+    
+    # Import button (ghost button)
+    Button:
+        text: f'[size=16][font={emoji_font}]📥[/font][/size]   Import'
+        markup: True
+        size_hint: None, None
+        size: [dp(100), dp(40)]
+        background_color: transparent
+        color: foreground_color
+        font_size: font_size_sm
+        on_release: root.handle_import()
+        
+        canvas.before:
+            Color:
+                rgba: muted_active_color if self.state == 'down' else transparent
+            SmoothRoundedRectangle:
+                pos: self.pos
+                size: self.size
+                radius: [border_radius_md]
+    
+    # Help button (ghost button)
+    Button:
+        text: f'[size=16][font={emoji_font}]❓[/font][/size]   Help'
+        markup: True
+        size_hint: None, None
+        size: [dp(90), dp(40)]
+        background_color: transparent
+        color: foreground_color
+        font_size: font_size_sm
+        on_release: root.handle_help()
+        
+        canvas.before:
+            Color:
+                rgba: muted_active_color if self.state == 'down' else transparent
+            SmoothRoundedRectangle:
+                pos: self.pos
+                size: self.size
+                radius: [border_radius_md]

@@ -1,0 +1,366 @@
+<BuiltinExclusions@Label>:
+    text: '.DS_Store'
+    size_hint: None, None
+    size: [self.texture_size[0] + dp(16), dp(28)]
+    font_size: font_size_xs
+    bold: True
+    color: muted_foreground_color
+    canvas.before:
+        Color:
+            rgba: border_color
+        SmoothRoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [dp(4)]
+        Color:
+            rgba: muted_color
+        SmoothLine:
+            rounded_rectangle: (*self.pos, *self.size, dp(4))
+
+
+<CoreCard>:
+    orientation: 'vertical'
+    size_hint_y: None
+    height: self.minimum_height
+    
+    Card:
+        title: f'[size=16][font={emoji_font}]🔥[/font][/size] Core Hot Reload Settings'
+        description: 'Essential options that power the phone hot-reload loop.'
+        
+        # Content goes in the card's content_area
+        BoxLayout:
+            orientation: 'vertical'
+            spacing: dp(16)
+            size_hint_y: None
+            height: self.minimum_height
+
+            Separator:
+            
+            # Hot reload toggle switch
+            CustomSwitch:
+                title: 'Auto-deploy app to phone on save'
+                description: 'Automatically sends the app to the phone when watched files are saved, allowing instant testing of changes'
+                active: root.config['HOT_RELOAD_ON_PHONE']
+                on_active: root.on_hot_reload_change(self.active)
+            
+            Separator:
+
+            # Phone connection method radio group
+            BoxLayout:
+                orientation: 'vertical'
+                size_hint_y: None
+                height: self.minimum_height
+                spacing: dp(8)
+                
+                RadioGroup:
+                    title: 'Phone connection method'
+                    options: [{'label': 'USB (faster, stable)', 'value': 'USB'}, {'label': 'Wi-Fi (wireless convenience)', 'value': 'WIFI'}]
+                    selected_value: root.config['STREAM_USING']
+                    on_selected_value: root.on_stream_change(self.selected_value)
+                
+                # Info bullets
+                BoxLayout:
+                    orientation: 'vertical'
+                    size_hint_y: None
+                    height: self.minimum_height
+                    padding: [dp(20), 0, 0, 0]
+                    spacing: dp(4)
+                    
+                    Label:
+                        text: '• USB is recommended for speed and stability, especially for large file changes.'
+                        font_size: font_size_xs
+                        color: muted_foreground_color
+                        halign: 'left'
+                        valign: 'top'
+                        text_size: self.width, None
+                        size_hint_y: None
+                        height: self.texture_size[1]
+                    
+                    Label:
+                        text: '• Wi-Fi allows wireless hot-reload but is slower and may be less reliable.'
+                        font_size: font_size_xs
+                        color: muted_foreground_color
+                        halign: 'left'
+                        valign: 'top'
+                        text_size: self.width, None
+                        size_hint_y: None
+                        height: self.texture_size[1]
+                    
+                    Label:
+                        text: '• Wi-Fi mode requires a one-time USB connection to authorize the phone, then you can go wireless.'
+                        font_size: font_size_xs
+                        color: muted_foreground_color
+                        halign: 'left'
+                        valign: 'top'
+                        text_size: self.width, None
+                        size_hint_y: None
+                        height: self.texture_size[1]
+
+            Separator:
+
+            # Files that force full app restart
+            BoxLayout:
+                orientation: 'vertical'
+                size_hint_y: None
+                height: self.minimum_height
+                spacing: dp(8)
+                
+                Label:
+                    text: 'Files that force full app restart'
+                    font_size: font_size_sm
+                    bold: True
+                    color: foreground_color
+                    halign: 'left'
+                    valign: 'top'
+                    text_size: self.width, None
+                    size_hint_y: None
+                    height: self.texture_size[1]
+
+                DropdownPicker:
+                    id: full_reload_picker
+                
+                Label:
+                    text: 'Cold-reload specific files.'
+                    font_size: font_size_xs
+                    color: muted_foreground_color
+                    halign: 'left'
+                    valign: 'top'
+                    text_size: self.width, None
+                    size_hint_y: None
+                    height: self.texture_size[1]
+
+            Separator:
+            
+            # Folders watched recursively
+            BoxLayout:
+                orientation: 'vertical'
+                size_hint_y: None
+                height: self.minimum_height
+                spacing: dp(8)
+                
+                Label:
+                    text: 'Folders watched recursively'
+                    font_size: font_size_sm
+                    bold: True
+                    color: foreground_color
+                    halign: 'left'
+                    valign: 'top'
+                    text_size: self.width, None
+                    size_hint_y: None
+                    height: self.texture_size[1]
+                
+                FolderOnlyDropdownPicker:
+                    id: watched_folders_picker
+                    selected_text: 'Select folders...'
+                
+                Label:
+                    text: 'Hot-reload all files and subfolders in these folders.'
+                    font_size: font_size_xs
+                    color: muted_foreground_color
+                    halign: 'left'
+                    valign: 'top'
+                    text_size: self.width, None
+                    size_hint_y: None
+                    height: self.texture_size[1]
+
+            Separator:
+            
+            # Individual watched files and shallow folders (side by side)
+            BoxLayout:
+                orientation: 'horizontal'
+                size_hint_y: None
+                height: self.minimum_height
+                spacing: dp(16)
+                
+                # Individual watched files
+                BoxLayout:
+                    orientation: 'vertical'
+                    size_hint_y: None
+                    height: self.minimum_height
+                    spacing: dp(8)
+                    
+                    Label:
+                        text: 'Individual watched files'
+                        font_size: font_size_sm
+                        bold: True
+                        color: foreground_color
+                        halign: 'left'
+                        valign: 'top'
+                        text_size: self.width, None
+                        size_hint_y: None
+                        height: self.texture_size[1]
+
+                    DropdownPicker:
+                        id: watched_files_picker
+                        placeholder_text: 'Select files...'
+                    
+                    Label:
+                        text: 'Hot-reload specific files.'
+                        font_size: font_size_xs
+                        color: muted_foreground_color
+                        halign: 'left'
+                        valign: 'top'
+                        text_size: self.width, None
+                        size_hint_y: None
+                        height: self.texture_size[1]
+                
+                # Shallow watched folders
+                BoxLayout:
+                    orientation: 'vertical'
+                    size_hint_y: None
+                    height: self.minimum_height
+                    spacing: dp(8)
+                    
+                    Label:
+                        text: 'Shallow watched folders'
+                        font_size: font_size_sm
+                        bold: True
+                        color: foreground_color
+                        halign: 'left'
+                        valign: 'top'
+                        text_size: self.width, None
+                        size_hint_y: None
+                        height: self.texture_size[1]
+                    
+                    FolderOnlyDropdownPicker:
+                        id: shallow_watched_folders_picker
+                        selected_text: 'Select folders...'
+                    
+                    Label:
+                        text: 'Hot-reload folders, but no subfolders.'
+                        font_size: font_size_xs
+                        color: muted_foreground_color
+                        halign: 'left'
+                        valign: 'top'
+                        text_size: self.width, None
+                        size_hint_y: None
+                        height: self.texture_size[1]
+
+            Separator:
+            
+            # Built-in exclusions (read-only)
+            BoxLayout:
+                orientation: 'vertical'
+                size_hint_y: None
+                height: self.minimum_height
+                spacing: dp(8)
+                
+                Label:
+                    text: "Built-in skip list (can't be changed)"
+                    font_size: font_size_sm
+                    bold: True
+                    color: foreground_color
+                    halign: 'left'
+                    valign: 'top'
+                    text_size: self.width, None
+                    size_hint_y: None
+                    height: self.texture_size[1]
+                
+                Label:
+                    text: "Hot reload never watches or sends files or folders matching these patterns. Think of them as the permanent ignore list. You can't edit it here, but you can add your own rules in the sections below."
+                    markup: True
+                    font_size: font_size_xs
+                    color: muted_foreground_color
+                    halign: 'left'
+                    valign: 'top'
+                    text_size: self.width, None
+                    size_hint_y: None
+                    height: self.texture_size[1]
+
+                # Read-only box with chip patterns
+                BoxLayout:
+                    orientation: 'vertical'
+                    size_hint_y: None
+                    height: dp(150)
+                    padding: dp(12)
+                    
+                    canvas.before:
+                        Color:
+                            rgba: muted_color
+                        SmoothRoundedRectangle:
+                            pos: self.pos
+                            size: self.size
+                            radius: [dp(6)]
+
+                    RecycleView:
+                        data: [{'text': pattern} for pattern in root.builtin_exclusions]
+                        size_hint_y: None
+                        height: dp(128)
+                        viewclass: 'BuiltinExclusions'
+                        
+                        RecycleGridLayout:
+                            default_size: None, dp(28)
+                            default_size_hint: 1, None
+                            size_hint_y: None
+                            height: self.minimum_height
+                            spacing: dp(8)
+                            orientation: 'lr-tb'
+                            cols: round(max(Window.width // dp(252), 1))
+
+            Separator:
+
+            # Extra ignore patterns
+            BoxLayout:
+                orientation: 'vertical'
+                size_hint_y: None
+                height: self.minimum_height
+                spacing: dp(8)
+                
+                Label:
+                    text: 'Add to the watch ignore list'
+                    font_size: font_size_sm
+                    bold: True
+                    color: foreground_color
+                    halign: 'left'
+                    valign: 'top'
+                    text_size: self.width, None
+                    size_hint_y: None
+                    height: self.texture_size[1]
+                
+                Label:
+                    text: "List patterns here when you don't want hot reload when files or folders matching these patterns change. These rules only affect watching; the same files can still be sent to the device unless you also exclude them on the next section."
+                    font_size: font_size_xs
+                    color: muted_foreground_color
+                    halign: 'left'
+                    valign: 'top'
+                    text_size: self.width, None
+                    size_hint_y: None
+                    height: self.texture_size[1]
+                
+                BoxChipInput:
+                    id: ignore_patterns_input
+                    placeholder: 'Type pattern and press Enter (e.g., *.tmp, cache, logs/*.log)'
+
+            Separator:
+            
+            # Additional deployment exclusions
+            BoxLayout:
+                orientation: 'vertical'
+                size_hint_y: None
+                height: self.minimum_height
+                spacing: dp(8)
+                
+                Label:
+                    text: 'Additional deployment exclusions'
+                    font_size: font_size_sm
+                    bold: True
+                    color: foreground_color
+                    halign: 'left'
+                    valign: 'top'
+                    text_size: self.width, None
+                    size_hint_y: None
+                    height: self.texture_size[1]
+                
+                Label:
+                    text: 'Stop the hot reload from transferring files or folders to the device when they match these patterns. This only controls the transfer step.'
+                    font_size: font_size_xs
+                    color: muted_foreground_color
+                    halign: 'left'
+                    valign: 'top'
+                    text_size: self.width, None
+                    size_hint_y: None
+                    height: self.texture_size[1]
+                
+                BoxChipInput:
+                    id: exclude_from_phone_input
+                    placeholder: 'Type pattern and press Enter (e.g., my_secrets.txt, local_config/, *.backup)'

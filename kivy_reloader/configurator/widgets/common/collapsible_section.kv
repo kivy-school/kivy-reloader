@@ -1,0 +1,52 @@
+<CollapsibleSection>:
+    orientation: 'vertical'
+    size_hint_y: None
+    height: self.minimum_height
+    spacing: dp(8)
+
+    # Header with toggle button
+    BoxLayout:
+        orientation: 'horizontal'
+        size_hint_y: None
+        height: dp(36)
+        padding: [dp(12), dp(8), dp(12), dp(8)]
+        spacing: dp(8)
+        on_touch_down:
+            if self.collide_point(*args[1].pos): root.toggle()
+        
+        canvas.before:
+            Color:
+                rgba: muted_color
+            SmoothRoundedRectangle:
+                pos: self.pos
+                size: self.size
+                radius: [dp(6)]
+
+        Label:
+            text: root.title
+            font_size: font_size_sm
+            bold: True
+            color: muted_foreground_color
+            halign: 'left'
+            valign: 'middle'
+            text_size: self.width, None
+            size_hint_x: 1
+        
+        # Chevron icon (rotates when expanded)
+        Widget:
+            size_hint: None, None
+            size: dp(20), dp(20)
+            
+            canvas.before:
+                PushMatrix
+                Rotate:
+                    angle: root.icon_rotation
+                    origin: self.center
+                Color:
+                    rgba: muted_foreground_color
+                Line:
+                    points: [self.center_x - dp(5), self.center_y + dp(2), self.center_x, self.center_y - dp(3), self.center_x + dp(5), self.center_y + dp(2)]
+                    width: dp(1.5)
+                    cap: 'round'
+                    joint: 'round'
+                PopMatrix

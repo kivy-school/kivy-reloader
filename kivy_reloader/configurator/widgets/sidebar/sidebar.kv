@@ -1,0 +1,129 @@
+<SidebarItem>:
+    orientation: 'horizontal'
+    size_hint_y: None
+    height: dp(36)
+    padding: [dp(8), dp(4), dp(8), dp(4)]
+    spacing: dp(8)
+    
+    canvas.before:
+        Color:
+            rgba: sidebar_primary_color if self.is_selected else transparent
+        SmoothRoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [border_radius_sm]
+    
+    Label:
+        text: root.icon
+        font_name: emoji_font
+        size_hint_x: None
+        width: dp(20)
+        font_size: dp(16)
+        halign: 'center'
+        valign: 'middle'
+        text_size: self.size
+        color: sidebar_primary_foreground_color if root.is_selected else sidebar_foreground_color
+    
+    Label:
+        text: root.text
+        font_size: font_size_sm
+        bold: root.is_selected
+        color: sidebar_primary_foreground_color if root.is_selected else sidebar_foreground_color
+        halign: 'left'
+        valign: 'middle'
+        text_size: self.size
+
+
+<SideBar>:
+    orientation: 'vertical'
+    size_hint_x: None
+    width: dp(256)
+    padding: [dp(12), dp(12), dp(12), dp(12)]
+    spacing: dp(12)
+
+    menu_container: menu_container.__self__
+    
+    canvas.before:
+        Color:
+            rgba: sidebar_background_color
+        Rectangle:
+            pos: self.pos
+            size: self.size
+        Color:
+            rgba: sidebar_border_color
+        SmoothLine:
+            points: [self.right, self.y, self.right, self.top]
+            width: dp(1)
+    
+    # Header with title and search
+    BoxLayout:
+        orientation: 'vertical'
+        size_hint_y: None
+        height: dp(88)
+        spacing: dp(12)
+        
+        Label:
+            text: 'Kivy Reloader'
+            font_size: font_size_base
+            bold: True
+            color: sidebar_foreground_color
+            halign: 'left'
+            valign: 'middle'
+            text_size: self.size
+            size_hint_y: None
+            height: dp(28)
+        
+        # Search box
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: None
+            height: dp(36)
+            padding: [dp(10), 0, dp(10), 0]
+            
+            canvas.before:
+                Color:
+                    rgba: sidebar_accent_color
+                SmoothRoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [border_radius_sm]
+            
+            TextInput:
+                id: search_input
+                hint_text: 'Search settings (press / to focus)'
+                font_size: font_size_sm
+                multiline: False
+                background_color: transparent
+                foreground_color: sidebar_accent_foreground_color
+                cursor_color: sidebar_accent_foreground_color
+                padding: [0, dp(6), 0, dp(6)]
+                hint_text_color: muted_foreground_color
+                on_text: root.filter_items(self.text)
+    
+    # Separator
+    Widget:
+        size_hint_y: None
+        height: dp(4)
+    
+    # Menu items container (scrollable)
+    ScrollView:
+        do_scroll_x: False
+        do_scroll_y: True
+        bar_width: dp(4)
+        bar_color: sidebar_border_color
+        bar_inactive_color: sidebar_border_color
+        scroll_type: ['bars', 'content']
+        
+        BoxLayout:
+            orientation: 'vertical'
+            size_hint_y: None
+            height: self.minimum_height
+            spacing: dp(2)
+            
+            # Generate menu items dynamically
+            BoxLayout:
+                id: menu_container
+                orientation: 'vertical'
+                size_hint_y: None
+                height: self.minimum_height
+                spacing: dp(2)

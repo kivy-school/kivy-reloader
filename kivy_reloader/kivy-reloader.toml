@@ -36,7 +36,7 @@ WATCHED_FOLDERS = []
 # Patterns to ignore during file watching
 # Built-in exclusions are automatically applied (.git, .buildozer, .venv, *.pyc, __pycache__, etc.)
 # Add your own patterns here for additional files/folders to ignore
-# Example: ["*.tmp", "cache/", "logs/*.log"]
+# Example: ["*.tmp", "cache", "logs/*.log"]
 DO_NOT_WATCH_PATTERNS = []
 
 # ════════════════════════════════════════════════════════════════

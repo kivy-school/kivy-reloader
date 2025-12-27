@@ -1,0 +1,96 @@
+<AudioCard>:
+    orientation: 'vertical'
+    size_hint_y: None
+    height: self.minimum_height
+
+    Card:
+        title: f'[size=16][font={emoji_font}]🎵[/font][/size] Audio Settings'
+        description: 'Configure audio forwarding and quality parameters.'
+
+        BoxLayout:
+            orientation: 'vertical'
+            spacing: dp(16)
+            size_hint_y: None
+            height: self.minimum_height
+
+            Separator:
+
+            # Master audio toggle
+            CustomSwitch:
+                id: no_audio_switch
+                title: 'Disable audio forwarding'
+                description: 'Turn off all audio from the device (recommended for development to reduce latency)'
+                active: root.config['NO_AUDIO']
+                on_active: root.on_no_audio_change(self.active)
+
+            Separator:
+
+            # Audio controls that get dimmed when audio is disabled
+            BoxLayout:
+                id: audio_controls_container
+                orientation: 'vertical'
+                spacing: dp(16)
+                size_hint_y: None
+                height: self.minimum_height
+                opacity: 0.4 if root.config['NO_AUDIO'] else 1.0
+
+                # Audio source
+                BoxLayout:
+                    orientation: 'vertical'
+                    size_hint_y: None
+                    height: self.minimum_height
+                    spacing: dp(8)
+
+                    RadioGroup:
+                        id: audio_source_radio
+                        title: 'Audio source'
+                        options: [{'label': 'Device output', 'value': 'output'}, {'label': 'Microphone', 'value': 'mic'}, {'label': 'Playback', 'value': 'playback'}]
+                        selected_value: root.config['AUDIO_SOURCE']
+                        on_selected_value: root.on_audio_source_change(self.selected_value) if not root.config['NO_AUDIO'] else None
+
+                    Label:
+                        text: 'Select which audio stream to capture from the device'
+                        font_size: font_size_xs
+                        color: muted_foreground_color
+                        halign: 'left'
+                        valign: 'top'
+                        text_size: self.width, None
+                        size_hint_y: None
+                        height: self.texture_size[1]
+
+                Separator:
+
+                # Advanced section
+                CollapsibleSection:
+                    title: 'Advanced Audio Settings'
+                    collapsed: True
+
+                    CustomSwitch:
+                        id: no_audio_playback_switch
+                        title: 'Mute on computer only'
+                        description: 'Forward audio but mute playback on the computer (audio still streams)'
+                        active: root.config['NO_AUDIO_PLAYBACK']
+                        on_active: root.on_no_audio_playback_change(self.active) if not root.config['NO_AUDIO'] else None
+
+                    BoxLayout:
+                        orientation: 'vertical'
+                        size_hint_y: None
+                        height: self.minimum_height
+                        spacing: dp(8)
+
+                        RadioGroup:
+                            id: audio_bit_rate_radio
+                            title: 'Audio bitrate'
+                            options: [{'label': '64K (low)', 'value': '64K'}, {'label': '128K (default)', 'value': '128K'}, {'label': '256K (high)', 'value': '256K'}]
+                            selected_value: root.config['AUDIO_BIT_RATE']
+                            on_selected_value: root.on_audio_bit_rate_change(self.selected_value) if not root.config['NO_AUDIO'] else None
+
+                        Label:
+                            text: 'Higher bitrate = better quality but more bandwidth'
+                            font_size: font_size_xs
+                            color: muted_foreground_color
+                            halign: 'left'
+                            valign: 'top'
+                            text_size: self.width, None
+                            size_hint_y: None
+                            height: self.texture_size[1]

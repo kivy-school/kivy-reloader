@@ -1,0 +1,106 @@
+<DisplayCard>:
+    orientation: 'vertical'
+    size_hint_y: None
+    height: self.minimum_height
+
+    Card:
+        title: f'[size=16][font={emoji_font}]🖌️[/font][/size] Display & Interaction'
+        description: 'Configure visual indicators and presentation settings.'
+
+        BoxLayout:
+            orientation: 'vertical'
+            spacing: dp(16)
+            size_hint_y: None
+            height: self.minimum_height
+
+            Separator:
+
+            # Show touches (non-advanced)
+            CustomSwitch:
+                id: show_touches_switch
+                title: 'Show touch indicators'
+                description: 'Display visual feedback for touches on the mirrored screen'
+                active: root.config['SHOW_TOUCHES']
+                on_active: root.on_switch_change('SHOW_TOUCHES', self.active)
+
+            Separator:
+
+            # Advanced section
+            CollapsibleSection:
+                title: 'Advanced Display Settings'
+                collapsed: True
+
+                CustomSwitch:
+                    id: stay_awake_switch
+                    title: 'Keep device awake'
+                    description: 'Prevent the device screen from turning off during mirroring'
+                    active: root.config['STAY_AWAKE']
+                    on_active: root.on_switch_change('STAY_AWAKE', self.active)
+
+                CustomSwitch:
+                    id: turn_screen_off_switch
+                    title: 'Turn device screen off'
+                    description: 'Turn off the physical device screen while mirroring (audio only on device)'
+                    active: root.config['TURN_SCREEN_OFF']
+                    on_active: root.on_switch_change('TURN_SCREEN_OFF', self.active)
+
+                Separator:
+
+                # Display orientation
+                BoxLayout:
+                    orientation: 'vertical'
+                    size_hint_y: None
+                    height: self.minimum_height
+                    spacing: dp(8)
+
+                    RadioGroup:
+                        id: orientation_radio
+                        title: 'Display rotation'
+                        options: [{'label': '0°', 'value': '0'}, {'label': '90°', 'value': '90'}, {'label': '180°', 'value': '180'}, {'label': '270°', 'value': '270'}]
+                        selected_value: str(root.config['DISPLAY_ORIENTATION'])
+                        on_selected_value: root.on_orientation_change(self.selected_value)
+
+                    Label:
+                        text: 'Rotate the mirrored display by the specified degrees'
+                        font_size: font_size_xs
+                        color: muted_foreground_color
+                        halign: 'left'
+                        valign: 'top'
+                        text_size: self.width, None
+                        size_hint_y: None
+                        height: self.texture_size[1]
+
+                Separator:
+
+                # Crop area
+                BoxLayout:
+                    orientation: 'vertical'
+                    size_hint_y: None
+                    height: self.minimum_height
+                    spacing: dp(8)
+
+                    Label:
+                        text: 'Crop area'
+                        font_size: font_size_sm
+                        bold: True
+                        color: foreground_color
+                        halign: 'left'
+                        valign: 'top'
+                        text_size: self.width, None
+                        size_hint_y: None
+                        height: self.texture_size[1]
+
+                    TextField:
+                        id: crop_area_input
+                        hint_text: 'width:height:x:y (e.g., 1280:720:0:0)'
+                        on_text: root.on_crop_area_change(self.text)
+
+                    Label:
+                        text: 'Leave empty for no cropping. Format: width:height:x:y'
+                        font_size: font_size_xs
+                        color: muted_foreground_color
+                        halign: 'left'
+                        valign: 'top'
+                        text_size: self.width, None
+                        size_hint_y: None
+                        height: self.texture_size[1]

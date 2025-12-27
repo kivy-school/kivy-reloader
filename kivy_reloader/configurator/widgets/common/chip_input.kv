@@ -1,0 +1,91 @@
+<Chip>:
+    orientation: 'horizontal'
+    size_hint: None, None
+    size: [self.minimum_width, dp(28)]
+    padding: [dp(8), dp(4), dp(6), dp(4)]
+    spacing: dp(6)
+    
+    canvas.before:
+        Color:
+            rgba: secondary_color
+        SmoothRoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [dp(4)]
+    
+    Label:
+        text: root.text
+        font_size: font_size_xs
+        bold: True
+        color: secondary_foreground_color
+        size_hint: None, None
+        size: [self.texture_size[0], dp(20)]
+        halign: 'left'
+        valign: 'middle'
+    
+    Button:
+        text: '×'
+        size_hint: None, None
+        size: [dp(16), dp(16)]
+        background_color: transparent
+        color: secondary_foreground_color
+        font_size: font_size_base
+        on_release: root.remove()
+
+
+<ChipInput>:
+    orientation: 'vertical'
+    size_hint_y: None
+    height: max(dp(48), chips_container.minimum_height + dp(16))
+    padding: [dp(8), dp(8), dp(8), dp(8)]
+    spacing: dp(4)
+
+    text_input: text_input.__self__
+    chips_container: chips_container.__self__
+    
+    canvas.before:
+        Color:
+            rgba: background_color
+        SmoothRoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [border_radius_md]
+        Color:
+            rgba: border_color
+        SmoothLine:
+            rounded_rectangle: [self.x, self.y, self.width, self.height, border_radius_md]
+            width: dp(1)
+    
+    # Container for chips and input
+    BoxLayout:
+        orientation: 'horizontal'
+        size_hint_y: None
+        height: max(dp(32), chips_container.minimum_height)
+        spacing: dp(4)
+        
+        # Scrollable chips container
+        ScrollView:
+            do_scroll_y: False
+            do_scroll_x: True
+            bar_width: 0
+            
+            BoxLayout:
+                id: chips_container
+                orientation: 'horizontal'
+                size_hint: None, None
+                size: [self.minimum_width, dp(28)]
+                spacing: dp(4)
+        
+        # Text input
+        TextInput:
+            id: text_input
+            hint_text: root.placeholder
+            multiline: False
+            font_size: font_size_sm
+            background_color: transparent
+            foreground_color: foreground_color
+            cursor_color: primary_color
+            hint_text_color: muted_foreground_color
+            size_hint_x: 0.4
+            padding: [dp(4), dp(6), dp(4), dp(6)]
+            on_text_validate: root.add_value(self.text)

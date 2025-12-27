@@ -1,6 +1,6 @@
 [project]
 name = "kivy-reloader"
-version = "0.7.2"
+version = "0.8.3"
 description = "Hot reload your Kivy app on multiple Android phones and computer in real-time."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -15,16 +15,25 @@ dependencies = [
     "plyer>=2.1.0",
     "psutil>=7.0.0; sys_platform == 'win32' or sys_platform == 'darwin' or sys_platform == 'linux'",
     "readchar>=4.2.1",
-    "toml>=0.10.2",
+    "tomlkit>=0.13.3",
     "trio>=0.30.0",
     "typer>=0.16.0",
 ]
 
 [dependency-groups]
-dev = ["icecream>=2.1.5", "isort>=6.0.1", "ruff>=0.12.5", "pytest>=8.0.0"]
+dev = [
+    "icecream>=2.1.5",
+    "isort>=6.0.1",
+    "ruff>=0.12.5",
+    "pytest>=8.0.0",
+    "fonttools>=4.61.1",
+    "brotli>=1.2.0",
+]
 
 [project.scripts]
 kivy-reloader = 'kivy_reloader.bootstrap:main'
+bump = "scripts.bump_version:main"
+subset-fonts = "scripts.subset_fonts:main"
 
 [tool.ruff]
 line-length = 88
@@ -42,41 +51,36 @@ quote-style = 'single'
 [tool.ruff.lint.per-file-ignores]
 "kivy_reloader/app.py" = ["PLC0415", "PLR6301"]
 
-[tool.poetry]
-name = "kivy-reloader"
-version = "0.7.2"
-description = "Hot reload your Kivy app on multiple Android phones and computer in real-time."
-authors = ["filipemarch <filipe.marchesini@gmail.com>"]
-readme = "README.md"
-packages = [{ include = "kivy_reloader" }]
+[tool.hatch.build]
+exclude = [
+    "bin/",
+    "*.apk",
+    "uv.lock",
+    "poetry.lock",
+    ".venv/",
+    "__pycache__/",
+    "*.pyc",
+    ".git/",
+    ".gitignore",
+    "beautifulapp/",
+    "get_context.py",
+    "main.py",
+    "/buildozer.spec",
+    "/kivy-reloader.toml",
+    "scripts/",
+    # Exclude original (full) font files - only ship subset fonts
+    "**/assets/materialdesignicons.ttf",
+    "**/assets/twemoji-mozilla.ttf",
+]
 
+[tool.hatch.build.targets.wheel]
+packages = ["kivy_reloader"]
+# Include subset fonts (mdi-subset.ttf, twemoji-subset.ttf)
+artifacts = ["*.toml", "*.spec", "*.kv", "*-subset.ttf"]
 
-[tool.poetry.urls]
-"Homepage" = "https://kivyschool.com/kivy-reloader/"
-"Repository" = "https://github.com/kivy-school/kivy-reloader"
-
-[tool.poetry.dependencies]
-buildozer = "1.5.0"
-colorama = "^0.4.6"
-cython = "^3.1.2"
-kaki = "^0.1.9"
-pip = "^25.1.1"
-plyer = "^2.1.0"
-python = "^3.10"
-psutil = { version = "^7.0.0", markers = "sys_platform == 'win32' or sys_platform == 'darwin' or sys_platform == 'linux'" }
-readchar = "^4.2.1"
-toml = "^0.10.2"
-trio = "^0.30.0"
-typer = "^0.16.0"
-
-[tool.poetry.group.dev.dependencies]
-icecream = "^2.1.5"
-isort = "^6.0.1"
-ruff = "^0.12.5"
-
-[tool.poetry.scripts]
-kivy-reloader = 'kivy_reloader.bootstrap:main'
+[tool.hatch.build.targets.sdist]
+include = ["kivy_reloader/", "README.md", "LICENSE", "pyproject.toml"]
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
