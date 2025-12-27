@@ -21,6 +21,7 @@ class Toolbar(BoxLayout):
     on_help = ObjectProperty(None)
     on_toggle_sidebar = ObjectProperty(None)
     is_sidebar_visible = BooleanProperty(True)
+    has_unsaved_changes = BooleanProperty(False)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
