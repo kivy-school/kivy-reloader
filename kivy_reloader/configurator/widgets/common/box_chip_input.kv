@@ -54,6 +54,18 @@
         id: text_input
         hint_text: root.placeholder
         on_text_validate: root.add_value(self.text)
+
+    # Error message label
+    Label:
+        text: root.error_text
+        font_size: font_size_xs
+        color: destructive_color
+        halign: 'left'
+        valign: 'top'
+        text_size: self.width, None
+        size_hint_y: None
+        height: self.texture_size[1] if root.error_text else 0
+        opacity: 1 if root.error_text else 0
     
     # Box container with chips (similar to built-in exclusions)
     BoxLayout:
