@@ -1,0 +1,135 @@
+<DeviceCard>:
+    orientation: 'vertical'
+    size_hint_y: None
+    height: self.minimum_height
+
+    Card:
+        title: f'[size=16][font={emoji_font}]📱[/font][/size] Device Connection & Targeting'
+        description: 'Configure ports and device targeting for ADB and multi-device deployments.'
+
+        BoxLayout:
+            orientation: 'vertical'
+            spacing: dp(16)
+            size_hint_y: None
+            height: self.minimum_height
+
+            Separator:
+
+            # PHONE_IPS
+            BoxLayout:
+                orientation: 'vertical'
+                size_hint_y: None
+                height: self.minimum_height
+                spacing: dp(8)
+
+                Label:
+                    text: 'Target device IPs'
+                    font_size: font_size_sm
+                    bold: True
+                    color: foreground_color
+                    halign: 'left'
+                    valign: 'top'
+                    text_size: self.width, None
+                    size_hint_y: None
+                    height: self.texture_size[1]
+
+                Label:
+                    text: 'Empty = deploy to all connected devices. Add specific IPs to restrict deployment.'
+                    font_size: font_size_xs
+                    color: muted_foreground_color
+                    halign: 'left'
+                    valign: 'top'
+                    text_size: self.width, None
+                    size_hint_y: None
+                    height: self.texture_size[1]
+
+                BoxChipInput:
+                    id: phone_ips_input
+                    placeholder: 'Enter IP address and press Enter (e.g., 192.168.1.68)'
+
+                Label:
+                    text: 'Tip: Use 127.0.0.1 for the Android emulator'
+                    font_size: font_size_xs
+                    color: muted_foreground_color
+                    halign: 'left'
+                    valign: 'top'
+                    text_size: self.width, None
+                    size_hint_y: None
+                    height: self.texture_size[1]
+
+            Separator:
+
+            # Ports side by side
+            BoxLayout:
+                orientation: 'horizontal'
+                size_hint_y: None
+                height: self.minimum_height
+                spacing: dp(24)
+
+                # ADB_PORT
+                BoxLayout:
+                    orientation: 'vertical'
+                    size_hint_y: None
+                    height: self.minimum_height
+                    spacing: dp(8)
+
+                    Label:
+                        text: 'ADB TCP/IP port'
+                        font_size: font_size_sm
+                        bold: True
+                        color: foreground_color
+                        halign: 'left'
+                        valign: 'top'
+                        text_size: self.width, None
+                        size_hint_y: None
+                        height: self.texture_size[1]
+
+                    TextField:
+                        id: adb_port_input
+                        hint_text: '5555'
+                        input_filter: 'int'
+                        on_text: root.on_adb_port_change(self.text)
+
+                    Label:
+                        text: adb_port_input.error_text if adb_port_input.error_text else 'Default: 5555'
+                        font_size: font_size_xs
+                        color: destructive_color if adb_port_input.error_text else muted_foreground_color
+                        halign: 'left'
+                        valign: 'top'
+                        text_size: self.width, None
+                        size_hint_y: None
+                        height: self.texture_size[1]
+
+                # RELOADER_PORT
+                BoxLayout:
+                    orientation: 'vertical'
+                    size_hint_y: None
+                    height: self.minimum_height
+                    spacing: dp(8)
+
+                    Label:
+                        text: 'Reloader port'
+                        font_size: font_size_sm
+                        bold: True
+                        color: foreground_color
+                        halign: 'left'
+                        valign: 'top'
+                        text_size: self.width, None
+                        size_hint_y: None
+                        height: self.texture_size[1]
+
+                    TextField:
+                        id: reloader_port_input
+                        hint_text: '8050'
+                        input_filter: 'int'
+                        on_text: root.on_reloader_port_change(self.text)
+
+                    Label:
+                        text: reloader_port_input.error_text if reloader_port_input.error_text else 'Internal file transfer port. Default: 8050'
+                        font_size: font_size_xs
+                        color: destructive_color if reloader_port_input.error_text else muted_foreground_color
+                        halign: 'left'
+                        valign: 'top'
+                        text_size: self.width, None
+                        size_hint_y: None
+                        height: self.texture_size[1]
