@@ -1,7 +1,7 @@
 """Configuration loading/saving/validation for configurator GUI.
 
 This module provides:
-* TOML reading and writing using the toml package
+* TOML reading and writing using the tomlkit package (preserves comments)
 * Atomic writes with backup (.bak created before save)
 * Field validation against schema (type, enum, range checks)
 * Merge with defaults from schema definitions
@@ -16,7 +16,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-import toml
+import tomlkit
 
 from kivy_reloader.configurator.schema import FieldType
 
@@ -63,7 +63,7 @@ def load_config_values(config_path: Path) -> Dict[str, Any]:
 
     try:
         with config_path.open('r', encoding='utf-8') as f:
-            data = toml.load(f)
+            data = tomlkit.load(f)
     except Exception as e:  # pragma: no cover
         print(f'[WARNING] Failed to parse {config_path}: {e}')
         return {}
@@ -81,6 +81,7 @@ def save_config_values(
     values: Dict[str, Any],
     create_backup: bool = True,
     backup_dir: Optional[Path] = None,
+    source_template: Optional[Path] = None,
 ) -> None:
     """Save configuration values to TOML file atomically.
 
@@ -92,6 +93,8 @@ def save_config_values(
         values: Dict of config key->value pairs
         create_backup: Whether to create .bak file before overwriting
         backup_dir: Optional directory for timestamped backups
+        source_template: Optional path to use as template for comments/formatting
+                        (useful when exporting to a new file)
 
     Raises:
         IOError: If file operations fail
@@ -107,19 +110,26 @@ def save_config_values(
             # Clean up old backups, keeping only the 10 most recent
             cleanup_old_backups(backup_dir, keep=10)
 
-    # Read existing file to preserve structure/comments if possible
-    # (though toml library doesn't preserve comments, we keep other sections)
-    if config_path.exists():
+    # Read existing file to preserve structure/comments
+    # tomlkit preserves comments and formatting
+    # Use source_template if provided (for export), otherwise use config_path
+    template_path = source_template if source_template else config_path
+    if template_path and template_path.exists():
         try:
-            with config_path.open('r', encoding='utf-8') as f:
-                existing_data = toml.load(f)
+            with template_path.open('r', encoding='utf-8') as f:
+                existing_data = tomlkit.load(f)
         except Exception:  # pragma: no cover
-            existing_data = {}
+            existing_data = tomlkit.document()
     else:
-        existing_data = {}
+        existing_data = tomlkit.document()
 
-    # Update the kivy_reloader section
-    existing_data['kivy_reloader'] = values
+    # Update the kivy_reloader section by updating individual keys
+    # This preserves all comments and formatting
+    if 'kivy_reloader' not in existing_data:
+        existing_data['kivy_reloader'] = {}
+
+    for key, value in values.items():
+        existing_data['kivy_reloader'][key] = value
 
     # Atomic write: write to temp file, then rename
     temp_fd, temp_path = tempfile.mkstemp(
@@ -127,7 +137,7 @@ def save_config_values(
     )
     try:
         with open(temp_fd, 'w', encoding='utf-8') as f:
-            toml.dump(existing_data, f)
+            tomlkit.dump(existing_data, f)
 
         # Atomic rename (overwrites on POSIX, near-atomic on Windows)
         shutil.move(temp_path, config_path)
