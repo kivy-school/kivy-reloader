@@ -1,0 +1,40 @@
+<-TextField>:
+    padding: dp(12), dp(10), dp(12), dp(10)
+    size_hint_y: None
+    height: dp(40)
+    multiline: False
+    cursor_color: primary_color
+    foreground_color: foreground_color
+    hint_text_color: muted_foreground_color
+    font_size: font_size_sm
+
+    canvas.before:
+        # Background
+        Color:
+            rgba: background_color
+        SmoothRoundedRectangle:
+            pos: self.pos
+            size: self.size[0], dp(40)
+            radius: root.radius
+
+        # Border
+        Color:
+            rgba: border_color if not self.focus else primary_color
+        SmoothLine:
+            width: dp(1.5) if self.focus else dp(1)
+            rounded_rectangle: (self.pos[0], self.pos[1], self.size[0], dp(40), root.radius[0])
+
+        # Cursor 
+        Color:
+            rgba:
+                (self.cursor_color
+                if self.focus and not self._cursor_blink
+                and int(self.x + self.padding[0]) <= self._cursor_visual_pos[0] <= int(self.x + self.width - self.padding[2])
+                else (0, 0, 0, 0))
+        Rectangle:
+            pos: self._cursor_visual_pos
+            size: root.cursor_width, -self._cursor_visual_height
+
+        # Text
+        Color:
+            rgba: self.disabled_foreground_color if self.disabled else (self.hint_text_color if not self.text else self.foreground_color)

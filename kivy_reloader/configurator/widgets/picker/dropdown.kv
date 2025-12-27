@@ -1,0 +1,378 @@
+#:import Window kivy.core.window.Window
+
+
+<DropdownPicker>:
+    size_hint_y: None
+    height: dp(34)
+    padding: [dp(8), dp(8), dp(8), dp(8)]
+    spacing: dp(4)
+    on_release: root.toggle_dropdown()
+
+    canvas.before:
+        Color:
+            rgba: accent_color if self.is_hovered else background_color
+        SmoothRoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [border_radius_md]
+        Color:
+            rgba: border_color
+        SmoothLine:
+            rounded_rectangle: [self.x, self.y, self.width, self.height, border_radius_md]
+            width: dp(1)
+
+    Label:
+        text: root.selected_text
+        size_hint: None, None
+        size: self.texture_size
+        padding: dp(4), 0
+        color: accent_foreground_color if root.is_hovered else foreground_color
+
+    Widget:
+
+    Label:
+        text: unicode['chevron-down']
+        markup: True
+        size_hint: None, None
+        size: self.texture_size
+        padding: dp(4), 0
+        font_name: icon_font
+        font_size: dp(16)
+        color: sidebar_primary_foreground_color if root.is_hovered else sidebar_foreground_color
+
+
+<Icon@Label>:
+    markup: True
+    font_name: icon_font
+    font_size: dp(16)
+
+
+<ClickableIcon@HoverBehavior+ToggleButtonBehavior+Icon>:
+
+
+<Separator@Widget>
+    size_hint_y: None
+    height: dp(1)
+
+    canvas.before:
+        Color:
+            rgba: border_color
+        Line:
+            points: [self.x, self.top, self.right, self.top]
+            width: dp(1)
+
+
+<HoverableButton@HoverBehavior+Button>:
+
+
+<File>:
+    orientation: 'vertical'
+    size_hint_y: None
+    height: self.minimum_height
+    
+    BoxLayout:
+        spacing: dp(2)
+        padding: [dp(4) + root.indent_level * dp(20), dp(4), dp(4), dp(4)]
+        size_hint_y: None
+        height: self.minimum_height
+
+        # spacer for alignment with folders (no expand icon)
+        Widget:
+            size_hint: None, None
+            size: dp(24), dp(24)
+
+        # select file checkbox
+        ClickableIcon:
+            text: unicode['check-circle'] if root.selected else unicode['checkbox-blank-circle-outline']
+            color: white if root.selected else sidebar_foreground_color
+            size_hint: None, None
+            size: self.texture_size
+            padding: dp(4)
+            pos_hint: {'center_y': .5}
+            on_release: root.selected = not root.selected
+
+            canvas.before:
+                Color:
+                    rgba: primary_color if root.selected else white
+                SmoothRoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [border_radius_sm]
+
+        # file icon
+        Icon:
+            text: unicode['file-outline']
+            size_hint: None, None
+            size: self.texture_size
+            padding: dp(4)
+            color: sidebar_foreground_color
+            pos_hint: {'center_y': .5}
+
+        # file name
+        Label:
+            text: root.name
+            color: foreground_color
+            size_hint: None, None
+            size: self.texture_size
+            padding: dp(4), 0
+            font_size: dp(14)
+            pos_hint: {'center_y': .5}
+
+
+<Folder>:
+    orientation: 'vertical'
+    size_hint_y: None
+    height: self.minimum_height
+    children_container: children_container.__self__
+
+    # Folder header
+    BoxLayout:
+        spacing: dp(2)
+        padding: [dp(4) + root.indent_level * dp(20), dp(4), dp(4), dp(4)]
+        size_hint_y: None
+        height: self.minimum_height
+
+        # open / close folder
+        ClickableIcon:
+            text: unicode['chevron-down'] if root.expanded else unicode['chevron-right']
+            size_hint: None, None
+            size: self.texture_size
+            padding: dp(4)
+            color: sidebar_foreground_color
+            pos_hint: {'center_y': .5}
+            on_release: root.toggle_expanded()
+
+        # select all files in folder
+        ClickableIcon:
+            text: unicode['check-circle'] if root.selected else unicode['checkbox-blank-circle-outline']
+            color: white if root.selected else sidebar_foreground_color
+            size_hint: None, None
+            size: self.texture_size
+            padding: dp(4)
+            pos_hint: {'center_y': .5}
+            on_release: root.selected = not root.selected
+
+            canvas.before:
+                Color:
+                    rgba: primary_color if root.selected else white
+                SmoothRoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [border_radius_sm]
+
+        # folder icon
+        Icon:
+            text: unicode['folder-open'] if root.expanded else unicode['folder-outline']
+            size_hint: None, None
+            size: self.texture_size
+            padding: dp(4)
+            color: sidebar_foreground_color
+            pos_hint: {'center_y': .5}
+
+        # folder name
+        Label:
+            text: root.name
+            color: foreground_color
+            size_hint: None, None
+            size: self.texture_size
+            padding: dp(4), 0
+            font_size: dp(14)
+            pos_hint: {'center_y': .5}
+    
+    # Children container (shown when expanded)
+    BoxLayout:
+        id: children_container
+        orientation: 'vertical'
+        size_hint_y: None
+        height: self.minimum_height if root.expanded else 0
+        opacity: 1 if root.expanded else 0
+
+    
+<DropdownContainer>:
+    orientation: 'vertical'
+    size_hint: None, None
+    height: self.minimum_height
+
+    tree_container: tree_container.__self__
+
+    canvas.before:
+        Color:
+            rgba: popover_color
+        SmoothRoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [border_radius_md]
+        Color:
+            rgba: border_color
+        SmoothLine:
+            rounded_rectangle: [self.x, self.y, self.width, self.height, border_radius_md]
+            width: dp(1)
+
+    # Header
+    Label:
+        text: 'Select files that should trigger a full app restart'
+        color: muted_foreground_color
+        size_hint_y: None
+        height: self.texture_size[1] + dp(8)
+        text_size: self.width - dp(16), None
+        padding: dp(8), dp(8)
+        font_size: dp(12)
+    
+    Separator:
+
+    # Scrollable content area
+    ScrollView:
+        size_hint_y: None
+        height: min(Window.height * 0.4, tree_container.height)
+        do_scroll_x: False
+        do_scroll_y: True
+        scroll_type: ['bars', 'content']
+        bar_width: dp(8)
+        bar_color: border_color
+        bar_inactive_color: [border_color[0], border_color[1], border_color[2], 0.3]
+        effect_cls: 'ScrollEffect'
+        
+        BoxLayout:
+            id: tree_container
+            orientation: 'vertical'
+            size_hint_y: None
+            height: self.minimum_height
+            padding: dp(4)
+            
+            # Folder will be added here dynamically
+            Folder:
+
+    Separator:
+
+    # Footer with selection count and clear button
+    BoxLayout:
+        size_hint_y: None
+        height: dp(32)
+        padding: 0, dp(4), dp(8), dp(4)
+
+        Label:
+            text: f'{root.selected_count} files selected'
+            color: muted_foreground_color
+            size_hint: None, None
+            size: self.texture_size
+            padding: dp(8), 0
+            pos_hint: {'center_y': .5}
+            font_size: dp(12)
+
+        Widget:
+
+        HoverableButton:
+            text: 'Clear Selection'
+            size_hint: None, None
+            size: dp(100), dp(24)
+            background_color: transparent
+            color: sidebar_foreground_color
+            font_size: dp(12)
+            on_release: root.clear_selection()
+            pos_hint: {'center_y': .5}
+
+            canvas.before:
+                Color:
+                    rgba: border_color if self.is_hovered else transparent
+                SmoothRoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [border_radius_sm]
+                SmoothLine:
+                    rounded_rectangle: [self.x, self.y, self.width, self.height, border_radius_sm]
+                    width: dp(1)
+
+
+<-FolderOnlyDropdownContainer>:
+    orientation: 'vertical'
+    size_hint: None, None
+    height: self.minimum_height
+
+    tree_container: tree_container.__self__
+
+    canvas.before:
+        Color:
+            rgba: popover_color
+        SmoothRoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [border_radius_md]
+        Color:
+            rgba: border_color
+        SmoothLine:
+            rounded_rectangle: [self.x, self.y, self.width, self.height, border_radius_md]
+            width: dp(1)
+
+    # Header
+    Label:
+        text: 'Select folders to watch recursively'
+        color: muted_foreground_color
+        size_hint_y: None
+        height: self.texture_size[1] + dp(8)
+        text_size: self.width - dp(16), None
+        padding: dp(8), dp(8)
+        font_size: dp(12)
+    
+    Separator:
+
+    # Scrollable content area
+    ScrollView:
+        size_hint_y: None
+        height: min(Window.height * 0.4, tree_container.height)
+        do_scroll_x: False
+        do_scroll_y: True
+        scroll_type: ['bars', 'content']
+        bar_width: dp(8)
+        bar_color: border_color
+        bar_inactive_color: [border_color[0], border_color[1], border_color[2], 0.3]
+        effect_cls: 'ScrollEffect'
+        
+        BoxLayout:
+            id: tree_container
+            orientation: 'vertical'
+            size_hint_y: None
+            height: self.minimum_height
+            padding: dp(4)
+            
+            # Folder will be added here dynamically
+            Folder:
+
+    Separator:
+
+    # Footer with selection count and clear button
+    BoxLayout:
+        size_hint_y: None
+        height: dp(32)
+        padding: 0, dp(4), dp(8), dp(4)
+
+        Label:
+            text: f'{root.selected_count} folders selected'
+            color: muted_foreground_color
+            size_hint: None, None
+            size: self.texture_size
+            padding: dp(8), 0
+            pos_hint: {'center_y': .5}
+            font_size: dp(12)
+
+        Widget:
+
+        HoverableButton:
+            text: 'Clear Selection'
+            size_hint: None, None
+            size: dp(100), dp(24)
+            background_color: transparent
+            color: sidebar_foreground_color
+            font_size: dp(12)
+            on_release: root.clear_selection()
+            pos_hint: {'center_y': .5}
+
+            canvas.before:
+                Color:
+                    rgba: border_color if self.is_hovered else transparent
+                SmoothRoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [border_radius_sm]
+                SmoothLine:
+                    rounded_rectangle: [self.x, self.y, self.width, self.height, border_radius_sm]
+                    width: dp(1)

@@ -1,0 +1,183 @@
+<PerformanceCard>:
+    orientation: 'vertical'
+    size_hint_y: None
+    height: self.minimum_height
+
+    Card:
+        title: f'[size=16][font={emoji_font}]⚙️[/font][/size] Performance Tuning'
+        description: 'Configure resolution, bitrate, and driver options for optimal throughput.'
+
+        BoxLayout:
+            orientation: 'vertical'
+            spacing: dp(16)
+            size_hint_y: None
+            height: self.minimum_height
+
+            Separator:
+
+            # Resolution and FPS limits side by side
+            BoxLayout:
+                orientation: 'horizontal'
+                size_hint_y: None
+                height: self.minimum_height
+                spacing: dp(24)
+
+                # MAX_SIZE
+                BoxLayout:
+                    orientation: 'vertical'
+                    size_hint_y: None
+                    height: self.minimum_height
+                    spacing: dp(8)
+
+                    Label:
+                        text: 'Max resolution'
+                        font_size: font_size_sm
+                        bold: True
+                        color: foreground_color
+                        halign: 'left'
+                        valign: 'top'
+                        text_size: self.width, None
+                        size_hint_y: None
+                        height: self.texture_size[1]
+
+                    TextField:
+                        id: max_size_input
+                        hint_text: '0'
+                        input_filter: 'int'
+                        on_text: root.on_int_field_change('MAX_SIZE', self.text, 0)
+
+                    Label:
+                        text: '0 = unlimited. e.g., 720 for 720p'
+                        font_size: font_size_xs
+                        color: muted_foreground_color
+                        halign: 'left'
+                        valign: 'top'
+                        text_size: self.width, None
+                        size_hint_y: None
+                        height: self.texture_size[1]
+
+                # MAX_FPS
+                BoxLayout:
+                    orientation: 'vertical'
+                    size_hint_y: None
+                    height: self.minimum_height
+                    spacing: dp(8)
+
+                    Label:
+                        text: 'Max FPS'
+                        font_size: font_size_sm
+                        bold: True
+                        color: foreground_color
+                        halign: 'left'
+                        valign: 'top'
+                        text_size: self.width, None
+                        size_hint_y: None
+                        height: self.texture_size[1]
+
+                    TextField:
+                        id: max_fps_input
+                        hint_text: '0'
+                        input_filter: 'int'
+                        on_text: root.on_int_field_change('MAX_FPS', self.text, 0)
+
+                    Label:
+                        text: '0 = unlimited. e.g., 30 for 30fps'
+                        font_size: font_size_xs
+                        color: muted_foreground_color
+                        halign: 'left'
+                        valign: 'top'
+                        text_size: self.width, None
+                        size_hint_y: None
+                        height: self.texture_size[1]
+
+            Separator:
+
+            # Video bitrate
+            BoxLayout:
+                orientation: 'vertical'
+                size_hint_y: None
+                height: self.minimum_height
+                spacing: dp(8)
+
+                RadioGroup:
+                    id: video_bit_rate_radio
+                    title: 'Video bitrate'
+                    options: [{'label': '2M (low)', 'value': '2M'}, {'label': '4M (medium)', 'value': '4M'}, {'label': '8M (high)', 'value': '8M'}]
+                    selected_value: root.config['VIDEO_BIT_RATE']
+                    on_selected_value: root.on_video_bit_rate_change(self.selected_value)
+
+                Label:
+                    text: 'Higher bitrate = better quality but more bandwidth usage'
+                    font_size: font_size_xs
+                    color: muted_foreground_color
+                    halign: 'left'
+                    valign: 'top'
+                    text_size: self.width, None
+                    size_hint_y: None
+                    height: self.texture_size[1]
+
+            Separator:
+
+            # Advanced section
+            CollapsibleSection:
+                title: 'Advanced Performance Settings'
+                collapsed: True
+
+                CustomSwitch:
+                    id: print_fps_switch
+                    title: 'Print FPS to console'
+                    description: 'Show frame rate statistics in the terminal'
+                    active: root.config['PRINT_FPS']
+                    on_active: root.on_switch_change('PRINT_FPS', self.active)
+
+                Separator:
+
+                # Render driver
+                BoxLayout:
+                    orientation: 'vertical'
+                    size_hint_y: None
+                    height: self.minimum_height
+                    spacing: dp(8)
+
+                    Label:
+                        text: 'SDL render driver'
+                        font_size: font_size_sm
+                        bold: True
+                        color: foreground_color
+                        halign: 'left'
+                        valign: 'top'
+                        text_size: self.width, None
+                        size_hint_y: None
+                        height: self.texture_size[1]
+
+                    RadioGroup:
+                        id: render_driver_radio
+                        options: root.render_drivers
+                        selected_value: root.config['RENDER_DRIVER']
+                        on_selected_value: root.on_render_driver_change(self.selected_value)
+
+                    Label:
+                        text: 'Override SDL render driver. Useful for VMs or specific GPU configurations.'
+                        font_size: font_size_xs
+                        color: muted_foreground_color
+                        halign: 'left'
+                        valign: 'top'
+                        text_size: self.width, None
+                        size_hint_y: None
+                        height: self.texture_size[1]
+
+                Separator:
+
+                CustomSwitch:
+                    id: no_mouse_hover_switch
+                    title: 'Disable mouse hover events'
+                    description: 'Skip hover events for better performance (especially in VMs)'
+                    active: root.config['NO_MOUSE_HOVER']
+                    on_active: root.on_switch_change('NO_MOUSE_HOVER', self.active)
+
+                CustomSwitch:
+                    id: disable_screensaver_switch
+                    title: 'Prevent screensaver'
+                    description: 'Prevent the computer screensaver from activating during mirroring'
+                    active: root.config['DISABLE_SCREENSAVER']
+                    on_active: root.on_switch_change('DISABLE_SCREENSAVER', self.active)

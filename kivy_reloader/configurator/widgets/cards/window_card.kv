@@ -1,0 +1,228 @@
+<WindowCard>:
+    orientation: 'vertical'
+    size_hint_y: None
+    height: self.minimum_height
+
+    Card:
+        title: f'[size=16][font={emoji_font}]🪟[/font][/size] Screen Mirroring Window'
+        description: 'Configure the desktop mirror window geometry and behavior.'
+
+        BoxLayout:
+            orientation: 'vertical'
+            spacing: dp(16)
+            size_hint_y: None
+            height: self.minimum_height
+
+            Separator:
+
+            # Window Position
+            BoxLayout:
+                orientation: 'vertical'
+                size_hint_y: None
+                height: self.minimum_height
+                spacing: dp(8)
+
+                Label:
+                    text: 'Window position'
+                    font_size: font_size_sm
+                    bold: True
+                    color: foreground_color
+                    halign: 'left'
+                    valign: 'top'
+                    text_size: self.width, None
+                    size_hint_y: None
+                    height: self.texture_size[1]
+
+                BoxLayout:
+                    orientation: 'horizontal'
+                    size_hint_y: None
+                    height: dp(40)
+                    spacing: dp(16)
+
+                    BoxLayout:
+                        orientation: 'horizontal'
+                        spacing: dp(8)
+                        size_hint_y: None
+                        height: dp(40)
+
+                        Label:
+                            text: 'X:'
+                            font_size: font_size_sm
+                            color: foreground_color
+                            size_hint: None, None
+                            size: self.texture_size[0] + dp(4), dp(40)
+                            valign: 'middle'
+
+                        TextField:
+                            id: window_x_input
+                            hint_text: '1200'
+                            input_filter: 'int'
+                            tab_next: window_y_input
+                            on_text: root.on_int_field_change('WINDOW_X', self.text, 1200)
+
+                    BoxLayout:
+                        orientation: 'horizontal'
+                        spacing: dp(8)
+                        size_hint_y: None
+                        height: dp(40)
+
+                        Label:
+                            text: 'Y:'
+                            font_size: font_size_sm
+                            color: foreground_color
+                            size_hint: None, None
+                            size: self.texture_size[0] + dp(4), dp(40)
+                            valign: 'middle'
+
+                        TextField:
+                            id: window_y_input
+                            hint_text: '100'
+                            input_filter: 'int'
+                            tab_next: window_width_input
+                            on_text: root.on_int_field_change('WINDOW_Y', self.text, 100)
+
+                Label:
+                    text: 'Initial position of the scrcpy window on screen (in pixels)'
+                    font_size: font_size_xs
+                    color: muted_foreground_color
+                    halign: 'left'
+                    valign: 'top'
+                    text_size: self.width, None
+                    size_hint_y: None
+                    height: self.texture_size[1]
+
+            Separator:
+
+            # Window Size
+            BoxLayout:
+                orientation: 'vertical'
+                size_hint_y: None
+                height: self.minimum_height
+                spacing: dp(8)
+
+                Label:
+                    text: 'Window size'
+                    font_size: font_size_sm
+                    bold: True
+                    color: foreground_color
+                    halign: 'left'
+                    valign: 'top'
+                    text_size: self.width, None
+                    size_hint_y: None
+                    height: self.texture_size[1]
+
+                BoxLayout:
+                    orientation: 'horizontal'
+                    size_hint_y: None
+                    height: dp(40)
+                    spacing: dp(16)
+
+                    BoxLayout:
+                        orientation: 'horizontal'
+                        spacing: dp(8)
+                        size_hint_y: None
+                        height: dp(40)
+
+                        Label:
+                            text: 'Width:'
+                            font_size: font_size_sm
+                            color: foreground_color
+                            size_hint: None, None
+                            size: self.texture_size[0] + dp(4), dp(40)
+                            valign: 'middle'
+
+                        TextField:
+                            id: window_width_input
+                            hint_text: '280'
+                            input_filter: 'int'
+                            tab_next: window_height_input
+                            on_text: root.on_int_field_change('WINDOW_WIDTH', self.text, 280)
+
+                    BoxLayout:
+                        orientation: 'horizontal'
+                        spacing: dp(8)
+                        size_hint_y: None
+                        height: dp(40)
+
+                        Label:
+                            text: 'Height:'
+                            font_size: font_size_sm
+                            color: foreground_color
+                            size_hint: None, None
+                            size: self.texture_size[0] + dp(4), dp(40)
+                            valign: 'middle'
+
+                        TextField:
+                            id: window_height_input
+                            hint_text: '0'
+                            input_filter: 'int'
+                            tab_next: window_title_input
+                            on_text: root.on_int_field_change('WINDOW_HEIGHT', self.text, 0)
+
+                Label:
+                    text: 'Window dimensions in pixels. Height 0 = auto-adjust based on aspect ratio.'
+                    font_size: font_size_xs
+                    color: muted_foreground_color
+                    halign: 'left'
+                    valign: 'top'
+                    text_size: self.width, None
+                    size_hint_y: None
+                    height: self.texture_size[1]
+
+            Separator:
+
+            # Window Title
+            BoxLayout:
+                orientation: 'vertical'
+                size_hint_y: None
+                height: self.minimum_height
+                spacing: dp(8)
+
+                Label:
+                    text: 'Window title'
+                    font_size: font_size_sm
+                    bold: True
+                    color: foreground_color
+                    halign: 'left'
+                    valign: 'top'
+                    text_size: self.width, None
+                    size_hint_y: None
+                    height: self.texture_size[1]
+
+                TextField:
+                    id: window_title_input
+                    hint_text: 'Kivy Reloader'
+                    tab_next: window_x_input
+                    on_text: root.on_text_field_change('WINDOW_TITLE', self.text)
+
+            Separator:
+
+            # Always on top switch (non-advanced)
+            CustomSwitch:
+                id: always_on_top_switch
+                title: 'Always on top'
+                description: 'Keep the mirror window above other windows (recommended for development)'
+                active: root.config['ALWAYS_ON_TOP']
+                on_active: root.on_switch_change('ALWAYS_ON_TOP', self.active)
+
+            Separator:
+
+            # Advanced section
+            CollapsibleSection:
+                id: advanced_section
+                title: 'Advanced Window Settings'
+                collapsed: True
+
+                CustomSwitch:
+                    id: fullscreen_switch
+                    title: 'Start in fullscreen'
+                    description: 'Launch the mirror window in fullscreen mode'
+                    active: root.config['FULLSCREEN']
+                    on_active: root.on_switch_change('FULLSCREEN', self.active)
+
+                CustomSwitch:
+                    id: borderless_switch
+                    title: 'Borderless window'
+                    description: 'Remove window decorations (title bar, borders)'
+                    active: root.config['WINDOW_BORDERLESS']
+                    on_active: root.on_switch_change('WINDOW_BORDERLESS', self.active)

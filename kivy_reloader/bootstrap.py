@@ -1,6 +1,7 @@
 import argparse
 import os
 import shutil
+from pathlib import Path
 
 from colorama import Fore, init
 
@@ -100,6 +101,21 @@ def main():
         'start',
         help='Initializes Kivy Reloader',
     )
+    config_parser = subparsers.add_parser(  # noqa: F841
+        'config',
+        help='Open the (WIP) visual configurator for kivy-reloader.toml',
+    )
+    config_parser.add_argument(
+        '-f',
+        '--file',
+        dest='config_file',
+        help='Path to a kivy-reloader.toml (or a directory containing one).',
+    )
+    config_parser.add_argument(
+        '--debug',
+        action='store_true',
+        help='Enable verbose debug output for the configurator.',
+    )
     args = parser.parse_args()
     klprint(f'Kivy Reloader v{_kl_version}')
 
@@ -107,8 +123,19 @@ def main():
         create_settings_file()
         create_buildozer_spec_file()
 
+    elif args.command == 'config':
+        from .configurator.gui import run_gui  # noqa
+
+        # Setup paths
+        project_dir = Path(os.getcwd())
+        config_path = project_dir / 'kivy-reloader.toml'
+
+        # Launch the GUI
+        run_gui(base=project_dir, config_path=config_path, debug=False)
+
     elif args.command in {'start', 'run', 'compile'}:
-        from .compile_app import compile_app, debug_and_livestream, start
+        from .compile_app import debug_and_livestream  # noqa
+        from .compile_app import compile_app, start  # noqa
 
         if getattr(args, 'action', None) == 'build':
             compile_app()

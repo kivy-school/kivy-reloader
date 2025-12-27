@@ -1,0 +1,100 @@
+<ConfirmPopup>:
+    size_hint: None, None
+    size: dp(400), dp(200)
+    auto_dismiss: False
+    background_color: transparent
+
+    BoxLayout:
+        orientation: 'vertical'
+        padding: dp(24)
+        spacing: dp(16)
+
+        canvas.before:
+            Color:
+                rgba: card_color
+            SmoothRoundedRectangle:
+                pos: self.pos
+                size: self.size
+                radius: [dp(12)]
+            Color:
+                rgba: border_color
+            SmoothLine:
+                rounded_rectangle: (*self.pos, *self.size, dp(12))
+                width: dp(1)
+
+        # Title
+        Label:
+            text: root.title
+            font_size: font_size_lg
+            bold: True
+            color: foreground_color
+            halign: 'left'
+            valign: 'middle'
+            text_size: self.width, None
+            size_hint_y: None
+            height: self.texture_size[1]
+
+        # Message
+        Label:
+            text: root.message
+            font_size: font_size_sm
+            color: muted_foreground_color
+            halign: 'left'
+            valign: 'top'
+            text_size: self.width, None
+            size_hint_y: 1
+
+        # Buttons
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: None
+            height: dp(40)
+            spacing: dp(12)
+
+            Widget:
+                size_hint_x: 1
+
+            # Cancel button (hidden if cancel_text is empty)
+            Button:
+                text: root.cancel_text
+                size_hint_x: None
+                width: dp(100) if root.cancel_text else 0
+                opacity: 1 if root.cancel_text else 0
+                disabled: not root.cancel_text
+                background_color: transparent
+                color: foreground_color if self.state == 'down' else muted_foreground_color
+                font_size: font_size_sm
+                bold: True
+                on_release: root.do_cancel()
+
+                canvas.before:
+                    Color:
+                        rgba: (muted_active_color if self.state == 'down' else transparent) if root.cancel_text else transparent
+                    SmoothRoundedRectangle:
+                        pos: self.pos
+                        size: self.size
+                        radius: [dp(6)]
+                    Color:
+                        rgba: border_color if root.cancel_text else transparent
+                    SmoothLine:
+                        rounded_rectangle: (*self.pos, *self.size, dp(6))
+                        width: dp(1)
+
+            # Confirm button
+            Button:
+                text: root.confirm_text
+                size_hint_x: None
+                width: dp(100)
+                background_color: transparent
+                color: destructive_foreground_color if root.is_destructive else primary_foreground_color
+                font_size: font_size_sm
+                bold: True
+                on_release: root.do_confirm()
+
+                canvas.before:
+                    Color:
+                        rgba: (destructive_active_color if root.is_destructive else primary_active_color) if self.state == 'down' else (destructive_color if root.is_destructive else primary_color)
+                    SmoothRoundedRectangle:
+                        pos: self.pos
+                        size: self.size
+                        radius: [dp(6)]

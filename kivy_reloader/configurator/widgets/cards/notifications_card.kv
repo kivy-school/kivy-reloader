@@ -1,0 +1,23 @@
+<NotificationsCard>:
+    orientation: 'vertical'
+    size_hint_y: None
+    height: self.minimum_height
+
+    Card:
+        title: f'[size=16][font={emoji_font}]🔔[/font][/size] Notifications'
+        description: 'Configure desktop notification preferences.'
+
+        BoxLayout:
+            orientation: 'vertical'
+            spacing: dp(16)
+            size_hint_y: None
+            height: self.minimum_height
+
+            Separator:
+
+            CustomSwitch:
+                id: show_notifications_switch
+                title: 'Show desktop notifications'
+                description: 'Display notifications during compilation, deployment, and hot-reload events'
+                active: root.config['SHOW_NOTIFICATIONS']
+                on_active: root.on_switch_change('SHOW_NOTIFICATIONS', self.active)

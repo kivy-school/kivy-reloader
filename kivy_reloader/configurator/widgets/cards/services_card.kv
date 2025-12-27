@@ -1,0 +1,100 @@
+<ServicesCard>:
+    orientation: 'vertical'
+    size_hint_y: None
+    height: self.minimum_height
+
+    Card:
+        title: f'[size=16][font={emoji_font}]🛠️[/font][/size] Services & Background Processes'
+        description: 'Configure service modules whose changes may require a full restart.'
+
+        BoxLayout:
+            orientation: 'vertical'
+            spacing: dp(16)
+            size_hint_y: None
+            height: self.minimum_height
+
+            Separator:
+
+            BoxLayout:
+                orientation: 'vertical'
+                size_hint_y: None
+                height: self.minimum_height
+                spacing: dp(8)
+
+                Label:
+                    text: 'Service files triggering restart'
+                    font_size: font_size_sm
+                    bold: True
+                    color: foreground_color
+                    halign: 'left'
+                    valign: 'top'
+                    text_size: self.width, None
+                    size_hint_y: None
+                    height: self.texture_size[1]
+
+                Label:
+                    text: 'If modified they request an app restart (similar to FULL_RELOAD_FILES).'
+                    font_size: font_size_xs
+                    color: muted_foreground_color
+                    halign: 'left'
+                    valign: 'top'
+                    text_size: self.width, None
+                    size_hint_y: None
+                    height: self.texture_size[1]
+
+                DropdownPicker:
+                    id: service_files_picker
+                    placeholder_text: 'Select files...'
+
+                Label:
+                    text: 'Examples: ["services/background_service.py", "services/data_sync.py"]'
+                    font_size: font_size_xs
+                    color: muted_foreground_color
+                    halign: 'left'
+                    valign: 'top'
+                    text_size: self.width, None
+                    size_hint_y: None
+                    height: self.texture_size[1]
+
+            Separator:
+
+            BoxLayout:
+                orientation: 'vertical'
+                size_hint_y: None
+                height: self.minimum_height
+                spacing: dp(8)
+
+                Label:
+                    text: 'Service names for filtering'
+                    font_size: font_size_sm
+                    bold: True
+                    color: foreground_color
+                    halign: 'left'
+                    valign: 'top'
+                    text_size: self.width, None
+                    size_hint_y: None
+                    height: self.texture_size[1]
+
+                Label:
+                    text: 'Names passed to log filtering for foreground and background services.'
+                    font_size: font_size_xs
+                    color: muted_foreground_color
+                    halign: 'left'
+                    valign: 'top'
+                    text_size: self.width, None
+                    size_hint_y: None
+                    height: self.texture_size[1]
+
+                BoxChipInput:
+                    id: service_names_input
+                    placeholder: 'Enter service names and press Enter'
+
+                Label:
+                    text: 'Examples: ["Backgroundservice", "Databaseservice"]'
+                    font_size: font_size_xs
+                    color: muted_foreground_color
+                    halign: 'left'
+                    valign: 'top'
+                    text_size: self.width, None
+                    size_hint_y: None
+                    height: self.texture_size[1]
