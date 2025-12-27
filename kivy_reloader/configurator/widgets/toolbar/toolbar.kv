@@ -39,28 +39,28 @@
                 radius: [border_radius_md]
     
     # Spacer to push buttons to the right
-    Widget:
+    # Widget:
     
-    # Apply & Reload button (primary/hero button)
-    Button:
-        text: f'[size=16][font={emoji_font}]▶️[/font][/size]   Apply & Reload'
-        markup: True
-        size_hint: None, None
-        size: [dp(180), dp(40)]
-        background_color: transparent
-        color: white
-        font_size: font_size_sm
-        bold: True
-        on_release: root.handle_apply_reload()
+    # # Apply & Reload button (primary/hero button)
+    # Button:
+    #     text: f'[size=16][font={emoji_font}]▶️[/font][/size]   Apply & Reload'
+    #     markup: True
+    #     size_hint: None, None
+    #     size: [dp(180), dp(40)]
+    #     background_color: transparent
+    #     color: white
+    #     font_size: font_size_sm
+    #     bold: True
+    #     on_release: root.handle_apply_reload()
         
-        canvas.before:
-            # Gradient background (purple to cyan)
-            Color:
-                rgba: (.7, .7, .7, 1) if self.state == 'down' else (1, 1, 1, 1)
-            SmoothRoundedRectangle:
-                pos: self.pos
-                size: self.size
-                texture: root.gradient_texture
+    #     canvas.before:
+    #         # Gradient background (purple to cyan)
+    #         Color:
+    #             rgba: (.7, .7, .7, 1) if self.state == 'down' else (1, 1, 1, 1)
+    #         SmoothRoundedRectangle:
+    #             pos: self.pos
+    #             size: self.size
+    #             texture: root.gradient_texture
     
     # Save button (primary button)
     Button:
@@ -81,6 +81,16 @@
                 pos: self.pos
                 size: self.size
                 radius: [border_radius_md]
+        
+        canvas.after:
+            # Unsaved changes indicator (orange dot)
+            Color:
+                rgba: (1, 0.6, 0.2, 1) if root.has_unsaved_changes else (0, 0, 0, 0)
+            SmoothEllipse:
+                pos: self.right - dp(12), self.top - dp(12)
+                size: dp(8), dp(8)
+
+    Widget:
     
     # Restore button (secondary button)
     Button:
@@ -153,7 +163,7 @@
         canvas.before:
             Color:
                 rgba: muted_active_color if self.state == 'down' else transparent
-            RoundedRectangle:
+            SmoothRoundedRectangle:
                 pos: self.pos
                 size: self.size
                 radius: [border_radius_md]
