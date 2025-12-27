@@ -12,7 +12,7 @@ from kivy_reloader.configurator.widgets.cards import (  # noqa: F401
     CoreCard,
     ServicesCard,
 )
-from kivy_reloader.configurator.widgets.common import ConfirmPopup
+from kivy_reloader.configurator.widgets.common import ConfirmPopup, HelpPopup
 from kivy_reloader.configurator.widgets.sidebar import SideBar  # noqa: F401
 from kivy_reloader.configurator.widgets.toolbar import Toolbar  # noqa: F401
 from kivy_reloader.lang import Builder
@@ -81,6 +81,11 @@ class CoreScreen(Screen):
 
         # Setup keyboard shortcuts
         self._setup_keyboard_shortcuts()
+
+    def update_unsaved_indicator(self):
+        """Update the unsaved changes indicator based on model state."""
+        if self.config_model:
+            self.toolbar.has_unsaved_changes = self.config_model.is_dirty()
 
     def _setup_keyboard_shortcuts(self):
         """Bind keyboard shortcuts to Window."""
@@ -177,7 +182,10 @@ class CoreScreen(Screen):
                 # Save first
                 self.config_model.save()
                 print('Configuration saved and will be applied on next reload')
-                # TODO: Trigger actual hot reload mechanism
+                # Trigger hot reload on the configurator app itself
+                app = App.get_running_app()
+                if hasattr(app, 'rebuild'):
+                    app.rebuild()
             except Exception as e:
                 print(f'Error applying configuration: {e}')
         else:
@@ -188,6 +196,7 @@ class CoreScreen(Screen):
         if self.config_model:
             try:
                 self.config_model.save()
+                self.update_unsaved_indicator()
                 print(f'Configuration saved to {self.config_model.config_path}')
             except Exception as e:
                 print(f'Error saving configuration: {e}')
@@ -306,9 +315,11 @@ class CoreScreen(Screen):
         popup.open()
 
     def handle_help(self):
-        """Handle Help toggle action"""
-        print('Help clicked')
-        # TODO: Implement help panel toggle
+        """Handle Help button - shows keyboard shortcuts and version info."""
+        popup = HelpPopup()
+        popup.bind(on_dismiss=lambda *args: self._clear_popup())
+        self._current_popup = popup
+        popup.open()
 
     def toggle_sidebar(self):
         """Toggle sidebar visibility"""
@@ -343,10 +354,18 @@ class CoreScreen(Screen):
         self.core_card = cards.get('Core')
         self.services_card = cards.get('Services')
 
+        # Wire up config change callbacks to update unsaved indicator
+        def on_any_config_change(config):
+            self.update_unsaved_indicator()
+
         non_core_cards = {k: v for k, v in cards.items() if k != 'Core'}
         for name, card in non_core_cards.items():
-            card.on_config_change = self.core_card.on_config_change
+            card.on_config_change = on_any_config_change
             card.root_path = self.core_card.root_path
+
+        # Also wire up core card
+        if self.core_card:
+            self.core_card.on_config_change = on_any_config_change
 
     def _attach_model_to_cards(self):
         self._collect_section_cards()
@@ -361,6 +380,9 @@ class CoreScreen(Screen):
                 continue
             card.config_model = model
             card.load_from_model()
+
+        # Update indicator after initial load (should be clean)
+        self.update_unsaved_indicator()
 
     def show_section(self, section):
         manager = self.section_manager
