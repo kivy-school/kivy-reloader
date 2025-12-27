@@ -8,11 +8,14 @@ import os
 from kivy.lang import global_idmap
 
 __file__ = os.path.abspath(__file__)
+
+# Use subset fonts (much smaller, contains only icons/emojis used in the app)
+# To regenerate subset fonts, run: python scripts/subset_fonts.py
 material_design_icons_font_path = os.path.join(
-    os.path.dirname(__file__), 'assets', 'materialdesignicons.ttf'
+    os.path.dirname(__file__), 'assets', 'mdi-subset.ttf'
 )
 twemoji_mozilla_font_path = os.path.join(
-    os.path.dirname(__file__), 'assets', 'twemoji-mozilla.ttf'
+    os.path.dirname(__file__), 'assets', 'twemoji-subset.ttf'
 )
 
 icon_unicodes = {
