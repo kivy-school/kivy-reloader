@@ -1,0 +1,216 @@
+<AdvancedCard>:
+    orientation: 'vertical'
+    size_hint_y: None
+    height: self.minimum_height
+
+    Card:
+        title: f'[size=16][font={emoji_font}]🚀[/font][/size] Advanced Options'
+        description: 'Power features and lifecycle settings. Change only if needed.'
+
+        BoxLayout:
+            orientation: 'vertical'
+            spacing: dp(16)
+            size_hint_y: None
+            height: self.minimum_height
+
+            Separator:
+
+            # Input control
+            CustomSwitch:
+                id: no_control_switch
+                title: 'Read-only mirror (no input)'
+                description: 'Disable touch and keyboard input - view only mode'
+                active: root.config['NO_CONTROL']
+                on_active: root.on_switch_change('NO_CONTROL', self.active)
+
+            Separator:
+
+            # Shortcut modifier
+            BoxLayout:
+                orientation: 'vertical'
+                size_hint_y: None
+                height: self.minimum_height
+                spacing: dp(8)
+
+                Label:
+                    text: 'Scrcpy shortcut modifiers'
+                    font_size: font_size_sm
+                    bold: True
+                    color: foreground_color
+                    halign: 'left'
+                    valign: 'top'
+                    text_size: self.width, None
+                    size_hint_y: None
+                    height: self.texture_size[1]
+
+                TextField:
+                    id: shortcut_mod_input
+                    hint_text: 'lalt,lsuper'
+                    on_text: root.on_text_field_change('SHORTCUT_MOD', self.text)
+
+                Label:
+                    text: 'Modifier keys for scrcpy keyboard shortcuts (e.g., lalt,lsuper)'
+                    font_size: font_size_xs
+                    color: muted_foreground_color
+                    halign: 'left'
+                    valign: 'top'
+                    text_size: self.width, None
+                    size_hint_y: None
+                    height: self.texture_size[1]
+
+            Separator:
+
+            # Close behavior switches
+            CustomSwitch:
+                id: kill_adb_switch
+                title: 'Kill ADB when closing'
+                description: 'Terminate ADB server when scrcpy closes'
+                active: root.config['KILL_ADB_ON_CLOSE']
+                on_active: root.on_switch_change('KILL_ADB_ON_CLOSE', self.active)
+
+            CustomSwitch:
+                id: power_off_switch
+                title: 'Turn device screen off on close'
+                description: 'Turn off the device screen when scrcpy closes'
+                active: root.config['POWER_OFF_ON_CLOSE']
+                on_active: root.on_switch_change('POWER_OFF_ON_CLOSE', self.active)
+
+            Separator:
+
+            # Timeouts side by side
+            BoxLayout:
+                orientation: 'horizontal'
+                size_hint_y: None
+                height: self.minimum_height
+                spacing: dp(24)
+
+                # TIME_LIMIT
+                BoxLayout:
+                    orientation: 'vertical'
+                    size_hint_y: None
+                    height: self.minimum_height
+                    spacing: dp(8)
+
+                    Label:
+                        text: 'Time limit (seconds)'
+                        font_size: font_size_sm
+                        bold: True
+                        color: foreground_color
+                        halign: 'left'
+                        valign: 'top'
+                        text_size: self.width, None
+                        size_hint_y: None
+                        height: self.texture_size[1]
+
+                    TextField:
+                        id: time_limit_input
+                        hint_text: '0'
+                        input_filter: 'int'
+                        on_text: root.on_int_field_change('TIME_LIMIT', self.text, 0)
+
+                    Label:
+                        text: '0 = unlimited'
+                        font_size: font_size_xs
+                        color: muted_foreground_color
+                        halign: 'left'
+                        valign: 'top'
+                        text_size: self.width, None
+                        size_hint_y: None
+                        height: self.texture_size[1]
+
+                # SCREEN_OFF_TIMEOUT
+                BoxLayout:
+                    orientation: 'vertical'
+                    size_hint_y: None
+                    height: self.minimum_height
+                    spacing: dp(8)
+
+                    Label:
+                        text: 'Screen off timeout (seconds)'
+                        font_size: font_size_sm
+                        bold: True
+                        color: foreground_color
+                        halign: 'left'
+                        valign: 'top'
+                        text_size: self.width, None
+                        size_hint_y: None
+                        height: self.texture_size[1]
+
+                    TextField:
+                        id: screen_off_timeout_input
+                        hint_text: '0'
+                        input_filter: 'int'
+                        on_text: root.on_int_field_change('SCREEN_OFF_TIMEOUT', self.text, 0)
+
+                    Label:
+                        text: '0 = system default'
+                        font_size: font_size_xs
+                        color: muted_foreground_color
+                        halign: 'left'
+                        valign: 'top'
+                        text_size: self.width, None
+                        size_hint_y: None
+                        height: self.texture_size[1]
+
+            Separator:
+
+            # Recording section
+            BoxLayout:
+                orientation: 'vertical'
+                size_hint_y: None
+                height: self.minimum_height
+                spacing: dp(12)
+
+                Label:
+                    text: 'Session Recording'
+                    font_size: font_size_sm
+                    bold: True
+                    color: foreground_color
+                    halign: 'left'
+                    valign: 'top'
+                    text_size: self.width, None
+                    size_hint_y: None
+                    height: self.texture_size[1]
+
+                CustomSwitch:
+                    id: record_session_switch
+                    title: 'Enable session recording'
+                    description: 'Record the mirrored screen to a video file'
+                    active: root.config['RECORD_SESSION']
+                    on_active: root.on_record_session_change(self.active)
+
+                # Recording file path (conditionally visible)
+                BoxLayout:
+                    id: record_file_container
+                    orientation: 'vertical'
+                    size_hint_y: None
+                    height: self.minimum_height
+                    spacing: dp(8)
+                    opacity: 1.0 if root.config['RECORD_SESSION'] else 0.4
+
+                    Label:
+                        text: 'Recording output file'
+                        font_size: font_size_sm
+                        bold: True
+                        color: foreground_color
+                        halign: 'left'
+                        valign: 'top'
+                        text_size: self.width, None
+                        size_hint_y: None
+                        height: self.texture_size[1]
+
+                    TextField:
+                        id: record_file_path_input
+                        hint_text: 'session_recording.mp4'
+                        disabled: not root.config['RECORD_SESSION']
+                        on_text: root.on_text_field_change('RECORD_FILE_PATH', self.text) if root.config['RECORD_SESSION'] else None
+
+                    Label:
+                        text: 'Path where the recording will be saved (e.g., session_recording.mp4)'
+                        font_size: font_size_xs
+                        color: muted_foreground_color
+                        halign: 'left'
+                        valign: 'top'
+                        text_size: self.width, None
+                        size_hint_y: None
+                        height: self.texture_size[1]
