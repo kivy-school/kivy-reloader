@@ -37,7 +37,7 @@ version = 0.1
 
 # (list) Application requirements
 # comma separated e.g. requirements = sqlite3,kivy
-requirements = python3, kivy, kivy_reloader, android, toml, trio, attrs, outcome, sniffio, sortedcontainers, exceptiongroup
+requirements = python3, kivy, kivy_reloader, android, tomlkit, trio, attrs, outcome, sniffio, sortedcontainers, exceptiongroup
 
 # (str) Custom source folders for requirements
 # Sets custom source for any requirements with recipes
