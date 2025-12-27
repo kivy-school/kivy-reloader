@@ -32,6 +32,8 @@ dev = [
 
 [project.scripts]
 kivy-reloader = 'kivy_reloader.bootstrap:main'
+bump = "scripts.bump_version:main"
+subset-fonts = "scripts.subset_fonts:main"
 
 [tool.ruff]
 line-length = 88
