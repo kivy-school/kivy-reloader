@@ -1,6 +1,6 @@
 [project]
 name = "kivy-reloader"
-version = "0.7.2"
+version = "0.8.1"
 description = "Hot reload your Kivy app on multiple Android phones and computer in real-time."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -42,8 +42,31 @@ quote-style = 'single'
 [tool.ruff.lint.per-file-ignores]
 "kivy_reloader/app.py" = ["PLC0415", "PLR6301"]
 
+[tool.hatch.build]
+exclude = [
+    "bin/",
+    "*.apk",
+    "uv.lock",
+    "poetry.lock",
+    ".venv/",
+    "__pycache__/",
+    "*.pyc",
+    ".git/",
+    ".gitignore",
+    "beautifulapp/",
+    "screens/",
+    "get_context.py",
+    "main.py",
+    "/buildozer.spec",
+    "/kivy-reloader.toml",
+]
+
 [tool.hatch.build.targets.wheel]
 packages = ["kivy_reloader"]
+artifacts = ["*.toml", "*.spec", "*.kv", "*.ttf"]
+
+[tool.hatch.build.targets.sdist]
+include = ["kivy_reloader/", "README.md", "LICENSE", "pyproject.toml"]
 
 [build-system]
 requires = ["hatchling"]
