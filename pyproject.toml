@@ -1,6 +1,6 @@
 [project]
 name = "kivy-reloader"
-version = "0.8.1"
+version = "0.8.2"
 description = "Hot reload your Kivy app on multiple Android phones and computer in real-time."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -54,7 +54,6 @@ exclude = [
     ".git/",
     ".gitignore",
     "beautifulapp/",
-    "screens/",
     "get_context.py",
     "main.py",
     "/buildozer.spec",

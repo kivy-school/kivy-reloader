@@ -393,7 +393,7 @@ wheels = [
 
 [[package]]
 name = "kivy-reloader"
-version = "0.7.2"
+version = "0.8.2"
 source = { editable = "." }
 dependencies = [
     { name = "buildozer" },
