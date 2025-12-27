@@ -326,10 +326,12 @@ class ConfigModel:
         Raises:
             IOError: If write fails
         """
+        # Use the source config_path as template to preserve comments/formatting
         config_loader.save_config_values(
             config_path=export_path,
             values=self.as_dict(),
             create_backup=False,
+            source_template=self.config_path,
         )
 
     def import_from_file(self, import_path: Path, merge: bool = True) -> None:
