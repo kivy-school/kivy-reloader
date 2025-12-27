@@ -1,0 +1,167 @@
+<HelpPopup>:
+    size_hint: None, None
+    size: dp(420), dp(340)
+    auto_dismiss: True
+    background_color: transparent
+
+    BoxLayout:
+        orientation: 'vertical'
+        padding: dp(24)
+        spacing: dp(16)
+
+        canvas.before:
+            Color:
+                rgba: card_color
+            SmoothRoundedRectangle:
+                pos: self.pos
+                size: self.size
+                radius: [dp(12)]
+            Color:
+                rgba: border_color
+            SmoothLine:
+                rounded_rectangle: (*self.pos, *self.size, dp(12))
+                width: dp(1)
+
+        # Header
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: None
+            height: dp(32)
+
+            Label:
+                text: f'[size=16][font={emoji_font}]⌨️[/font][/size]  Keyboard Shortcuts'
+                markup: True
+                font_size: font_size_lg
+                bold: True
+                color: foreground_color
+                halign: 'left'
+                valign: 'middle'
+                text_size: self.width, None
+
+            Widget:
+                size_hint_x: None
+                width: dp(8)
+
+            # Close button
+            Button:
+                text: unicode['close']
+                font_name: icon_font
+                size_hint: None, None
+                size: dp(32), dp(32)
+                background_color: transparent
+                color: muted_foreground_color
+                font_size: font_size_lg
+                on_release: root.dismiss()
+
+                canvas.before:
+                    Color:
+                        rgba: muted_color if self.state == 'normal' else muted_active_color
+                    RoundedRectangle:
+                        pos: self.pos
+                        size: self.size
+                        radius: [dp(6)]
+
+        # Shortcuts list
+        BoxLayout:
+            orientation: 'vertical'
+            spacing: dp(8)
+            size_hint_y: 1
+
+            # Shortcut rows
+            BoxLayout:
+                size_hint_y: None
+                height: dp(28)
+                Label:
+                    text: 'Save configuration'
+                    font_size: font_size_sm
+                    color: foreground_color
+                    halign: 'left'
+                    text_size: self.width, None
+                Label:
+                    text: 'Ctrl + S'
+                    font_size: font_size_sm
+                    color: primary_color
+                    bold: True
+                    halign: 'right'
+                    text_size: self.width, None
+                    size_hint_x: None
+                    width: dp(100)
+
+            BoxLayout:
+                size_hint_y: None
+                height: dp(28)
+                Label:
+                    text: 'Focus search'
+                    font_size: font_size_sm
+                    color: foreground_color
+                    halign: 'left'
+                    text_size: self.width, None
+                Label:
+                    text: 'Ctrl + F'
+                    font_size: font_size_sm
+                    color: primary_color
+                    bold: True
+                    halign: 'right'
+                    text_size: self.width, None
+                    size_hint_x: None
+                    width: dp(100)
+
+            BoxLayout:
+                size_hint_y: None
+                height: dp(28)
+                Label:
+                    text: 'Navigate to section'
+                    font_size: font_size_sm
+                    color: foreground_color
+                    halign: 'left'
+                    text_size: self.width, None
+                Label:
+                    text: 'Ctrl + 1-8'
+                    font_size: font_size_sm
+                    color: primary_color
+                    bold: True
+                    halign: 'right'
+                    text_size: self.width, None
+                    size_hint_x: None
+                    width: dp(100)
+
+            BoxLayout:
+                size_hint_y: None
+                height: dp(28)
+                Label:
+                    text: 'Close popup / Exit'
+                    font_size: font_size_sm
+                    color: foreground_color
+                    halign: 'left'
+                    text_size: self.width, None
+                Label:
+                    text: 'Escape'
+                    font_size: font_size_sm
+                    color: primary_color
+                    bold: True
+                    halign: 'right'
+                    text_size: self.width, None
+                    size_hint_x: None
+                    width: dp(100)
+
+            Widget:
+
+        # Separator
+        Widget:
+            size_hint_y: None
+            height: dp(1)
+            canvas:
+                Color:
+                    rgba: border_color
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
+
+        # Version info
+        Label:
+            text: f'Kivy Reloader v{root.version}'
+            font_size: font_size_xs
+            color: muted_foreground_color
+            halign: 'center'
+            size_hint_y: None
+            height: dp(20)
