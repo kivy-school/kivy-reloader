@@ -21,7 +21,14 @@ dependencies = [
 ]
 
 [dependency-groups]
-dev = ["icecream>=2.1.5", "isort>=6.0.1", "ruff>=0.12.5", "pytest>=8.0.0"]
+dev = [
+    "icecream>=2.1.5",
+    "isort>=6.0.1",
+    "ruff>=0.12.5",
+    "pytest>=8.0.0",
+    "fonttools>=4.61.1",
+    "brotli>=1.2.0",
+]
 
 [project.scripts]
 kivy-reloader = 'kivy_reloader.bootstrap:main'
@@ -58,11 +65,16 @@ exclude = [
     "main.py",
     "/buildozer.spec",
     "/kivy-reloader.toml",
+    "scripts/",
+    # Exclude original (full) font files - only ship subset fonts
+    "**/assets/materialdesignicons.ttf",
+    "**/assets/twemoji-mozilla.ttf",
 ]
 
 [tool.hatch.build.targets.wheel]
 packages = ["kivy_reloader"]
-artifacts = ["*.toml", "*.spec", "*.kv", "*.ttf"]
+# Include subset fonts (mdi-subset.ttf, twemoji-subset.ttf)
+artifacts = ["*.toml", "*.spec", "*.kv", "*-subset.ttf"]
 
 [tool.hatch.build.targets.sdist]
 include = ["kivy_reloader/", "README.md", "LICENSE", "pyproject.toml"]
