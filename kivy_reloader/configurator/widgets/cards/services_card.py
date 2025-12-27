@@ -6,6 +6,7 @@ from pathlib import Path
 from kivy.properties import DictProperty, ObjectProperty, StringProperty
 from kivy.uix.boxlayout import BoxLayout
 
+from kivy_reloader.configurator.widgets.common import BoxChipInput
 from kivy_reloader.lang import Builder
 
 Builder.load_file(__file__)
@@ -31,14 +32,18 @@ class ServicesCard(BoxLayout):
 
     def on_kv_post(self, base_widget):
         """Populate widgets with initial configuration values."""
+
         picker = self.ids.service_files_picker
         picker.root_path = self.root_path
         picker.scroll_view = self.scroll_view
         picker.initial_selection = self.config.get('SERVICE_FILES', [])
         picker.bind(selected_files=self.on_service_files_picker_change)
 
+        # Setup BoxChipInput with service name transformer
+        # (first letter uppercase, rest lowercase)
         chip_input = self.ids.service_names_input
-        chip_input.values = self.config.get('SERVICE_NAMES', [])[:]
+        chip_input.values = self.config.get('SERVICE_NAMES', []) or []
+        chip_input.transformer = BoxChipInput.transform_service_name
         chip_input.bind(
             values=lambda instance, values: self.on_service_names_change(values)
         )
@@ -55,7 +60,7 @@ class ServicesCard(BoxLayout):
 
         # Update chip input
         chip_input = self.ids.service_names_input
-        chip_input.values = new_config.get('SERVICE_NAMES', [])[:]
+        chip_input.values = new_config.get('SERVICE_NAMES', []) or []
 
         # Update file picker
         picker = self.ids.service_files_picker
