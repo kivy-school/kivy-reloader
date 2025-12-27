@@ -639,6 +639,9 @@ class DropdownPicker(ButtonBehavior, BoxLayout):
         # Mark as open
         self.is_open = True
 
+        # Bind keyboard for Escape handling
+        Window.bind(on_keyboard=self._on_keyboard)
+
         # Create container if it doesn't exist
         if not self.container:
             self.container = DropdownContainer(root_path=self.root_path)
@@ -743,6 +746,9 @@ class DropdownPicker(ButtonBehavior, BoxLayout):
         # Mark as closed
         self.is_open = False
 
+        # Unbind keyboard
+        Window.unbind(on_keyboard=self._on_keyboard)
+
         # Force a property change notification to trigger bindings with the
         # final selection. This ensures config is updated when dropdown closes
         self.property('selected_files').dispatch(self)
@@ -754,6 +760,13 @@ class DropdownPicker(ButtonBehavior, BoxLayout):
         # Remove the dropdown container from window
         if self.container:
             Window.remove_widget(self.container)
+
+    def _on_keyboard(self, window, keycode, scancode, codepoint, modifiers):
+        """Handle keyboard events - close on Escape."""
+        if keycode == 27:  # Escape
+            self.close_dropdown()
+            return True  # Consume the event
+        return False
 
     def _update_container_position(self, *args):
         """Update container position when picker moves or resizes"""
@@ -864,6 +877,9 @@ class FolderOnlyDropdownPicker(DropdownPicker):
 
         # Mark as open
         self.is_open = True
+
+        # Bind keyboard for Escape handling
+        Window.bind(on_keyboard=self._on_keyboard)
 
         # Create folder-only container if it doesn't exist
         if not self.container:
