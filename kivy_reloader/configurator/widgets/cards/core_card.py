@@ -144,12 +144,12 @@ class CoreCard(BoxLayout):
         )
 
         # Setup BoxChipInput widgets with initial values
-        self.ids.ignore_patterns_input.values = self.config.get(
-            'DO_NOT_WATCH_PATTERNS', []
-        )[:]
-        self.ids.exclude_from_phone_input.values = self.config.get(
-            'FOLDERS_AND_FILES_TO_EXCLUDE_FROM_PHONE', []
-        )[:]
+        self.ids.ignore_patterns_input.values = (
+            self.config.get('DO_NOT_WATCH_PATTERNS', []) or []
+        )
+        self.ids.exclude_from_phone_input.values = (
+            self.config.get('FOLDERS_AND_FILES_TO_EXCLUDE_FROM_PHONE', []) or []
+        )
 
         # Bind callbacks
         self.ids.ignore_patterns_input.bind(
@@ -168,7 +168,8 @@ class CoreCard(BoxLayout):
         for file_path in selected_files:
             try:
                 rel_path = Path(file_path).relative_to(root)
-                relative_files.append(str(rel_path))
+                # Use forward slashes for cross-platform compatibility
+                relative_files.append(rel_path.as_posix())
             except ValueError:
                 # If file is not relative to root, use absolute path
                 relative_files.append(file_path)
@@ -185,7 +186,8 @@ class CoreCard(BoxLayout):
         for file_path in selected_files:
             try:
                 rel_path = Path(file_path).relative_to(root)
-                relative_files.append(str(rel_path))
+                # Use forward slashes for cross-platform compatibility
+                relative_files.append(rel_path.as_posix())
             except ValueError:
                 # If file is not relative to root, use absolute path
                 relative_files.append(file_path)
@@ -299,12 +301,12 @@ class CoreCard(BoxLayout):
         shallow_folder_picker._update_selected_text()
 
         # Update BoxChipInput widgets
-        self.ids.ignore_patterns_input.values = new_config.get(
-            'DO_NOT_WATCH_PATTERNS', []
-        )[:]
-        self.ids.exclude_from_phone_input.values = new_config.get(
-            'FOLDERS_AND_FILES_TO_EXCLUDE_FROM_PHONE', []
-        )[:]
+        self.ids.ignore_patterns_input.values = (
+            new_config.get('DO_NOT_WATCH_PATTERNS', []) or []
+        )
+        self.ids.exclude_from_phone_input.values = (
+            new_config.get('FOLDERS_AND_FILES_TO_EXCLUDE_FROM_PHONE', []) or []
+        )
 
     def update_config(self, key, value):
         """Update a configuration value in both dict and model"""
