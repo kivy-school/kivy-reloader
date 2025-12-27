@@ -1,0 +1,136 @@
+<BuiltinExclusionChip@Label>:
+    text: '.DS_Store'
+    size_hint: None, None
+    size: [self.texture_size[0] + dp(16), dp(28)]
+    font_size: font_size_xs
+    bold: True
+    color: muted_foreground_color
+    canvas.before:
+        Color:
+            rgba: border_color
+        SmoothRoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [dp(4)]
+        Color:
+            rgba: muted_color
+        SmoothLine:
+            rounded_rectangle: (*self.pos, *self.size, dp(4))
+
+
+<DeploymentCard>:
+    orientation: 'vertical'
+    size_hint_y: None
+    height: self.minimum_height
+
+    Card:
+        title: f'[size=16][font={emoji_font}]📦[/font][/size] Deployment Exclusions'
+        description: 'Exclude files and folders from being sent to the phone during hot-reload.'
+
+        BoxLayout:
+            orientation: 'vertical'
+            spacing: dp(16)
+            size_hint_y: None
+            height: self.minimum_height
+
+            Separator:
+
+            # Additional exclusions
+            BoxLayout:
+                orientation: 'vertical'
+                size_hint_y: None
+                height: self.minimum_height
+                spacing: dp(8)
+
+                Label:
+                    text: 'Additional exclusions'
+                    font_size: font_size_sm
+                    bold: True
+                    color: foreground_color
+                    halign: 'left'
+                    valign: 'top'
+                    text_size: self.width, None
+                    size_hint_y: None
+                    height: self.texture_size[1]
+
+                Label:
+                    text: 'Files and folders to exclude when deploying to the phone (in addition to built-in exclusions).'
+                    font_size: font_size_xs
+                    color: muted_foreground_color
+                    halign: 'left'
+                    valign: 'top'
+                    text_size: self.width, None
+                    size_hint_y: None
+                    height: self.texture_size[1]
+
+                BoxChipInput:
+                    id: exclude_from_phone_input
+                    placeholder: 'Enter pattern and press Enter (e.g., secrets.txt, local_config/)'
+
+                Label:
+                    text: 'Examples: my_secrets.txt, local_config/, *.backup'
+                    font_size: font_size_xs
+                    color: muted_foreground_color
+                    halign: 'left'
+                    valign: 'top'
+                    text_size: self.width, None
+                    size_hint_y: None
+                    height: self.texture_size[1]
+
+            Separator:
+
+            # Built-in exclusions (informational)
+            CollapsibleSection:
+                title: 'Built-in Exclusions (automatically applied)'
+                collapsed: True
+
+                Label:
+                    text: "The following patterns are always excluded from deployment. You don't need to add them manually:"
+                    font_size: font_size_xs
+                    color: muted_foreground_color
+                    halign: 'left'
+                    valign: 'top'
+                    text_size: self.width, None
+                    size_hint_y: None
+                    height: self.texture_size[1]
+
+                # Grid of built-in exclusion chips
+                GridLayout:
+                    cols: 4
+                    spacing: dp(8)
+                    size_hint_y: None
+                    height: self.minimum_height
+                    padding: [0, dp(8), 0, 0]
+
+                    BuiltinExclusionChip:
+                        text: '.git'
+                    BuiltinExclusionChip:
+                        text: '.venv'
+                    BuiltinExclusionChip:
+                        text: '*.pyc'
+                    BuiltinExclusionChip:
+                        text: '__pycache__'
+                    BuiltinExclusionChip:
+                        text: '.buildozer'
+                    BuiltinExclusionChip:
+                        text: 'build/'
+                    BuiltinExclusionChip:
+                        text: 'dist/'
+                    BuiltinExclusionChip:
+                        text: 'tests/'
+                    BuiltinExclusionChip:
+                        text: 'docs/'
+                    BuiltinExclusionChip:
+                        text: 'node_modules/'
+                    BuiltinExclusionChip:
+                        text: '.vscode/'
+                    BuiltinExclusionChip:
+                        text: '*.log'
+                    BuiltinExclusionChip:
+                        text: '*.db'
+                    BuiltinExclusionChip:
+                        text: 'poetry.lock'
+                    BuiltinExclusionChip:
+                        text: 'uv.lock'
+                    BuiltinExclusionChip:
+                        text: '+ more...'
