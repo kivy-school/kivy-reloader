@@ -152,7 +152,7 @@ class SelectionController:
         Get list of all selected file paths as relative paths.
 
         Returns:
-            List of paths relative to root_path
+            List of paths relative to root_path (using forward slashes for cross-platform compatibility)
         """
         files = self.get_all_selected_files()
         relative_files = []
@@ -160,7 +160,8 @@ class SelectionController:
         for file_path in files:
             try:
                 rel_path = Path(file_path).relative_to(self.root_path)
-                relative_files.append(str(rel_path))
+                # Use as_posix() to ensure forward slashes for cross-platform compatibility
+                relative_files.append(rel_path.as_posix())
             except ValueError:
                 # Path is not relative to root_path, skip it
                 pass
