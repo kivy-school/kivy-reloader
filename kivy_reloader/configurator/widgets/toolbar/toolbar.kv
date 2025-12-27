@@ -33,7 +33,7 @@
         canvas.before:
             Color:
                 rgba: muted_color if self.state == 'normal' else muted_active_color
-            RoundedRectangle:
+            SmoothRoundedRectangle:
                 pos: self.pos
                 size: self.size
                 radius: [border_radius_md]
@@ -77,7 +77,7 @@
         canvas.before:
             Color:
                 rgba: primary_active_color if self.state == 'down' else primary_color
-            RoundedRectangle:
+            SmoothRoundedRectangle:
                 pos: self.pos
                 size: self.size
                 radius: [border_radius_md]
@@ -96,7 +96,7 @@
         canvas.before:
             Color:
                 rgba: secondary_active_color if self.state == 'down' else secondary_color
-            RoundedRectangle:
+            SmoothRoundedRectangle:
                 pos: self.pos
                 size: self.size
                 radius: [border_radius_md]
@@ -115,7 +115,7 @@
         canvas.before:
             Color:
                 rgba: muted_active_color if self.state == 'down' else transparent
-            RoundedRectangle:
+            SmoothRoundedRectangle:
                 pos: self.pos
                 size: self.size
                 radius: [border_radius_md]
@@ -134,7 +134,7 @@
         canvas.before:
             Color:
                 rgba: muted_active_color if self.state == 'down' else transparent
-            RoundedRectangle:
+            SmoothRoundedRectangle:
                 pos: self.pos
                 size: self.size
                 radius: [border_radius_md]

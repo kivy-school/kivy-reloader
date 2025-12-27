@@ -56,7 +56,7 @@
                 canvas.before:
                     Color:
                         rgba: muted_color if self.state == 'normal' else muted_active_color
-                    RoundedRectangle:
+                    SmoothRoundedRectangle:
                         pos: self.pos
                         size: self.size
                         radius: [dp(6)]
