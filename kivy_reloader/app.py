@@ -31,7 +31,7 @@ os.environ['KIVY_LOG_MODE'] = 'MIXED'
 if hasattr(sys, "_MEIPASS") or '__compiled__' in dir(sys.modules[__name__]): 
     os.environ['RELOADER_STATUS'] = 'PROD'
 
-if os.environ['RELOADER_STATUS'] == 'PROD':
+if os.environ.get('RELOADER_STATUS') == 'PROD':
   from kivy.app import App
 else:
   from kivy.utils import platform

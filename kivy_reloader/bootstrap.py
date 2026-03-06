@@ -144,3 +144,5 @@ def main():
             debug_and_livestream()
         else:
             start()
+
+    # print("what is args command?", args.command)
