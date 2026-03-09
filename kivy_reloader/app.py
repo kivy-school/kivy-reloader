@@ -23,31 +23,33 @@ Key Features:
 - Smart file watching with exclusion patterns
 """
 
-import os, sys
+import os
+import sys
 
 os.environ['KIVY_LOG_MODE'] = 'MIXED'
 
-    #for pyinstaller                      #for nuitka
-if hasattr(sys, "_MEIPASS") or '__compiled__' in dir(sys.modules[__name__]): 
+# for pyinstaller              #for nuitka
+if hasattr(sys, '_MEIPASS') or '__compiled__' in dir(sys.modules[__name__]):
     os.environ['RELOADER_STATUS'] = 'PROD'
 
+
 if os.environ.get('RELOADER_STATUS') == 'PROD':
-  from kivy.app import App
+    from kivy.app import App
 else:
-  from kivy.utils import platform
+    from kivy.utils import platform
 
-  # Import the base app for shared functionality
-  from .base_app import BaseReloaderApp
+    # Import the base app for shared functionality
+    from .base_app import BaseReloaderApp
 
-  # Platform-specific imports and exports
-  if platform != 'android':
-      from .desktop_app import DesktopApp
+    # Platform-specific imports and exports
+    if platform != 'android':
+        from .desktop_app import DesktopApp
 
-      App = DesktopApp
-  else:
-      from .android_app import AndroidApp
+        App = DesktopApp
+    else:
+        from .android_app import AndroidApp
 
-      App = AndroidApp
+        App = AndroidApp
 
 # Export all classes for backward compatibility
 __all__ = ['App', 'BaseReloaderApp']
