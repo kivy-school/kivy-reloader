@@ -1,4 +1,5 @@
 import sys
+import os
 
 import trio
 from colorama import Fore, init
@@ -34,9 +35,15 @@ async def send_app():
         print(f'{yellow}No connected devices found.')
         return 1
 
-    unique_physical = {
-        (d['wifi_ip'], d['model']) for d in devices if d['wifi_ip'] is not None
-    }
+    # Set up ADB port forwarding if USB mode
+    if config.CONNECT_ON == "USB":
+        PORT = config.RELOADER_PORT
+        os.system(f"adb forward tcp:{PORT} tcp:{PORT}")
+        unique_physical = {("127.0.0.1", d['model']) for d in devices}
+    else:
+        unique_physical = {
+            (d['wifi_ip'], d['model']) for d in devices if d['wifi_ip'] is not None
+        }
 
     acked_count = 0
 
