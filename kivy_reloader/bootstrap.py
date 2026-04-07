@@ -2,14 +2,11 @@ import argparse
 import os
 import shutil
 from pathlib import Path
-from .detection import is_apple_m_series
 
 from colorama import Fore, init
 
-
-import importlib.util
-
 from . import __version__ as _kl_version
+from .detection import is_apple_m_series
 
 yellow = Fore.YELLOW
 green = Fore.GREEN
@@ -56,6 +53,7 @@ def create_settings_file():
             os.path.join(base_dir, 'kivy-reloader.toml'),
         )
 
+
 def copy_watchdog_recipe():
     project_root = Path.cwd()
     if not (project_root / "buildozer.spec").exists():
@@ -63,7 +61,7 @@ def copy_watchdog_recipe():
             "No buildozer.spec found in current directory. "
             "Run kivy-reloader init from your project root with buildozer.spec ."
         )
-    
+
     watchdog_dst = Path.cwd() / "p4a-recipes" / "watchdog"
 
     if watchdog_dst.exists() and any(watchdog_dst.iterdir()):
@@ -78,7 +76,8 @@ def copy_watchdog_recipe():
 
     shutil.copytree(watchdog_src, watchdog_dst)
     klprint(f"Copied: {watchdog_src} → {watchdog_dst}")
-    klprint(f"(watchdog empty recipe to fixe Mac M-series Android build crash)")
+    klprint("(watchdog empty recipe to fix Mac M-series Android build crash)")
+
 
 def create_buildozer_spec_file():
     """
@@ -110,6 +109,11 @@ def main():
     init_parser = subparsers.add_parser(  # noqa: F841
         'init',
         help='Create the `kivy-reloader.toml` configuration file.',
+    )
+
+    init_parser = subparsers.add_parser(  # noqa: F841
+        'initbare',
+        help='Create the `kivy-reloader.toml` configuration file without adding a watchdog local dummy recipe (so Mac M series chips build for Android properly)',
     )
 
     run_parser = subparsers.add_parser(  # noqa: F841
@@ -149,12 +153,12 @@ def main():
     if args.command == 'init':
         create_settings_file()
         create_buildozer_spec_file()
-        #if mac m1 chip: , add p4a watchdog recipe
+        # if mac m1 chip: , add p4a watchdog recipe
         if is_apple_m_series():
             copy_watchdog_recipe()
 
     if args.command == 'initbare':
-        #make sure there is an init flag that says 'naked' or smth
+        # make sure there is an init flag that says 'naked' or smth
         # just in case the mac m1 fix breaks for some reason
         create_settings_file()
         create_buildozer_spec_file()
