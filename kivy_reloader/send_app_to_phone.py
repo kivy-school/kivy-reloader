@@ -36,7 +36,7 @@ async def send_app():
         return 1
 
     # Set up ADB port forwarding if USB mode
-    if config.CONNECT_ON == "USB":
+    if config.STREAM_USING == "USB":
         PORT = config.RELOADER_PORT
         os.system(f"adb forward tcp:{PORT} tcp:{PORT}")
         unique_physical = {("127.0.0.1", d['model']) for d in devices}
@@ -87,11 +87,12 @@ async def send_app():
 
         print(green + 'Finished sending app!')
 
+        timeout = 30
         # Wait for ACK from phone confirming update applied
-        print(f'{yellow}Waiting (3 seconds) for ACK from smartphone {IP}...')
+        print(f'{yellow}Waiting ({timeout} seconds) for ACK from smartphone {IP}...')
         ack_ok = False
         try:
-            with trio.move_on_after(3):  # wait up to 3s for device to process
+            with trio.move_on_after(timeout):  # wait up to timeout seconds for device to process
                 data = await client_socket.receive_some(16)
                 if data and data.startswith(b'OK'):
                     ack_ok = True

@@ -628,15 +628,7 @@ class AndroidApp(BaseReloaderApp, KivyApp):
                 await self._receive_zip_file(data_stream, zip_file_path)
 
                 # Process the received update
-                await self._process_app_update(zip_file_path)
-
-                # Send ACK back to the desktop after successful processing
-                try:
-                    await data_stream.send_all(b'OK')
-                except Exception as ack_err:
-                    Logger.warning(
-                        f'Reloader: Failed to send ACK to desktop: {ack_err}'
-                    )
+                await self._process_app_update(data_stream, zip_file_path)
 
         except Exception as e:
             self._log_server_error(e)
@@ -660,7 +652,7 @@ class AndroidApp(BaseReloaderApp, KivyApp):
                 zip_file.write(data)
         return zip_file_path
 
-    async def _process_app_update(self, zip_file_path):
+    async def _process_app_update(self, data_stream, zip_file_path):
         """
         Process the received app update (delta or full) and trigger reload.
 
@@ -692,6 +684,14 @@ class AndroidApp(BaseReloaderApp, KivyApp):
 
         Logger.info('Reloader: App updated, triggering hot reload')
         Logger.info('Reloader: ************** END SERVER **************')
+
+        # Send ACK back to the desktop after successful processing. it's moved here because the reload was killing the app before the acknowledgement was sent, preventing state file from being made
+        try:
+            await data_stream.send_all(b'OK')
+        except Exception as ack_err:
+            Logger.warning(
+                f'Reloader: Failed to send ACK to desktop: {ack_err}'
+            )
 
         # Trigger hot reload
         self.unload_python_files_on_android()
