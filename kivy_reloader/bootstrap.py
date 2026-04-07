@@ -2,8 +2,12 @@ import argparse
 import os
 import shutil
 from pathlib import Path
+from .detection import is_apple_m_series
 
 from colorama import Fore, init
+
+
+import importlib.util
 
 from . import __version__ as _kl_version
 
@@ -52,6 +56,29 @@ def create_settings_file():
             os.path.join(base_dir, 'kivy-reloader.toml'),
         )
 
+def copy_watchdog_recipe():
+    project_root = Path.cwd()
+    if not (project_root / "buildozer.spec").exists():
+        raise RuntimeError(
+            "No buildozer.spec found in current directory. "
+            "Run kivy-reloader init from your project root with buildozer.spec ."
+        )
+    
+    watchdog_dst = Path.cwd() / "p4a-recipes" / "watchdog"
+
+    if watchdog_dst.exists() and any(watchdog_dst.iterdir()):
+        klprint(f"Already exists, skipping: {watchdog_dst}")
+        return
+
+    watchdog_src = Path(__file__).parent / "p4a-recipes" / "watchdog"
+
+    if not watchdog_src.exists():
+        klprint(f"watchdog recipe not found at: {watchdog_src}, skipping.")
+        return
+
+    shutil.copytree(watchdog_src, watchdog_dst)
+    klprint(f"Copied: {watchdog_src} → {watchdog_dst}")
+    klprint(f"(watchdog empty recipe to fixe Mac M-series Android build crash)")
 
 def create_buildozer_spec_file():
     """
@@ -120,6 +147,15 @@ def main():
     klprint(f'Kivy Reloader v{_kl_version}')
 
     if args.command == 'init':
+        create_settings_file()
+        create_buildozer_spec_file()
+        #if mac m1 chip: , add p4a watchdog recipe
+        if is_apple_m_series():
+            copy_watchdog_recipe()
+
+    if args.command == 'initbare':
+        #make sure there is an init flag that says 'naked' or smth
+        # just in case the mac m1 fix breaks for some reason
         create_settings_file()
         create_buildozer_spec_file()
 

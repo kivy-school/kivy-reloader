@@ -10,7 +10,6 @@ dependencies = [
     "buildozer>=1.5.0",
     "colorama>=0.4.6",
     "cython>=3.1.2",
-    "kaki>=0.1.9",
     "pip>=25.1.1",
     "plyer>=2.1.0",
     "psutil>=7.0.0; sys_platform == 'win32' or sys_platform == 'darwin' or sys_platform == 'linux'",
@@ -19,6 +18,9 @@ dependencies = [
     "trio>=0.30.0",
     "typer>=0.16.0",
 ]
+
+[project.optional-dependencies]
+desktop = ["kaki>=0.1.9"]
 
 [dependency-groups]
 dev = [
