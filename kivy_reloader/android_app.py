@@ -571,13 +571,18 @@ class AndroidApp(BaseReloaderApp, KivyApp):
         """
         PORT = config.RELOADER_PORT
 
+        if config.STREAM_USING == "USB":
+            host = "127.0.0.1"
+        else:
+            host = "0.0.0.0"
+
         try:
             # Discover device IP address
             device_ip = self._get_device_ip()
             Logger.info(f'Smartphone IP: {device_ip}')
 
             # Start TCP server
-            await trio.serve_tcp(self.data_receiver, PORT)
+            await trio.serve_tcp(self.data_receiver, PORT, host=host)
 
         except Exception as e:
             self._log_server_startup_error(e)
@@ -644,12 +649,27 @@ class AndroidApp(BaseReloaderApp, KivyApp):
         Returns:
             str: Path to the saved zip file
         """
+        Logger.info("Reloader: waiting for EOF from desktop...")
         with open(zip_file_path, 'wb') as zip_file:
             Logger.info('Reloader: Server: receiving data')
             async for data in data_stream:
                 Logger.info(f'Reloader: Data size: {len(data)}')
                 # Data arrives in chunks until client half-closes
                 zip_file.write(data)
+            # 🔥 This line ONLY prints if the loop ends normally (EOF delivered)
+            Logger.info("Reloader: LOOP ENDED NORMALLY (EOF RECEIVED)")
+
+        # 🔥 These lines tell you whether the stream is still alive
+        Logger.info(f"Reloader: send_channel.is_open = {data_stream.send_channel.is_open}")
+        Logger.info(f"Reloader: receive_channel.is_open = {data_stream.receive_channel.is_open}")
+
+
+        Logger.info(f"Reloader: stream closed? {data_stream.send_channel.is_open}")
+
+        # BEFORE returning, send ACK
+        await data_stream.send_all(b'OK')
+        Logger.info("Reloader: EOF received, exiting receive loop")
+
         return zip_file_path
 
     async def _process_app_update(self, data_stream, zip_file_path):
@@ -682,16 +702,21 @@ class AndroidApp(BaseReloaderApp, KivyApp):
         except Exception as e:
             Logger.warning(f'Reloader: Failed to remove temp file {zip_file_path}: {e}')
 
-        Logger.info('Reloader: App updated, triggering hot reload')
-        Logger.info('Reloader: ************** END SERVER **************')
-
         # Send ACK back to the desktop after successful processing. it's moved here because the reload was killing the app before the acknowledgement was sent, preventing state file from being made
         try:
             await data_stream.send_all(b'OK')
+            Logger.info('Reloader: OK SENT')
+            # Give the OS time to flush the ACK before reload kills the process
+            await trio.sleep(0.1)
         except Exception as ack_err:
             Logger.warning(
                 f'Reloader: Failed to send ACK to desktop: {ack_err}'
             )
+            Logger.info('Reloader: OK FAILED')
+
+        Logger.info('Reloader: App updated, triggering hot reload')
+        Logger.info('Reloader: ************** END SERVER **************')
+
 
         # Trigger hot reload
         self.unload_python_files_on_android()
