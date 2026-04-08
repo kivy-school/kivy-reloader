@@ -666,8 +666,6 @@ class AndroidApp(BaseReloaderApp, KivyApp):
         Logger.info(f"Reloader: receive_channel.is_open = {data_stream.receive_channel.is_open}")
 
 
-        Logger.info(f"Reloader: stream closed? {data_stream.send_channel.is_open}")
-
         # BEFORE returning, send ACK
         await data_stream.send_all(b'OK')
         Logger.info("Reloader: EOF received, exiting receive loop")
