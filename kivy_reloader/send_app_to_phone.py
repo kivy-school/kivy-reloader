@@ -39,19 +39,19 @@ async def send_app():
     if config.STREAM_USING == "USB":
         PORT = config.RELOADER_PORT
         os.system(f"adb forward tcp:{PORT} tcp:{PORT}")
-        # unique_physical = {("127.0.0.1", d['model']) for d in devices}
+        unique_physical = {("127.0.0.1", d['model']) for d in devices}
 
-        # Get Windows host IP from WSL
-        def get_windows_host_ip():
-            with open("/etc/resolv.conf") as f:
-                for line in f:
-                    if line.startswith("nameserver"):
-                        return line.split()[1]
-            return "127.0.0.1"  # fallback
+        # # Get Windows host IP from WSL
+        # def get_windows_host_ip():
+        #     with open("/etc/resolv.conf") as f:
+        #         for line in f:
+        #             if line.startswith("nameserver"):
+        #                 return line.split()[1]
+        #     return "127.0.0.1"  # fallback
 
-        windows_ip = get_windows_host_ip()
+        # windows_ip = get_windows_host_ip()
 
-        unique_physical = {(windows_ip, d['model']) for d in devices}
+        # unique_physical = {(windows_ip, d['model']) for d in devices}
     else:
         unique_physical = {
             (d['wifi_ip'], d['model']) for d in devices if d['wifi_ip'] is not None
