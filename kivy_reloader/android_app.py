@@ -580,6 +580,7 @@ class AndroidApp(BaseReloaderApp, KivyApp):
             # Discover device IP address
             # device_ip = self._get_device_ip()
             # Logger.info(f'Smartphone IP: {device_ip}')
+            Logger.info(f'starting server on: host:{host},port:{PORT}')
 
             # Start TCP server
             await trio.serve_tcp(self.data_receiver, PORT, host=host)
