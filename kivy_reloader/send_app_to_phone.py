@@ -16,7 +16,7 @@ init(autoreset=True)
 
 async def connect_to_server(IP):
     try:
-        PORT = config.RELOADER_PORT
+        PORT = int(config.RELOADER_PORT)
         print(f'Connecting to IP: {green}{IP}{white} and PORT: {green}{PORT}')
         with trio.move_on_after(1):
             client_socket = await trio.open_tcp_stream(IP, PORT)
@@ -39,7 +39,19 @@ async def send_app():
     if config.STREAM_USING == "USB":
         PORT = config.RELOADER_PORT
         os.system(f"adb forward tcp:{PORT} tcp:{PORT}")
-        unique_physical = {("127.0.0.1", d['model']) for d in devices}
+        # unique_physical = {("127.0.0.1", d['model']) for d in devices}
+
+        # Get Windows host IP from WSL
+        def get_windows_host_ip():
+            with open("/etc/resolv.conf") as f:
+                for line in f:
+                    if line.startswith("nameserver"):
+                        return line.split()[1]
+            return "127.0.0.1"  # fallback
+
+        windows_ip = get_windows_host_ip()
+
+        unique_physical = {(windows_ip, d['model']) for d in devices}
     else:
         unique_physical = {
             (d['wifi_ip'], d['model']) for d in devices if d['wifi_ip'] is not None
@@ -87,7 +99,7 @@ async def send_app():
 
         print(green + 'Finished sending app!')
 
-        timeout = 30
+        timeout = 3
         # Wait for ACK from phone confirming update applied
         print(f'{yellow}Waiting ({timeout} seconds) for ACK from smartphone {IP}...')
         ack_ok = False

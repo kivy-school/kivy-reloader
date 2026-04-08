@@ -569,7 +569,7 @@ class AndroidApp(BaseReloaderApp, KivyApp):
         The server listens on the configured port and automatically
         discovers the device's IP address for network communication.
         """
-        PORT = config.RELOADER_PORT
+        PORT = int(config.RELOADER_PORT)
 
         if config.STREAM_USING == "USB":
             host = "127.0.0.1"
@@ -578,8 +578,8 @@ class AndroidApp(BaseReloaderApp, KivyApp):
 
         try:
             # Discover device IP address
-            device_ip = self._get_device_ip()
-            Logger.info(f'Smartphone IP: {device_ip}')
+            # device_ip = self._get_device_ip()
+            # Logger.info(f'Smartphone IP: {device_ip}')
 
             # Start TCP server
             await trio.serve_tcp(self.data_receiver, PORT, host=host)
