@@ -571,10 +571,11 @@ class AndroidApp(BaseReloaderApp, KivyApp):
         """
         PORT = int(config.RELOADER_PORT)
 
-        if config.STREAM_USING == "USB":
-            host = "127.0.0.1"
-        else:
-            host = "0.0.0.0"
+        # if config.STREAM_USING == "USB":
+        #     host = "127.0.0.1"
+        # else:
+        #     host = "0.0.0.0"
+        host = "0.0.0.0"
 
         try:
             # Discover device IP address
