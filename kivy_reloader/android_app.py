@@ -661,11 +661,6 @@ class AndroidApp(BaseReloaderApp, KivyApp):
             # 🔥 This line ONLY prints if the loop ends normally (EOF delivered)
             Logger.info("Reloader: LOOP ENDED NORMALLY (EOF RECEIVED)")
 
-        # 🔥 These lines tell you whether the stream is still alive
-        Logger.info(f"Reloader: send_channel.is_open = {data_stream.send_channel.is_open}")
-        Logger.info(f"Reloader: receive_channel.is_open = {data_stream.receive_channel.is_open}")
-
-
         # BEFORE returning, send ACK
         await data_stream.send_all(b'OK')
         Logger.info("Reloader: EOF received, exiting receive loop")
