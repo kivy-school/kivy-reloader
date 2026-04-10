@@ -631,17 +631,27 @@ class AndroidApp(BaseReloaderApp, KivyApp):
             # just log timing
             import time
             t = time.time()
-            async with self._update_lock:
-                Logger.info(f'Reloader: lock wait time: {time.time() - t:.4f}s')
-                Logger.info(f'Reloader: lock acquired!')
-                # Use a unique filename per connection to prevent collisions
-                zip_file_path = os.path.join(os.getcwd(), f'app_copy_{uuid4().hex}.zip')
+            # async with self._update_lock:
+            #     Logger.info(f'Reloader: lock wait time: {time.time() - t:.4f}s')
+            #     Logger.info(f'Reloader: lock acquired!')
+            #     # Use a unique filename per connection to prevent collisions
+            #     zip_file_path = os.path.join(os.getcwd(), f'app_copy_{uuid4().hex}.zip')
 
-                # Receive and save the zip file
-                await self._receive_zip_file(data_stream, zip_file_path)
+            #     # Receive and save the zip file
+            #     await self._receive_zip_file(data_stream, zip_file_path)
 
-                # Process the received update
-                await self._process_app_update(data_stream, zip_file_path)
+            #     # Process the received update
+            #     await self._process_app_update(data_stream, zip_file_path)
+            Logger.info(f'Reloader: lock wait time: {time.time() - t:.4f}s')
+            Logger.info(f'Reloader: lock acquired!')
+            # Use a unique filename per connection to prevent collisions
+            zip_file_path = os.path.join(os.getcwd(), f'app_copy_{uuid4().hex}.zip')
+
+            # Receive and save the zip file
+            await self._receive_zip_file(data_stream, zip_file_path)
+
+            # Process the received update
+            await self._process_app_update(data_stream, zip_file_path)
 
         except Exception as e:
             self._log_server_error(e)
@@ -752,7 +762,6 @@ class AndroidApp(BaseReloaderApp, KivyApp):
         # DEBUG: inspect what we actually received
         with open(zip_file_path, 'rb') as f:
             header = f.read(64)
-        import os
         file_size = os.path.getsize(zip_file_path)
         Logger.info(f'Android: zip_file_path={zip_file_path}')
         Logger.info(f'Android: file size={file_size} bytes')
