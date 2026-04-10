@@ -74,20 +74,37 @@ async def send_app():
         total_bytes = 0
         chunks_sent = 0
 
+        zip_path = 'app_copy.zip'
+        zip_size = os.path.getsize(zip_path) if os.path.exists(zip_path) else 'FILE NOT FOUND'
+        print(f'DEBUG: Opening zip at {os.path.abspath(zip_path)}, size={zip_size}')
+        print(f'DEBUG: Sent {total_bytes} bytes in {chunks_sent} chunks')
+
         with open('app_copy.zip', 'rb') as myzip:
+            print(f'DEBUG: file position after open = {myzip.tell()}')
+            print(f'DEBUG: first 4 bytes = {myzip.read(4).hex()}')  # should be 504b0304 for zip
+            myzip.seek(0)  # reset
             while True:
                 chunk = myzip.read(CHUNK_SIZE)
                 if not chunk:
                     break
 
-                chunks_sent += 1
-                await client_socket.send_all(chunk)
-                total_bytes += len(chunk)
+                try:
+                    await client_socket.send_all(chunk)
+                    chunks_sent += 1
+                    total_bytes += len(chunk)
+                    print(f'DEBUG: sent chunk {chunks_sent}, {len(chunk)} bytes')
+                except Exception as e:
+                    print(f'DEBUG: send_all FAILED on chunk {chunks_sent}: {e}')
+                    raise
 
-                # Less frequent progress updates to reduce I/O overhead
-                if chunks_sent % 10 == 0:
-                    mb_sent = total_bytes / (1024 * 1024)
-                    print(f'\rSent {mb_sent:.1f} MB', end='', flush=True)
+                # chunks_sent += 1
+                # await client_socket.send_all(chunk)
+                # total_bytes += len(chunk)
+
+                # # Less frequent progress updates to reduce I/O overhead
+                # if chunks_sent % 10 == 0:
+                #     mb_sent = total_bytes / (1024 * 1024)
+                #     print(f'\rSent {mb_sent:.1f} MB', end='', flush=True)
 
         print()  # New line after completion
 

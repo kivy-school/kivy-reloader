@@ -627,7 +627,13 @@ class AndroidApp(BaseReloaderApp, KivyApp):
 
         try:
             # Ensure only one update is applied at a time
+            Logger.info(f'Reloader: attempting to acquire lock...')
+            # just log timing
+            import time
+            t = time.time()
             async with self._update_lock:
+                Logger.info(f'Reloader: lock wait time: {time.time() - t:.4f}s')
+                Logger.info(f'Reloader: lock acquired!')
                 # Use a unique filename per connection to prevent collisions
                 zip_file_path = os.path.join(os.getcwd(), f'app_copy_{uuid4().hex}.zip')
 
