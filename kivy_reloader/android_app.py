@@ -667,9 +667,9 @@ class AndroidApp(BaseReloaderApp, KivyApp):
             # 🔥 This line ONLY prints if the loop ends normally (EOF delivered)
             Logger.info("Reloader: LOOP ENDED NORMALLY (EOF RECEIVED)")
 
-        # BEFORE returning, send ACK
-        await data_stream.send_all(b'OK')
-        Logger.info("Reloader: EOF received, exiting receive loop")
+        # # BEFORE returning, send ACK
+        # await data_stream.send_all(b'OK')
+        # Logger.info("Reloader: EOF received, exiting receive loop")
 
         return zip_file_path
 
