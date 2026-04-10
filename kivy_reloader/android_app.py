@@ -637,13 +637,25 @@ class AndroidApp(BaseReloaderApp, KivyApp):
                 # Process the received update
                 await self._process_app_update(zip_file_path)
 
-                # Send ACK back to the desktop after successful processing
+                # # Send ACK back to the desktop after successful processing
+                # try:
+                #     await data_stream.send_all(b'OK')
+                # except Exception as ack_err:
+                #     Logger.warning(
+                #         f'Reloader: Failed to send ACK to desktop: {ack_err}'
+                #     )
+
+                # Send ACK back to the desktop after successful processing. it's moved here because the reload was killing the app before the acknowledgement was sent, preventing state file from being made
                 try:
                     await data_stream.send_all(b'OK')
+                    Logger.info('Reloader: OK SENT')
+                    # Give the OS time to flush the ACK before reload kills the process
+                    await trio.sleep(0.1)
                 except Exception as ack_err:
                     Logger.warning(
                         f'Reloader: Failed to send ACK to desktop: {ack_err}'
                     )
+                    Logger.info('Reloader: OK FAILED')
 
         except Exception as e:
             self._log_server_error(e)
@@ -736,17 +748,17 @@ class AndroidApp(BaseReloaderApp, KivyApp):
         except Exception as e:
             Logger.warning(f'Reloader: Failed to remove temp file {zip_file_path}: {e}')
 
-        # Send ACK back to the desktop after successful processing. it's moved here because the reload was killing the app before the acknowledgement was sent, preventing state file from being made
-        try:
-            await data_stream.send_all(b'OK')
-            Logger.info('Reloader: OK SENT')
-            # Give the OS time to flush the ACK before reload kills the process
-            await trio.sleep(0.1)
-        except Exception as ack_err:
-            Logger.warning(
-                f'Reloader: Failed to send ACK to desktop: {ack_err}'
-            )
-            Logger.info('Reloader: OK FAILED')
+        # # Send ACK back to the desktop after successful processing. it's moved here because the reload was killing the app before the acknowledgement was sent, preventing state file from being made
+        # try:
+        #     await data_stream.send_all(b'OK')
+        #     Logger.info('Reloader: OK SENT')
+        #     # Give the OS time to flush the ACK before reload kills the process
+        #     await trio.sleep(0.1)
+        # except Exception as ack_err:
+        #     Logger.warning(
+        #         f'Reloader: Failed to send ACK to desktop: {ack_err}'
+        #     )
+        #     Logger.info('Reloader: OK FAILED')
 
         Logger.info('Reloader: App updated, triggering hot reload')
         Logger.info('Reloader: ************** END SERVER **************')
