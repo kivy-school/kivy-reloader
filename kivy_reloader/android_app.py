@@ -627,34 +627,57 @@ class AndroidApp(BaseReloaderApp, KivyApp):
 
         try:
             # Ensure only one update is applied at a time
-            Logger.info(f'Reloader: attempting to acquire lock...')
-            # just log timing
-            import time
-            t = time.time()
-            # async with self._update_lock:
-            #     Logger.info(f'Reloader: lock wait time: {time.time() - t:.4f}s')
-            #     Logger.info(f'Reloader: lock acquired!')
-            #     # Use a unique filename per connection to prevent collisions
-            #     zip_file_path = os.path.join(os.getcwd(), f'app_copy_{uuid4().hex}.zip')
+            async with self._update_lock:
+                # Use a unique filename per connection to prevent collisions
+                zip_file_path = os.path.join(os.getcwd(), f'app_copy_{uuid4().hex}.zip')
 
-            #     # Receive and save the zip file
-            #     await self._receive_zip_file(data_stream, zip_file_path)
+                # Receive and save the zip file
+                await self._receive_zip_file(data_stream, zip_file_path)
 
-            #     # Process the received update
-            #     await self._process_app_update(data_stream, zip_file_path)
-            Logger.info(f'Reloader: lock wait time: {time.time() - t:.4f}s')
-            Logger.info(f'Reloader: lock acquired!')
-            # Use a unique filename per connection to prevent collisions
-            zip_file_path = os.path.join(os.getcwd(), f'app_copy_{uuid4().hex}.zip')
+                # Process the received update
+                await self._process_app_update(zip_file_path)
 
-            # Receive and save the zip file
-            await self._receive_zip_file(data_stream, zip_file_path)
-
-            # Process the received update
-            await self._process_app_update(data_stream, zip_file_path)
+                # Send ACK back to the desktop after successful processing
+                try:
+                    await data_stream.send_all(b'OK')
+                except Exception as ack_err:
+                    Logger.warning(
+                        f'Reloader: Failed to send ACK to desktop: {ack_err}'
+                    )
 
         except Exception as e:
             self._log_server_error(e)
+
+        # try:
+        #     # Ensure only one update is applied at a time
+        #     Logger.info(f'Reloader: attempting to acquire lock...')
+        #     # just log timing
+        #     import time
+        #     t = time.time()
+        #     # async with self._update_lock:
+        #     #     Logger.info(f'Reloader: lock wait time: {time.time() - t:.4f}s')
+        #     #     Logger.info(f'Reloader: lock acquired!')
+        #     #     # Use a unique filename per connection to prevent collisions
+        #     #     zip_file_path = os.path.join(os.getcwd(), f'app_copy_{uuid4().hex}.zip')
+
+        #     #     # Receive and save the zip file
+        #     #     await self._receive_zip_file(data_stream, zip_file_path)
+
+        #     #     # Process the received update
+        #     #     await self._process_app_update(data_stream, zip_file_path)
+        #     Logger.info(f'Reloader: lock wait time: {time.time() - t:.4f}s')
+        #     Logger.info(f'Reloader: lock acquired!')
+        #     # Use a unique filename per connection to prevent collisions
+        #     zip_file_path = os.path.join(os.getcwd(), f'app_copy_{uuid4().hex}.zip')
+
+        #     # Receive and save the zip file
+        #     await self._receive_zip_file(data_stream, zip_file_path)
+
+        #     # Process the received update
+        #     await self._process_app_update(data_stream, zip_file_path)
+
+        # except Exception as e:
+        #     self._log_server_error(e)
 
     async def _receive_zip_file(self, data_stream, zip_file_path):
         """
