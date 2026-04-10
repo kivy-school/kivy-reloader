@@ -743,6 +743,17 @@ class AndroidApp(BaseReloaderApp, KivyApp):
 
     def _log_transfer_metadata(self, zip_file_path, transfer_type):
         """Log detailed information about the transfer metadata."""
+        # DEBUG: inspect what we actually received
+        with open(zip_file_path, 'rb') as f:
+            header = f.read(64)
+        import os
+        file_size = os.path.getsize(zip_file_path)
+        Logger.info(f'Android: zip_file_path={zip_file_path}')
+        Logger.info(f'Android: file size={file_size} bytes')
+        Logger.info(f'Android: first 64 bytes hex={header.hex()}')
+        Logger.info(f'Android: first 64 bytes text={header}')
+        # ZIP magic bytes are 50 4B 03 04 at the start
+        # if it starts with something else, it's not a zip
         try:
             with zipfile.ZipFile(zip_file_path, 'r') as zip_file:
                 if '_delta_metadata.json' in zip_file.namelist():
