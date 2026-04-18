@@ -116,13 +116,23 @@ async def send_app():
 
         print(green + 'Finished sending app!')
 
-        timeout = 3
+        timeout = 30
         # Wait for ACK from phone confirming update applied
         print(f'{yellow}Waiting ({timeout} seconds) for ACK from smartphone {IP}...')
         ack_ok = False
         try:
             with trio.move_on_after(timeout):  # wait up to timeout seconds for device to process
                 data = await client_socket.receive_some(16)
+                
+                import datetime
+
+                # Get current time
+                now = datetime.datetime.now()
+
+                # Format: Month-Day Hour:Minute:Second.Milliseconds
+                formatted_time = now.strftime("%m-%d %H:%M:%S.%f")[:-3]
+                print('WHAT IS THE DATA?', data, formatted_time)
+                
                 if data and data.startswith(b'OK'):
                     ack_ok = True
         except Exception as e:

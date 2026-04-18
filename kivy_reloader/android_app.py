@@ -646,16 +646,16 @@ class AndroidApp(BaseReloaderApp, KivyApp):
                 #     )
 
                 # Send ACK back to the desktop after successful processing. it's moved here because the reload was killing the app before the acknowledgement was sent, preventing state file from being made
-                try:
-                    await data_stream.send_all(b'OK')
-                    Logger.info('Reloader: OK SENT')
-                    # Give the OS time to flush the ACK before reload kills the process
-                    await trio.sleep(0.1)
-                except Exception as ack_err:
-                    Logger.warning(
-                        f'Reloader: Failed to send ACK to desktop: {ack_err}'
-                    )
-                    Logger.info('Reloader: OK FAILED')
+                # try:
+                #     await data_stream.send_all(b'OK')
+                #     Logger.info('Reloader: OK SENT')
+                #     # Give the OS time to flush the ACK before reload kills the process
+                #     await trio.sleep(0.1)
+                # except Exception as ack_err:
+                #     Logger.warning(
+                #         f'Reloader: Failed to send ACK to desktop: {ack_err}'
+                #     )
+                #     Logger.info('Reloader: OK FAILED')
 
         except Exception as e:
             self._log_server_error(e)
@@ -751,6 +751,17 @@ class AndroidApp(BaseReloaderApp, KivyApp):
 
         Logger.info('Reloader: App updated, triggering hot reload')
         Logger.info('Reloader: ************** END SERVER **************')
+
+        try:
+            await data_stream.send_all(b'OK')
+            Logger.info('Reloader: OK SENT')
+            # Give the OS time to flush the ACK before reload kills the process
+            await trio.sleep(0.1)
+        except Exception as ack_err:
+            Logger.warning(
+                f'Reloader: Failed to send ACK to desktop: {ack_err}'
+            )
+            Logger.info('Reloader: OK FAILED')
 
         # Trigger hot reload
         self.unload_python_files_on_android()
