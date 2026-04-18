@@ -622,7 +622,7 @@ class AndroidApp(BaseReloaderApp, KivyApp):
         Args:
             data_stream: The incoming TCP data stream
         """
-        Logger.info('Reloader: ************** AAAAAAAAAAAAAAAAAA SERVER AAAAAAAAAAAAAAAA **************')
+        Logger.info('Reloader: ************** SERVER **************')
         Logger.info('Reloader: Server started: receiving data from computer...')
 
         try:
@@ -630,8 +630,6 @@ class AndroidApp(BaseReloaderApp, KivyApp):
             async with self._update_lock:
                 # Use a unique filename per connection to prevent collisions
                 zip_file_path = os.path.join(os.getcwd(), f'app_copy_{uuid4().hex}.zip')
-                Logger.info("Reloader: what is the zip file path? why is it wrong? TEST")
-                Logger.info(f'Reloader: what is the zip file path? why is it wrong?, {zip_file_path}')
 
                 # Receive and save the zip file
                 await self._receive_zip_file(data_stream, zip_file_path)
