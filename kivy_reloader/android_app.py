@@ -622,7 +622,7 @@ class AndroidApp(BaseReloaderApp, KivyApp):
         Args:
             data_stream: The incoming TCP data stream
         """
-        Logger.info('Reloader: ************** SERVER **************')
+        Logger.info('Reloader: ************** AAAAAAAAAAAAAAAAAA SERVER AAAAAAAAAAAAAAAA **************')
         Logger.info('Reloader: Server started: receiving data from computer...')
 
         try:
@@ -630,6 +630,8 @@ class AndroidApp(BaseReloaderApp, KivyApp):
             async with self._update_lock:
                 # Use a unique filename per connection to prevent collisions
                 zip_file_path = os.path.join(os.getcwd(), f'app_copy_{uuid4().hex}.zip')
+                Logger.info("Reloader: what is the zip file path? why is it wrong? TEST")
+                Logger.info(f'Reloader: what is the zip file path? why is it wrong?, {zip_file_path}')
 
                 # Receive and save the zip file
                 await self._receive_zip_file(data_stream, zip_file_path)
@@ -659,6 +661,7 @@ class AndroidApp(BaseReloaderApp, KivyApp):
 
         except Exception as e:
             self._log_server_error(e)
+            Logger.error(f'{repr(e)}, {traceback.format_exc()}')
 
         # try:
         #     # Ensure only one update is applied at a time
@@ -718,7 +721,7 @@ class AndroidApp(BaseReloaderApp, KivyApp):
 
         return zip_file_path
 
-    async def _process_app_update(self, data_stream, zip_file_path):
+    async def _process_app_update(self, zip_file_path):
         """
         Process the received app update (delta or full) and trigger reload.
 
@@ -748,21 +751,8 @@ class AndroidApp(BaseReloaderApp, KivyApp):
         except Exception as e:
             Logger.warning(f'Reloader: Failed to remove temp file {zip_file_path}: {e}')
 
-        # # Send ACK back to the desktop after successful processing. it's moved here because the reload was killing the app before the acknowledgement was sent, preventing state file from being made
-        # try:
-        #     await data_stream.send_all(b'OK')
-        #     Logger.info('Reloader: OK SENT')
-        #     # Give the OS time to flush the ACK before reload kills the process
-        #     await trio.sleep(0.1)
-        # except Exception as ack_err:
-        #     Logger.warning(
-        #         f'Reloader: Failed to send ACK to desktop: {ack_err}'
-        #     )
-        #     Logger.info('Reloader: OK FAILED')
-
         Logger.info('Reloader: App updated, triggering hot reload')
         Logger.info('Reloader: ************** END SERVER **************')
-
 
         # Trigger hot reload
         self.unload_python_files_on_android()
