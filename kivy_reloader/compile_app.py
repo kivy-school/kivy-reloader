@@ -371,7 +371,7 @@ def run_buildozer_compilation() -> float:
     )
 
     start_time = time.time()
-    subprocess.run(['buildozer', '-v', 'android', 'debug'], check=True)
+    subprocess.run(_get_buildozer_command('debug'), check=True)
     end_time = time.time()
 
     compilation_time = round(end_time - start_time, 2)
@@ -383,6 +383,13 @@ def run_buildozer_compilation() -> float:
     logging.info('Finished compilation')
 
     return compilation_time
+
+
+def _get_buildozer_command(build_type: str) -> list[str]:
+    """
+    Run Buildozer from the current Python environment instead of relying on PATH.
+    """
+    return [sys.executable, '-m', 'buildozer.scripts.client', '-v', 'android', build_type]
 
 
 def filter_target_devices(devices: list) -> dict:
@@ -1051,7 +1058,7 @@ def create_aab():
 
     start_time = time.time()
     try:
-        subprocess.run(['buildozer', '-v', 'android', 'release'], check=True)
+        subprocess.run(_get_buildozer_command('release'), check=True)
     except subprocess.CalledProcessError as e:
         logging.error(f'AAB compilation failed: {e}')
         print(f'{red} Failed to create AAB')

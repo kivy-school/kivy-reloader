@@ -3,7 +3,17 @@ import os
 import shutil
 from pathlib import Path
 
-from colorama import Fore, init
+try:
+    from colorama import Fore, init
+except ModuleNotFoundError:
+    class Fore:
+        YELLOW = ''
+        GREEN = ''
+        RED = ''
+        RESET = ''
+
+    def init(*args, **kwargs):
+        return None
 
 from . import __version__ as _kl_version
 
@@ -19,10 +29,24 @@ files_in_base_dir = os.listdir(base_dir)
 current_file_path = os.path.abspath(__file__)
 current_file_dir = os.path.dirname(current_file_path)
 
+_DESKTOP_EXTRA_IMPORTS = {'colorama', 'plyer', 'psutil', 'readchar', 'typer'}
+_DESKTOP_EXTRA_HINT = (
+    'This command requires the optional desktop dependencies. '
+    'Install them with `pip install "kivy-reloader[desktop]"` or '
+    '`uv add "kivy-reloader[desktop]"`.'
+)
+
 
 def klprint(string):
     # Kivy Logger
     print(f'{green}[KIVY RELOADER]{Fore.RESET} {string}')
+
+
+def _raise_missing_desktop_extra(command: str, missing_module: str) -> None:
+    raise SystemExit(
+        f'`kivy-reloader {command}` requires the optional desktop dependencies. '
+        f'Missing dependency: {missing_module}. {_DESKTOP_EXTRA_HINT}'
+    )
 
 
 def create_settings_file():
@@ -134,8 +158,13 @@ def main():
         run_gui(base=project_dir, config_path=config_path, debug=False)
 
     elif args.command in {'start', 'run', 'compile'}:
-        from .compile_app import debug_and_livestream  # noqa
-        from .compile_app import compile_app, start  # noqa
+        try:
+            from .compile_app import debug_and_livestream  # noqa
+            from .compile_app import compile_app, start  # noqa
+        except ModuleNotFoundError as exc:
+            if exc.name not in _DESKTOP_EXTRA_IMPORTS:
+                raise
+            _raise_missing_desktop_extra(args.command, exc.name)
 
         if getattr(args, 'action', None) == 'build':
             compile_app()

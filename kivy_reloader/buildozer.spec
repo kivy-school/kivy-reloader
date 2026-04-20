@@ -316,17 +316,19 @@ android.allow_backup = True
 # Python for android (p4a) specific
 #
 
+# Temporary pin to a p4a fork with the Android pyproject wheel-build fix.
+# Remove these overrides once the fix lands upstream.
 # (str) python-for-android URL to use for checkout
-#p4a.url =
+p4a.url = https://github.com/kivy-school/python-for-android.git
 
 # (str) python-for-android fork to use in case if p4a.url is not specified, defaults to upstream (kivy)
 #p4a.fork = kivy
 
 # (str) python-for-android branch to use, defaults to master
-p4a.branch = develop
+p4a.branch = kr3301-minimal-fix
 
 # (str) python-for-android specific commit to use, defaults to HEAD, must be within p4a.branch
-#p4a.commit = HEAD
+p4a.commit = ab5c8a7bbed77b71d4ed7237843518252d9ac357
 
 # (str) python-for-android git clone directory (if empty, it will be automatically cloned from github)
 #p4a.source_dir =

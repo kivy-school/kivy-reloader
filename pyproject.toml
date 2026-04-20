@@ -7,22 +7,26 @@ requires-python = ">=3.10"
 authors = [{ name = "filipemarch", email = "filipe.marchesini@gmail.com" }]
 urls = { Homepage = "https://kivyschool.com/kivy-reloader/", Repository = "https://github.com/kivy-school/kivy-reloader" }
 dependencies = [
+    "kivy>=2.3.1",
+    "tomlkit>=0.13.3",
+    "trio>=0.30.0",
+]
+
+[project.optional-dependencies]
+desktop = [
     "buildozer>=1.5.0",
     "colorama>=0.4.6",
     "cython>=3.1.2",
     "kaki>=0.1.9",
     "pip>=25.1.1",
     "plyer>=2.1.0",
-    "psutil>=7.0.0; sys_platform == 'win32' or sys_platform == 'darwin' or sys_platform == 'linux'",
+    "psutil>=7.0.0",
     "readchar>=4.2.1",
-    "tomlkit>=0.13.3",
-    "trio>=0.30.0",
     "typer>=0.16.0",
 ]
 
 [dependency-groups]
 dev = [
-    "icecream>=2.1.5",
     "isort>=6.0.1",
     "ruff>=0.12.5",
     "pytest>=8.0.0",
