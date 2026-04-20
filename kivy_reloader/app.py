@@ -27,11 +27,6 @@ import os
 import sys
 import warnings
 
-from kivy.app import App as KivyApp
-from kivy.utils import platform
-
-from .base_app import BaseReloaderApp
-
 os.environ['KIVY_LOG_MODE'] = 'MIXED'
 
 # for pyinstaller              #for nuitka
@@ -44,6 +39,12 @@ _DESKTOP_EXTRA_HINT = (
     'Install them with `pip install "kivy-reloader[desktop]"` or '
     '`uv add "kivy-reloader[desktop]"`.'
 )
+_KIVY_RUNTIME_HINT = (
+    'Kivy is not installed. Install it with '
+    '`pip install "kivy-reloader[desktop]"` or '
+    '`uv add "kivy-reloader[desktop]"` for desktop usage, or ensure your app '
+    'installs `kivy` separately.'
+)
 
 
 def _warn_missing_desktop_extra(missing_module: str) -> None:
@@ -55,24 +56,40 @@ def _warn_missing_desktop_extra(missing_module: str) -> None:
     )
 
 
-if os.environ.get('RELOADER_STATUS') == 'PROD':
-    App = KivyApp
-elif platform == 'android':
-    from .android_app import AndroidApp
+class _MissingKivyApp:
+    def __init__(self, *args, **kwargs):
+        raise ModuleNotFoundError(_KIVY_RUNTIME_HINT)
 
-    App = AndroidApp
-elif platform in {'win', 'linux', 'macosx'}:
-    try:
-        from .desktop_app import DesktopApp
-    except ModuleNotFoundError as exc:
-        if exc.name not in {'kaki', 'watchdog'}:
-            raise
-        _warn_missing_desktop_extra(exc.name)
-        App = KivyApp
-    else:
-        App = DesktopApp
+
+try:
+    from kivy.app import App as KivyApp
+    from kivy.utils import platform
+except ModuleNotFoundError as exc:
+    if exc.name != 'kivy':
+        raise
+    BaseReloaderApp = object
+    App = _MissingKivyApp
 else:
-    App = KivyApp
+    from .base_app import BaseReloaderApp
+
+    if os.environ.get('RELOADER_STATUS') == 'PROD':
+        App = KivyApp
+    elif platform == 'android':
+        from .android_app import AndroidApp
+
+        App = AndroidApp
+    elif platform in {'win', 'linux', 'macosx'}:
+        try:
+            from .desktop_app import DesktopApp
+        except ModuleNotFoundError as exc:
+            if exc.name not in {'kaki', 'watchdog'}:
+                raise
+            _warn_missing_desktop_extra(exc.name)
+            App = KivyApp
+        else:
+            App = DesktopApp
+    else:
+        App = KivyApp
 
 # Export all classes for backward compatibility
 __all__ = ['App', 'BaseReloaderApp']

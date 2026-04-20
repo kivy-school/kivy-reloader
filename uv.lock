@@ -478,7 +478,6 @@ name = "kivy-reloader"
 version = "0.8.6"
 source = { editable = "." }
 dependencies = [
-    { name = "kivy" },
     { name = "tomlkit" },
     { name = "trio" },
 ]
@@ -489,6 +488,7 @@ desktop = [
     { name = "colorama" },
     { name = "cython" },
     { name = "kaki" },
+    { name = "kivy" },
     { name = "pip" },
     { name = "plyer" },
     { name = "psutil" },
@@ -511,7 +511,7 @@ requires-dist = [
     { name = "colorama", marker = "extra == 'desktop'", specifier = ">=0.4.6" },
     { name = "cython", marker = "extra == 'desktop'", specifier = ">=3.1.2" },
     { name = "kaki", marker = "extra == 'desktop'", specifier = ">=0.1.9" },
-    { name = "kivy", specifier = ">=2.3.1" },
+    { name = "kivy", marker = "extra == 'desktop'", specifier = ">=2.3.1" },
     { name = "pip", marker = "extra == 'desktop'", specifier = ">=25.1.1" },
     { name = "plyer", marker = "extra == 'desktop'", specifier = ">=2.1.0" },
     { name = "psutil", marker = "extra == 'desktop'", specifier = ">=7.0.0" },
