@@ -16,6 +16,7 @@ init(autoreset=True)
 
 async def connect_to_server(IP):
     try:
+        print("what", config.RELOADER_PORT)
         PORT = int(config.RELOADER_PORT)
         print(f'Connecting to IP: {green}{IP}{white} and PORT: {green}{PORT}')
         with trio.move_on_after(1):
@@ -39,7 +40,9 @@ async def send_app():
     if config.STREAM_USING == "USB":
         PORT = config.RELOADER_PORT
         os.system(f"adb forward tcp:{PORT} tcp:{PORT}")
-        unique_physical = {("127.0.0.1", d['model']) for d in devices}
+        # unique_physical = {("127.0.0.1", d['model']) for d in devices}
+        unique_physical = set(zip(config.PHONE_IPS, (d["model"] for d in devices)))
+
 
         # # Get Windows host IP from WSL
         # def get_windows_host_ip():
