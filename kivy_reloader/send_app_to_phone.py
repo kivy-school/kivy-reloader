@@ -124,6 +124,10 @@ async def send_app():
         print(f'{yellow}Waiting ({timeout} seconds) for ACK from smartphone {IP}...')
         ack_ok = False
         try:
+            import datetime
+
+            # Get current time
+            now = datetime.datetime.now()
             with trio.move_on_after(timeout):
                 while True:
                     data = await client_socket.receive_some(16)
