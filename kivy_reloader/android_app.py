@@ -787,17 +787,17 @@ class AndroidApp(BaseReloaderApp, KivyApp):
         # await data_stream.send_all(b'OK')
         # Logger.info("Reloader: EOF received, exiting receive loop")
         
-        # try:
-        #     await data_stream.send_all(b'OK')
-        #     Logger.info('Reloader: OK SENT')
-        #     # Give the OS time to flush the ACK before reload kills the process
-        #     # await trio.sleep(0.1)
-        #     await trio.sleep(1)
-        # except Exception as ack_err:
-        #     Logger.warning(
-        #         f'Reloader: Failed to send ACK to desktop: {ack_err}'
-        #     )
-        #     Logger.info('Reloader: OK FAILED')
+        try:
+            await data_stream.send_all(b'OK')
+            Logger.info('Reloader: OK SENT')
+            # Give the OS time to flush the ACK before reload kills the process
+            # await trio.sleep(0.1)
+            await trio.sleep(1)
+        except Exception as ack_err:
+            Logger.warning(
+                f'Reloader: Failed to send ACK to desktop: {ack_err}'
+            )
+            Logger.info('Reloader: OK FAILED')
         return zip_file_path
 
     async def _process_app_update(self, zip_file_path):
