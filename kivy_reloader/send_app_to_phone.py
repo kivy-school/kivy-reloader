@@ -132,11 +132,24 @@ async def send_app():
                 while True:
                     data = await client_socket.receive_some(16)
                     print(f'RECEIVED: {data!r} at {datetime.datetime.now()}')
-                    if not data:
-                        break
-                    if data.startswith(b'OK'):
+
+                    if data == b'OK':
                         ack_ok = True
                         break
+
+                    # If connection closed (b''), just wait for timeout
+                    if data == b'':
+                        await trio.sleep(0.1)
+                        continue
+
+                # while True:
+                #     data = await client_socket.receive_some(16)
+                #     print(f'RECEIVED: {data!r} at {datetime.datetime.now()}')
+                #     if not data:
+                #         break
+                #     if data.startswith(b'OK'):
+                #         ack_ok = True
+                #         break
             # with trio.move_on_after(timeout):  # wait up to timeout seconds for device to process
             #     data = await client_socket.receive_some(16)
                 

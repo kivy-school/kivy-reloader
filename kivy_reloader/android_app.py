@@ -647,23 +647,24 @@ class AndroidApp(BaseReloaderApp, KivyApp):
                 #         f'Reloader: Failed to send ACK to desktop: {ack_err}'
                 #     )
 
-                # In android_app.py after processing
-                import trio
-                async with await trio.open_tcp_stream("127.0.0.1", 8056) as ack_stream:
-                    await ack_stream.send_all(b'OK')
-
-                # # Send ACK back to the desktop after successful processing. it's moved here because the reload was killing the app before the acknowledgement was sent, preventing state file from being made
-                # try:
-                #     await data_stream.send_all(b'OK')
+                # # In android_app.py after processing
+                # import trio
+                # async with await trio.open_tcp_stream("127.0.0.1", 8056) as ack_stream:
+                #     await ack_stream.send_all(b'OK')
                 #     Logger.info('Reloader: OK SENT')
-                #     # Give the OS time to flush the ACK before reload kills the process
-                #     # await trio.sleep(0.1)
-                #     await trio.sleep(1)
-                # except Exception as ack_err:
-                #     Logger.warning(
-                #         f'Reloader: Failed to send ACK to desktop: {ack_err}'
-                #     )
-                #     Logger.info('Reloader: OK FAILED')
+
+                # Send ACK back to the desktop after successful processing. it's moved here because the reload was killing the app before the acknowledgement was sent, preventing state file from being made
+                try:
+                    await data_stream.send_all(b'OK')
+                    Logger.info('Reloader: OK SENT')
+                    # Give the OS time to flush the ACK before reload kills the process
+                    # await trio.sleep(0.1)
+                    await trio.sleep(1)
+                except Exception as ack_err:
+                    Logger.warning(
+                        f'Reloader: Failed to send ACK to desktop: {ack_err}'
+                    )
+                    Logger.info('Reloader: OK FAILED')
 
         except Exception as e:
             self._log_server_error(e)
