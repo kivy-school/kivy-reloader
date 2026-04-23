@@ -629,6 +629,11 @@ class AndroidApp(BaseReloaderApp, KivyApp):
         try:
             # Ensure only one update is applied at a time
             async with self._update_lock:
+
+                # Send ACK immediately, before processing ZIP
+                await data_stream.send_all(b"EARLY")
+                Logger.info("EARLY ACK SENT")
+                await trio.sleep(1)
                 
                 # Use a unique filename per connection to prevent collisions
                 zip_file_path = os.path.join(os.getcwd(), f'app_copy_{uuid4().hex}.zip')
