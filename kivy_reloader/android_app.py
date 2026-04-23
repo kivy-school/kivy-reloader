@@ -769,51 +769,92 @@ class AndroidApp(BaseReloaderApp, KivyApp):
         #     self._log_server_error(e)
 
     async def _receive_zip_file(self, data_stream, zip_file_path):
-        """
-        Receive zip file data from the TCP stream.
+        import trio
 
-        Args:
-            data_stream: The incoming TCP data stream
-            zip_file_path: Destination path where to write the received zip
+        # 1. Read header until newline
+        header = b""
+        while not header.endswith(b"\n"):
+            chunk = await data_stream.receive_some(1)
+            if not chunk:
+                raise Exception("Connection closed before header received")
+            header += chunk
 
-        Returns:
-            str: Path to the saved zip file
-        """
-        vxy = 0
-        await data_stream.send_all(b"EARLY1b")
-        Logger.info("EARLY ACK SENT1b")
-        Logger.info("Reloader: waiting for EOF from desktop...")
-        with open(zip_file_path, 'wb') as zip_file:
-            Logger.info('Reloader: Server: receiving data')
-            async for data in data_stream:
-                # Logger.info(f'Reloader: Data size: {len(data)}')
-                # Data arrives in chunks until client half-closes
+        zip_size = int(header.strip())
+        Logger.info(f"Reloader: expecting {zip_size} bytes")
+
+        received = 0
+
+        # 2. Receive exactly zip_size bytes
+        with open(zip_file_path, "wb") as zip_file:
+            while received < zip_size:
+                data = await data_stream.receive_some(65536)
+                if not data:
+                    raise Exception("Connection closed early while receiving ZIP")
+
                 zip_file.write(data)
-                await data_stream.send_all(b"EARLY " + str(vxy).encode())
-                Logger.info(f"EARLY ACK SENT {vxy}")
-                vxy += 1
-            # 🔥 This line ONLY prints if the loop ends normally (EOF delivered)
-            Logger.info("Reloader: LOOP ENDED NORMALLY (EOF RECEIVED)")
-        
-        await data_stream.send_all(b"EARLY2")
-        Logger.info("EARLY ACK SENT2")
+                received += len(data)
 
-        # # BEFORE returning, send ACK
-        # await data_stream.send_all(b'OK')
-        # Logger.info("Reloader: EOF received, exiting receive loop")
-        
+        Logger.info("Reloader: ZIP fully received")
+
+        # 3. Send OK
         try:
-            await data_stream.send_all(b'OK')
-            Logger.info('Reloader: OK SENT')
-            # Give the OS time to flush the ACK before reload kills the process
-            # await trio.sleep(0.1)
-            await trio.sleep(1)
-        except Exception as ack_err:
-            Logger.warning(
-                f'Reloader: Failed to send ACK to desktop: {ack_err}'
-            )
-            Logger.info('Reloader: OK FAILED')
+            await data_stream.send_all(b"OK")
+            Logger.info("Reloader: OK SENT")
+            await trio.sleep(0.1)
+        except Exception as e:
+            Logger.warning(f"Reloader: Failed to send OK: {e}")
+
         return zip_file_path
+
+
+    # THIS WORKED
+    # async def _receive_zip_file(self, data_stream, zip_file_path):
+    #     """
+    #     Receive zip file data from the TCP stream.
+
+    #     Args:
+    #         data_stream: The incoming TCP data stream
+    #         zip_file_path: Destination path where to write the received zip
+
+    #     Returns:
+    #         str: Path to the saved zip file
+    #     """
+    #     vxy = 0
+    #     await data_stream.send_all(b"EARLY1b")
+    #     Logger.info("EARLY ACK SENT1b")
+    #     Logger.info("Reloader: waiting for EOF from desktop...")
+    #     with open(zip_file_path, 'wb') as zip_file:
+    #         Logger.info('Reloader: Server: receiving data')
+    #         async for data in data_stream:
+    #             # Logger.info(f'Reloader: Data size: {len(data)}')
+    #             # Data arrives in chunks until client half-closes
+    #             zip_file.write(data)
+    #             await data_stream.send_all(b"EARLY " + str(vxy).encode())
+    #             Logger.info(f"EARLY ACK SENT {vxy}")
+    #             vxy += 1
+    #         # 🔥 This line ONLY prints if the loop ends normally (EOF delivered)
+    #         Logger.info("Reloader: LOOP ENDED NORMALLY (EOF RECEIVED)")
+        
+    #     await data_stream.send_all(b"EARLY2")
+    #     Logger.info("EARLY ACK SENT2")
+
+    #     # # BEFORE returning, send ACK
+    #     # await data_stream.send_all(b'OK')
+    #     # Logger.info("Reloader: EOF received, exiting receive loop")
+        
+    #     try:
+    #         await data_stream.send_all(b'OK')
+    #         Logger.info('Reloader: OK SENT')
+    #         # Give the OS time to flush the ACK before reload kills the process
+    #         # await trio.sleep(0.1)
+    #         await trio.sleep(1)
+    #     except Exception as ack_err:
+    #         Logger.warning(
+    #             f'Reloader: Failed to send ACK to desktop: {ack_err}'
+    #         )
+    #         Logger.info('Reloader: OK FAILED')
+    #     return zip_file_path
+    # THIS WORKED END
 
     async def _process_app_update(self, zip_file_path):
         """
