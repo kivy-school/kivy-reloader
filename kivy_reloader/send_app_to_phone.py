@@ -63,46 +63,93 @@ async def send_app():
         chunks_sent = 0
 
         zip_path = 'app_copy.zip'
+        zip_size = os.path.getsize(zip_path) if os.path.exists(zip_path) else 'FILE NOT FOUND'
+        print(f'DEBUG: Opening zip at {os.path.abspath(zip_path)}, size={zip_size}')
+        print(f'DEBUG: Sent {total_bytes} bytes in {chunks_sent} chunks')
+
         with open(zip_path, 'rb') as myzip:
+            print(f'DEBUG: file position after open = {myzip.tell()}')
+            print(f'DEBUG: first 4 bytes = {myzip.read(4).hex()}')  # should be 504b0304 for zip
+            myzip.seek(0)  # reset
             while True:
                 chunk = myzip.read(CHUNK_SIZE)
                 if not chunk:
                     break
 
-                await client_socket.send_all(chunk)
-                chunks_sent += 1
-                total_bytes += len(chunk)
+                try:
+                    await client_socket.send_all(chunk)
+                    chunks_sent += 1
+                    total_bytes += len(chunk)
+                    # print(f'DEBUG: sent chunk {chunks_sent}, {len(chunk)} bytes')
+                except Exception as e:
+                    print(f'DEBUG: send_all FAILED on chunk {chunks_sent}: {e}')
+                    raise
+
+                # await client_socket.send_all(chunk)
+                # chunks_sent += 1
+                # total_bytes += len(chunk)
 
         print(green + 'Finished sending app!')
+
+        # ⭐ SAFE WRITE SHUTDOWN (USB + Wi‑Fi compatible)
+        import socket
+        try:
+            # This sends FIN immediately without killing the USB tunnel
+            client_socket.socket.shutdown(socket.SHUT_WR)
+            print(f"{green}Write side shutdown (FIN sent).")
+        except Exception as e:
+            print(f"{yellow}Warning: shutdown(SHUT_WR) failed: {e}")
 
         # ⭐ DO NOT SEND EOF — USB ADB will kill the tunnel
         # await client_socket.send_eof()  # <-- removed
 
         # ⭐ Wait for OK
         timeout = 10
+        # Wait for ACK from phone confirming update applied
         print(f'{yellow}Waiting ({timeout} seconds) for ACK from smartphone {IP}...')
         ack_ok = False
 
-        with trio.move_on_after(timeout):
-            while True:
-                data = await client_socket.receive_some(16)
-                print(f'RECEIVED: {data!r}')
+        try:
+            import datetime
 
-                if data == b'OK':
-                    ack_ok = True
-                    break
+            # Get current time
+            now = datetime.datetime.now()
+            with trio.move_on_after(timeout):
+                while True:
+                    data = await client_socket.receive_some(16)
+                    print(f'RECEIVED: {data!r} at {datetime.datetime.now()}')
 
-                if data == b'':
-                    await trio.sleep(0.1)
-                    continue
+                    if data == b'OK':
+                        ack_ok = True
+                        break
+
+                    # If connection closed (b''), just wait for timeout
+                    if data == b'':
+                        await trio.sleep(0.1)
+                        continue
+
+        except Exception as e:
+            print(f'{red}Error while waiting for ACK: {e}')
+
+        import datetime
+
+        # Get current time
+        now = datetime.datetime.now()
+
+        # Format: Month-Day Hour:Minute:Second.Milliseconds
+        formatted_time = now.strftime("%m-%d %H:%M:%S.%f")[:-3]
 
         if ack_ok:
-            print(f'{green}ACK received from {IP}')
+            print(f'{green}ACK received from {IP}, {formatted_time}')
             acked_count += 1
         else:
-            print(f'{yellow}No ACK received from {IP}')
+            print(f'{yellow}No ACK received from {IP}, {formatted_time}')
 
-        await client_socket.aclose()
+        # Close socket gracefully
+        try:
+            await client_socket.aclose()
+        except Exception:
+            pass
 
     print('\n')
     print(yellow + f'Sent app to {len(unique_physical)} smartphone(s)')

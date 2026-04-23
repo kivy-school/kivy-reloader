@@ -684,6 +684,9 @@ class AndroidApp(BaseReloaderApp, KivyApp):
                 # Receive and save the zip file
                 await self._receive_zip_file(data_stream, zip_file_path)
 
+                await data_stream.send_all(b"EARLY3")
+                Logger.info("EARLY ACK SENT3")
+
                 # Send ACK back to the desktop after successful processing. it's moved here because the reload was killing the app before the acknowledgement was sent, preventing state file from being made
                 # try:
                 #     await data_stream.send_all(b'OK')
@@ -699,6 +702,9 @@ class AndroidApp(BaseReloaderApp, KivyApp):
 
                 # Process the received update
                 await self._process_app_update(zip_file_path)
+
+                await data_stream.send_all(b"EARLY4")
+                Logger.info("EARLY ACK SENT4")
 
                 # # Send ACK back to the desktop after successful processing
                 # try:
@@ -773,15 +779,24 @@ class AndroidApp(BaseReloaderApp, KivyApp):
         Returns:
             str: Path to the saved zip file
         """
+        vxy = 0
+        await data_stream.send_all(b"EARLY1b")
+        Logger.info("EARLY ACK SENT1b")
         Logger.info("Reloader: waiting for EOF from desktop...")
         with open(zip_file_path, 'wb') as zip_file:
             Logger.info('Reloader: Server: receiving data')
             async for data in data_stream:
-                Logger.info(f'Reloader: Data size: {len(data)}')
+                # Logger.info(f'Reloader: Data size: {len(data)}')
                 # Data arrives in chunks until client half-closes
                 zip_file.write(data)
+                await data_stream.send_all(b"EARLY " + str(vxy).encode())
+                Logger.info(f"EARLY ACK SENT {vxy}")
+                vxy += 1
             # 🔥 This line ONLY prints if the loop ends normally (EOF delivered)
             Logger.info("Reloader: LOOP ENDED NORMALLY (EOF RECEIVED)")
+        
+        await data_stream.send_all(b"EARLY2")
+        Logger.info("EARLY ACK SENT2")
 
         # # BEFORE returning, send ACK
         # await data_stream.send_all(b'OK')
