@@ -119,7 +119,7 @@ async def send_app():
 
         print(green + 'Finished sending app!')
 
-        timeout = 30
+        timeout = 10
         # Wait for ACK from phone confirming update applied
         print(f'{yellow}Waiting ({timeout} seconds) for ACK from smartphone {IP}...')
         ack_ok = False
