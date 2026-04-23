@@ -641,7 +641,7 @@ class AndroidApp(BaseReloaderApp, KivyApp):
                 # Receive and save the zip file
                 await self._receive_zip_file(data_stream, zip_file_path)
 
-                Send ACK back to the desktop after successful processing. it's moved here because the reload was killing the app before the acknowledgement was sent, preventing state file from being made
+                # Send ACK back to the desktop after successful processing. it's moved here because the reload was killing the app before the acknowledgement was sent, preventing state file from being made
                 try:
                     await data_stream.send_all(b'OK')
                     Logger.info('Reloader: OK SENT')
