@@ -632,6 +632,44 @@ class AndroidApp(BaseReloaderApp, KivyApp):
         Logger.info('Reloader: Server started: receiving data from computer...')
 
         try:
+            # # Ensure only one update is applied at a time
+            # async with self._update_lock:
+
+                # # Send ACK immediately, before processing ZIP
+                # await data_stream.send_all(b"EARLY")
+                # Logger.info("EARLY ACK SENT")
+                # await trio.sleep(1)
+                
+                # # Use a unique filename per connection to prevent collisions
+                # zip_file_path = os.path.join(os.getcwd(), f'app_copy_{uuid4().hex}.zip')
+
+                # # Receive and save the zip file
+                # await self._receive_zip_file(data_stream, zip_file_path)
+
+                # # Send ACK back to the desktop after successful processing. it's moved here because the reload was killing the app before the acknowledgement was sent, preventing state file from being made
+                # try:
+                #     await data_stream.send_all(b'OK')
+                #     Logger.info('Reloader: OK SENT')
+                #     # Give the OS time to flush the ACK before reload kills the process
+                #     # await trio.sleep(0.1)
+                #     await trio.sleep(1)
+                # except Exception as ack_err:
+                #     Logger.warning(
+                #         f'Reloader: Failed to send ACK to desktop: {ack_err}'
+                #     )
+                #     Logger.info('Reloader: OK FAILED')
+
+                # # Close stream cleanly
+                # try:
+                #     await data_stream.aclose()
+                # except Exception:
+                #     pass
+
+                # # Schedule reload AFTER handler exits
+                # self.nursery.start_soon(self._delayed_reload, zip_file_path)
+
+            # =-=-=-=-=
+
             # Ensure only one update is applied at a time
             async with self._update_lock:
 
@@ -647,56 +685,20 @@ class AndroidApp(BaseReloaderApp, KivyApp):
                 await self._receive_zip_file(data_stream, zip_file_path)
 
                 # Send ACK back to the desktop after successful processing. it's moved here because the reload was killing the app before the acknowledgement was sent, preventing state file from being made
-                try:
-                    await data_stream.send_all(b'OK')
-                    Logger.info('Reloader: OK SENT')
-                    # Give the OS time to flush the ACK before reload kills the process
-                    # await trio.sleep(0.1)
-                    await trio.sleep(1)
-                except Exception as ack_err:
-                    Logger.warning(
-                        f'Reloader: Failed to send ACK to desktop: {ack_err}'
-                    )
-                    Logger.info('Reloader: OK FAILED')
+                # try:
+                #     await data_stream.send_all(b'OK')
+                #     Logger.info('Reloader: OK SENT')
+                #     # Give the OS time to flush the ACK before reload kills the process
+                #     # await trio.sleep(0.1)
+                #     await trio.sleep(1)
+                # except Exception as ack_err:
+                #     Logger.warning(
+                #         f'Reloader: Failed to send ACK to desktop: {ack_err}'
+                #     )
+                #     Logger.info('Reloader: OK FAILED')
 
-                # Close stream cleanly
-                try:
-                    await data_stream.aclose()
-                except Exception:
-                    pass
-
-                # Schedule reload AFTER handler exits
-                self.nursery.start_soon(self._delayed_reload, zip_file_path)
-
-            # # Ensure only one update is applied at a time
-            # async with self._update_lock:
-
-            #     # Send ACK immediately, before processing ZIP
-            #     await data_stream.send_all(b"EARLY")
-            #     Logger.info("EARLY ACK SENT")
-            #     await trio.sleep(1)
-                
-            #     # Use a unique filename per connection to prevent collisions
-            #     zip_file_path = os.path.join(os.getcwd(), f'app_copy_{uuid4().hex}.zip')
-
-            #     # Receive and save the zip file
-            #     await self._receive_zip_file(data_stream, zip_file_path)
-
-            #     # Send ACK back to the desktop after successful processing. it's moved here because the reload was killing the app before the acknowledgement was sent, preventing state file from being made
-            #     try:
-            #         await data_stream.send_all(b'OK')
-            #         Logger.info('Reloader: OK SENT')
-            #         # Give the OS time to flush the ACK before reload kills the process
-            #         # await trio.sleep(0.1)
-            #         await trio.sleep(1)
-            #     except Exception as ack_err:
-            #         Logger.warning(
-            #             f'Reloader: Failed to send ACK to desktop: {ack_err}'
-            #         )
-            #         Logger.info('Reloader: OK FAILED')
-
-            #     # Process the received update
-            #     await self._process_app_update(zip_file_path)
+                # Process the received update
+                await self._process_app_update(zip_file_path)
 
                 # # Send ACK back to the desktop after successful processing
                 # try:
@@ -789,13 +791,13 @@ class AndroidApp(BaseReloaderApp, KivyApp):
         #     await data_stream.send_all(b'OK')
         #     Logger.info('Reloader: OK SENT')
         #     # Give the OS time to flush the ACK before reload kills the process
-        #     await trio.sleep(0.1)
+        #     # await trio.sleep(0.1)
+        #     await trio.sleep(1)
         # except Exception as ack_err:
         #     Logger.warning(
         #         f'Reloader: Failed to send ACK to desktop: {ack_err}'
         #     )
         #     Logger.info('Reloader: OK FAILED')
-
         return zip_file_path
 
     async def _process_app_update(self, zip_file_path):
