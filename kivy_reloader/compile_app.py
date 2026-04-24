@@ -217,6 +217,9 @@ def validate_devices_connected() -> list:
         SystemExit: If no devices are connected
     """
     devices = get_connected_devices()
+    # if you are wifi, attempt a connection
+    if not devices and config.STREAM_USING == 'WIFI':
+
     if not devices:
         logging.error('No connected devices found.')
         print(
@@ -325,8 +328,10 @@ def select_option(option: str, app_name: str) -> None:
     try:
         if option == '1':
             compile_app()
+            print(f"debug_and_livestream RAN!!")
             debug_and_livestream()
         elif option == '2':
+            print(f"debug_and_livestream RAN!!")
             debug_and_livestream()
         elif option == '3':
             create_aab()
@@ -482,6 +487,7 @@ def debug_and_livestream() -> None:
 
     In CI environments, this function gracefully exits without device validation.
     """
+    print(f"DEBUG RAN!0000!", is_ci_environment(), validate_devices_connected)
     # Skip device operations in CI environments
     if is_ci_environment():
         logging.info('CI environment detected, skipping debug and livestream')
@@ -490,8 +496,11 @@ def debug_and_livestream() -> None:
     # Early validation - exit immediately if no devices
     validate_devices_connected()
 
+    print(f"DEBUG RAN!0000!")
     try:
+        print(f"DEBUG RAN!!")
         adb_logcat = Process(target=debug)
+        print(f"LIVESTREAM RAN!!")
         scrcpy = Process(target=livestream)
 
         adb_logcat.start()
@@ -514,6 +523,7 @@ def debug():
     """
     Debugging based on the streaming method.
     """
+    logging.info(f"stream using? {config.STREAM_USING}")
     if config.STREAM_USING == 'USB':
         start_adb_server()
         clear_logcat()
@@ -694,14 +704,8 @@ def debug_on_wifi():
     # Step 1: Determine target devices and IPs
     target_usb_devices, target_tcpip_ips = determine_wifi_targets(devices)
     
-    # every device needs to be tcpip even if you're on wifi/usb
-    # target_usb_devices, target_tcpip_ips = devices, devices
-
-    # Step 2: Convert USB devices to TCP/IP and get their IPs
+    logging.info("# Step 2: Convert USB devices to TCP/IP and get their IPs")
     converted_ips = enable_tcpip_for_devices(target_usb_devices)
-
-    # every device needs to be tcpip even if you're on wifi
-    # converted_ips = enable_tcpip_for_devices(devices)
 
     # Step 3: Combine existing TCP/IP IPs with newly converted ones
     all_target_ips = target_tcpip_ips + [
