@@ -89,13 +89,13 @@ async def send_app():
 
         print(green + f'Finished sending app! ({total_bytes} bytes in {chunks_sent} chunks)')
 
-        # 3. SAFE WRITE SHUTDOWN (USB + Wi‑Fi)
-        import socket
-        try:
-            client_socket.socket.shutdown(socket.SHUT_WR)
-            print(f"{green}Write side shutdown (FIN sent).")
-        except Exception as e:
-            print(f"{yellow}Warning: shutdown(SHUT_WR) failed: {e}")
+        # # 3. SAFE WRITE SHUTDOWN (USB + Wi‑Fi)
+        # import socket
+        # try:
+        #     client_socket.socket.shutdown(socket.SHUT_WR)
+        #     print(f"{green}Write side shutdown (FIN sent).")
+        # except Exception as e:
+        #     print(f"{yellow}Warning: shutdown(SHUT_WR) failed: {e}")
 
         # 4. Wait for OK
         timeout = 10
