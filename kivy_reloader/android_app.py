@@ -700,8 +700,8 @@ class AndroidApp(BaseReloaderApp, KivyApp):
                 #     )
                 #     Logger.info('Reloader: OK FAILED')
 
-                Logger.info('Reloader: starting app update')
-                # Close stream afterwards so that USB connection is kept alive
+                Logger.info('Reloader: starting app update ????')
+                # Close stream 
                 await data_stream.aclose()
                 # self.nursery.start_soon(self._process_app_update, zip_file_path)
 
