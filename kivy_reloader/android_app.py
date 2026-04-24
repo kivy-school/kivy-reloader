@@ -612,11 +612,6 @@ class AndroidApp(BaseReloaderApp, KivyApp):
         )
         Logger.info(f'Error details: {error}')
 
-    async def _delayed_reload(self, zip_file_path):
-        await trio.sleep(0.1)
-        await self._process_app_update(zip_file_path)
-
-
     # THIS WORKED
     async def data_receiver(self, data_stream):
         """

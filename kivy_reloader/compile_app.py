@@ -644,8 +644,10 @@ def enable_tcpip_for_devices(usb_devices: list) -> list:
 
     for device in usb_devices:
         logging.info(f'Enabling tcpip mode for {device["model"]} ({device["serial"]})')
+        tcpip_command = ['adb', '-s', device['serial'], 'tcpip', f'{config.ADB_PORT}']
+        logging.info(f"Running command: {' '.join(tcpip_command)}")
         subprocess.run(
-            ['adb', '-s', device['serial'], 'tcpip', f'{config.ADB_PORT}'], check=True
+            tcpip_command, check=True
         )
 
         if not device['wifi_ip']:
@@ -690,10 +692,16 @@ def debug_on_wifi():
     logging.debug(f'Connected devices: {devices}')
 
     # Step 1: Determine target devices and IPs
-    target_usb_devices, target_tcpip_ips = determine_wifi_targets(devices)
+    # target_usb_devices, target_tcpip_ips = determine_wifi_targets(devices)
+    
+    # every device needs to be tcpip even if you're on wifi/usb
+    target_usb_devices, target_tcpip_ips = devices, devices
 
     # Step 2: Convert USB devices to TCP/IP and get their IPs
-    converted_ips = enable_tcpip_for_devices(target_usb_devices)
+    # converted_ips = enable_tcpip_for_devices(target_usb_devices)
+
+    # every device needs to be tcpip even if you're on wifi
+    converted_ips = enable_tcpip_for_devices(devices)
 
     # Step 3: Combine existing TCP/IP IPs with newly converted ones
     all_target_ips = target_tcpip_ips + [
