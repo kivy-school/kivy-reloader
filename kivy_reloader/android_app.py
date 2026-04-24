@@ -701,10 +701,12 @@ class AndroidApp(BaseReloaderApp, KivyApp):
                 #     Logger.info('Reloader: OK FAILED')
 
                 # Process the received update
-                await self._process_app_update(zip_file_path)
+                await data_stream.aclose()
+                self.nursery.start_soon(self._process_app_update, zip_file_path)
+                # await self._process_app_update(zip_file_path)
 
-                await data_stream.send_all(b"EARLY4")
-                Logger.info("EARLY ACK SENT4")
+                # await data_stream.send_all(b"EARLY4")
+                # Logger.info("EARLY ACK SENT4")
 
                 # # Send ACK back to the desktop after successful processing
                 # try:
