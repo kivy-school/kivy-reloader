@@ -702,7 +702,8 @@ class AndroidApp(BaseReloaderApp, KivyApp):
 
                 # Process the received update
                 await data_stream.aclose()
-                self.nursery.start_soon(self._process_app_update, zip_file_path)
+                # self.nursery.start_soon(self._process_app_update, zip_file_path)
+
                 # await self._process_app_update(zip_file_path)
 
                 # await data_stream.send_all(b"EARLY4")
