@@ -692,16 +692,16 @@ def debug_on_wifi():
     logging.debug(f'Connected devices: {devices}')
 
     # Step 1: Determine target devices and IPs
-    # target_usb_devices, target_tcpip_ips = determine_wifi_targets(devices)
+    target_usb_devices, target_tcpip_ips = determine_wifi_targets(devices)
     
     # every device needs to be tcpip even if you're on wifi/usb
-    target_usb_devices, target_tcpip_ips = devices, devices
+    # target_usb_devices, target_tcpip_ips = devices, devices
 
     # Step 2: Convert USB devices to TCP/IP and get their IPs
-    # converted_ips = enable_tcpip_for_devices(target_usb_devices)
+    converted_ips = enable_tcpip_for_devices(target_usb_devices)
 
     # every device needs to be tcpip even if you're on wifi
-    converted_ips = enable_tcpip_for_devices(devices)
+    # converted_ips = enable_tcpip_for_devices(devices)
 
     # Step 3: Combine existing TCP/IP IPs with newly converted ones
     all_target_ips = target_tcpip_ips + [
@@ -978,7 +978,7 @@ def build_scrcpy_command() -> list:
     add_control_options(scrcpy_cmd)
     add_advanced_options(scrcpy_cmd)
     add_recording_options(scrcpy_cmd)
-    add_connection_options(scrcpy_cmd)
+    # add_connection_options(scrcpy_cmd) #scrpy will try usb then wifi on its own
 
     return scrcpy_cmd
 
@@ -1032,6 +1032,12 @@ def start_scrcpy():
 
     # Step 1: Build scrcpy command
     scrcpy_cmd = build_scrcpy_command()
+    logging.info(f'scrcpy command: {scrcpy_cmd}')
+    # import time
+
+    # # after enabling tcpip
+    # time.sleep(1)
+
 
     # Step 2: Execute scrcpy process with cleanup
     scrcpy_proc = None
