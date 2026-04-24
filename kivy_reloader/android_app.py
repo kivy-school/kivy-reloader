@@ -700,8 +700,7 @@ class AndroidApp(BaseReloaderApp, KivyApp):
                 #     )
                 #     Logger.info('Reloader: OK FAILED')
 
-                # Process the received update
-                await data_stream.aclose()
+                
                 # self.nursery.start_soon(self._process_app_update, zip_file_path)
 
                 # await self._process_app_update(zip_file_path)
@@ -735,6 +734,8 @@ class AndroidApp(BaseReloaderApp, KivyApp):
                 #         f'Reloader: Failed to send ACK to desktop: {ack_err}'
                 #     )
                 #     Logger.info('Reloader: OK FAILED')
+            # Process the received update
+            await data_stream.aclose()
 
         except Exception as e:
             self._log_server_error(e)
@@ -772,8 +773,6 @@ class AndroidApp(BaseReloaderApp, KivyApp):
         #     self._log_server_error(e)
 
     async def _receive_zip_file(self, data_stream, zip_file_path):
-        import trio
-
         # 1. Read header until newline
         header = b""
         while not header.endswith(b"\n"):
