@@ -6,7 +6,7 @@ import subprocess
 import sys
 import time
 from contextlib import suppress
-from multiprocessing import Process
+from multiprocessing import Process, Event
 from sys import platform as _sys_platform
 from threading import Thread
 
@@ -206,6 +206,105 @@ def _terminate(proc: subprocess.Popen) -> None:
             proc.terminate()
 
 
+def wait_for_authorization(timeout=30):
+    import time, subprocess, logging
+
+    def adb(cmd):
+        return subprocess.check_output(["adb"] + cmd).decode().strip()
+
+    start = time.time()
+    usb_serial = None
+
+    while time.time() - start < timeout:
+        # Full device list for debugging
+        devices_full = adb(["devices", "-l"])
+        print("\n=== adb devices -l ===")
+        print(devices_full)
+        print("======================\n")
+
+        # Parse devices
+        lines = [l for l in devices_full.splitlines() if "\t" in l]
+
+        if not lines:
+            print("No devices detected.")
+            return False
+
+        # Extract serial + state
+        parsed = []
+        for l in lines:
+            serial, state = l.split("\t", 1)
+            parsed.append((serial.strip(), state.strip()))
+
+        # 1. Capture USB serial FIRST (before TCP/IP)
+        # USB devices have no ":" in the serial
+        usb_devices = [s for s, st in parsed if ":" not in s]
+
+        if usb_devices and usb_serial is None:
+            usb_serial = usb_devices[0]
+            print(f"Captured USB serial: {usb_serial}")
+
+        # 2. Check for unauthorized state
+        for serial, state in parsed:
+            if "unauthorized" in state:
+                elapsed = time.time() - start
+                print(f"[+{elapsed:0.2f}s] waiting for authorization on {serial}...")
+                time.sleep(0.5)
+                break
+        else:
+            # No unauthorized devices → check for authorized
+            for serial, state in parsed:
+                if state == "device":
+                    print(f"Authorized device: {serial}")
+                    return True
+
+        time.sleep(0.5)
+
+    logging.error("Device did not authorize in time.")
+    print("Please tap 'Allow USB debugging' on your phone.")
+    return False
+
+
+
+# def wait_for_authorization(timeout=30):
+#     import time, subprocess, datetime
+
+#     start = time.time()
+#     while time.time() - start < timeout:
+#         out = subprocess.check_output(["adb", "devices"]).decode().strip()
+
+#         # No devices at all → exit immediately
+#         if "unauthorized" not in out and "device" not in out:
+#             print("No devices detected during authorization wait.")
+#             return False
+#         now = datetime.datetime.now()
+
+#         # print("time timeout!", now)
+#         elapsed = time.time() - start
+#         print(f"[+{elapsed:0.2f}s] waiting for authorization...")
+
+#         for line in out.splitlines():
+#             if "unauthorized" in line:
+#                 # Still waiting for user to tap "Allow"
+#                 time.sleep(0.5)
+#                 break
+
+#             # # Match ANY whitespace before "device"
+#             # if line.strip().endswith("device"):
+#             #     return True
+#             if "device" in line:
+#                 return True
+
+#         time.sleep(0.5)
+#         logging.error(f"Device did not authorize in time. ({elapsed:0.2f}s)")
+#         print("Please tap 'Allow USB debugging' on your phone.")
+#         devices_full = subprocess.check_output(["adb", "devices", "-l"]).decode().strip()
+#         print("\n=== adb devices -l ===")
+#         print(devices_full)
+#         print("======================\n")
+
+#     return False
+
+
 def validate_devices_connected() -> list:
     """
     Validates that devices are connected and returns them.
@@ -216,9 +315,11 @@ def validate_devices_connected() -> list:
     Raises:
         SystemExit: If no devices are connected
     """
+    print("Waiting for device authorization...")
+    wait_for_authorization()
+
     devices = get_connected_devices()
-    # if you are wifi, attempt a connection
-    if not devices and config.STREAM_USING == 'WIFI':
+
 
     if not devices:
         logging.error('No connected devices found.')
@@ -234,6 +335,20 @@ def validate_devices_connected() -> list:
 
     logging.info(f'Found {len(devices)} connected device(s)')
     return devices
+
+def wait_for_ip_authorization(ip_with_port: str, timeout=30) -> bool:
+    import time
+    start = time.time()
+    while time.time() - start < timeout:
+        result = subprocess.run(['adb', 'devices'], capture_output=True, text=True)
+        for line in result.stdout.splitlines():
+            if ip_with_port in line and 'device' in line and 'unauthorized' not in line:
+                logging.info(f'{ip_with_port} authorized!')
+                return True
+        logging.info(f'Waiting for authorization tap on phone for {ip_with_port}...')
+        time.sleep(1)
+    logging.error(f'Authorization timed out for {ip_with_port}')
+    return False
 
 
 def terminate_processes(*processes) -> None:
@@ -327,11 +442,12 @@ def select_option(option: str, app_name: str) -> None:
     """
     try:
         if option == '1':
-            compile_app()
-            print(f"debug_and_livestream RAN!!")
-            debug_and_livestream()
+            buildozer_compiled = Event()
+            compile_app(buildozer_compiled)
+            print(f"debug_and_livestream RAN!!A")
+            debug_and_livestream(buildozer_compiled)
         elif option == '2':
-            print(f"debug_and_livestream RAN!!")
+            print(f"debug_and_livestream RAN!!B")
             debug_and_livestream()
         elif option == '3':
             create_aab()
@@ -455,7 +571,7 @@ def deploy_app_to_devices(
         )
 
 
-def compile_app():
+def compile_app(buildozer_compiled: Event = None):
     """
     Orchestrates the complete app compilation and deployment process.
 
@@ -469,6 +585,8 @@ def compile_app():
     run_buildozer_compilation()
 
     # Step 3: Get and filter target devices
+    print("compile app wait for auth")
+    wait_for_authorization()
     devices = get_connected_devices()
     if not devices:
         logging.error('No connected devices found. APK will not be installed.')
@@ -478,16 +596,21 @@ def compile_app():
 
     # Step 4: Deploy to devices
     deploy_app_to_devices(target_devices, apk_path, package)
+    buildozer_compiled.set()
 
 
-def debug_and_livestream() -> None:
+def debug_and_livestream(buildozer_compiled: Event = None) -> None:
     """
     Executes `adb logcat` and `scrcpy` in parallel.
     Validates devices once at the start instead of in each subprocess.
 
     In CI environments, this function gracefully exits without device validation.
     """
-    print(f"DEBUG RAN!0000!", is_ci_environment(), validate_devices_connected)
+    # Wait up to 30 seconds
+    if not buildozer_compiled.wait(timeout=30):
+        logging.error("Did not get buildozer completion")
+        return
+    print(f"DEBUG RAN!0000!", is_ci_environment())
     # Skip device operations in CI environments
     if is_ci_environment():
         logging.info('CI environment detected, skipping debug and livestream')
@@ -499,9 +622,10 @@ def debug_and_livestream() -> None:
     print(f"DEBUG RAN!0000!")
     try:
         print(f"DEBUG RAN!!")
-        adb_logcat = Process(target=debug)
+        adb_logcat_ready = Event()
+        adb_logcat = Process(target=debug, args=(adb_logcat_ready,))
         print(f"LIVESTREAM RAN!!")
-        scrcpy = Process(target=livestream)
+        scrcpy = Process(target=livestream, args=(adb_logcat_ready,))
 
         adb_logcat.start()
         scrcpy.start()
@@ -519,17 +643,19 @@ def debug_and_livestream() -> None:
         sys.exit(1)
 
 
-def debug():
+def debug(adb_logcat_ready: Event = None):
     """
     Debugging based on the streaming method.
     """
     logging.info(f"stream using? {config.STREAM_USING}")
+    # clear auth to check again
     if config.STREAM_USING == 'USB':
         start_adb_server()
         clear_logcat()
         run_logcat()
     elif config.STREAM_USING == 'WIFI':
         debug_on_wifi()
+    adb_logcat_ready.set()
 
 
 def restart_adb_server():
@@ -591,6 +717,7 @@ def clear_logcat():
     logging.info('Clearing logcat')
 
     try:
+        # wait_for_authorization()
         devices = get_connected_devices()
         # Reuse existing device filtering logic
         filtered_devices = filter_target_devices(devices)
@@ -638,44 +765,99 @@ def determine_wifi_targets(devices: list) -> tuple[list, list]:
 
 
 def enable_tcpip_for_devices(usb_devices: list) -> list:
-    """
-    Enables TCP/IP mode for USB devices and connects to them.
-
-    Args:
-        usb_devices: List of USB device dictionaries
-
-    Returns:
-        list: IP addresses of devices successfully converted to TCP/IP
-
-    Raises:
-        subprocess.CalledProcessError: If ADB commands fail
-    """
     converted_ips = []
 
     for device in usb_devices:
-        logging.info(f'Enabling tcpip mode for {device["model"]} ({device["serial"]})')
-        tcpip_command = ['adb', '-s', device['serial'], 'tcpip', f'{config.ADB_PORT}']
+        usb_serial = device['serial']
+        logging.info(f'Enabling tcpip mode for {device["model"]} ({usb_serial})')
+        
+        tcpip_command = ['adb', '-s', usb_serial, 'tcpip', f'{config.ADB_PORT}']
         logging.info(f"Running command: {' '.join(tcpip_command)}")
-        subprocess.run(
-            tcpip_command, check=True
-        )
+        subprocess.run(tcpip_command, check=True)
 
         if not device['wifi_ip']:
-            device['wifi_ip'] = get_wifi_ip(device['serial'])
+            device['wifi_ip'] = get_wifi_ip(usb_serial)
 
         ip_with_port = f'{device["wifi_ip"]}:{config.ADB_PORT}'
         logging.info(f'Connecting to {ip_with_port}')
 
         try:
-            subprocess.run(['adb', 'connect', ip_with_port], check=True)
+            subprocess.run(['adb', 'connect', ip_with_port])
+            logging.info('Please tap Allow on your phone...')
+            authorized = wait_for_ip_authorization(ip_with_port, timeout=30)
+            
+            if not authorized:
+                logging.error(f'Failed to authorize {ip_with_port}')
+                continue
+
+            # Validate it's the same physical device
+            try:
+                wifi_serial = subprocess.check_output(
+                    ['adb', '-s', ip_with_port, 'shell', 'getprop', 'ro.serialno'],
+                    stderr=subprocess.DEVNULL
+                ).decode().strip()
+
+                if wifi_serial != usb_serial:
+                    logging.error(f'Wrong device! Expected {usb_serial}, got {wifi_serial}')
+                    continue
+
+                logging.info(f'Device identity confirmed: {wifi_serial}')
+            except Exception as e:
+                logging.warning(f'Could not verify device serial: {e}')
+
             converted_ips.append(device['wifi_ip'])
+
         except FileNotFoundError:
             logging.error('adb not found')
-            print(
-                f'{red}Please, install `scrcpy`: {yellow}https://github.com/Genymobile/scrcpy{Fore.RESET}'
-            )
+            print(f'{red}Please, install `scrcpy`: {yellow}https://github.com/Genymobile/scrcpy{Fore.RESET}')
 
     return converted_ips
+
+
+# def enable_tcpip_for_devices(usb_devices: list) -> list:
+#     """
+#     Enables TCP/IP mode for USB devices and connects to them.
+
+#     Args:
+#         usb_devices: List of USB device dictionaries
+
+#     Returns:
+#         list: IP addresses of devices successfully converted to TCP/IP
+
+#     Raises:
+#         subprocess.CalledProcessError: If ADB commands fail
+#     """
+#     converted_ips = []
+
+#     for device in usb_devices:
+#         logging.info(f'Enabling tcpip mode for {device["model"]} ({device["serial"]})')
+#         tcpip_command = ['adb', '-s', device['serial'], 'tcpip', f'{config.ADB_PORT}']
+#         logging.info(f"Running command: {' '.join(tcpip_command)}")
+#         subprocess.run(
+#             tcpip_command, check=True
+#         )
+
+#         if not device['wifi_ip']:
+#             device['wifi_ip'] = get_wifi_ip(device['serial'])
+
+#         ip_with_port = f'{device["wifi_ip"]}:{config.ADB_PORT}'
+#         logging.info(f'Connecting to {ip_with_port}')
+
+#         try:
+#             subprocess.run(['adb', 'connect', ip_with_port])  # no check=True, auth fails first
+#             logging.info('Please tap Allow on your phone...')
+#             authorized = wait_for_ip_authorization(ip_with_port, timeout=30)
+#             if authorized:
+#                 converted_ips.append(device['wifi_ip'])
+#             else:
+#                 logging.error(f'Failed to authorize {ip_with_port}')
+#         except FileNotFoundError:
+#             logging.error('adb not found')
+#             print(
+#                 f'{red}Please, install `scrcpy`: {yellow}https://github.com/Genymobile/scrcpy{Fore.RESET}'
+#             )
+
+#     return converted_ips
 
 
 def start_logcat_for_ips(ip_addresses: list) -> None:
@@ -698,6 +880,7 @@ def debug_on_wifi():
     logcat thread management for WiFi-based debugging.
     """
     logging.info('Switching ADB to TCP/IP mode...')
+    # wait_for_authorization()
     devices = get_connected_devices()
     logging.debug(f'Connected devices: {devices}')
 
@@ -748,6 +931,7 @@ def build_logcat_command(ip: str = None) -> list:
     if ip:
         return ['adb', '-s', f'{ip}:{config.ADB_PORT}', 'logcat']
 
+    # wait_for_authorization()
     # Handle USB/local device connection
     connected = get_connected_devices()
 
@@ -845,12 +1029,20 @@ def run_logcat(IP=None, *args):
     start_logcat_processes(logcat_cmd, filter_cmd)
 
 
-def livestream():
+def livestream(adb_logcat_ready: Event = None):
     """
     Handles the livestream process.
     """
-    if config.STREAM_USING == 'WIFI':
-        time.sleep(3)
+    # # clear auth to check again
+    # if config.STREAM_USING == 'WIFI':
+    #     logging.info('Waiting for WiFi authorization before starting scrcpy...')
+    #     # wait_for_authorization()   # blocks until event is set
+    # wait for adb logcat before running
+    
+    # Wait up to 30 seconds
+    if not adb_logcat_ready.wait(timeout=30):
+        logging.error("Logcat did not become ready in time")
+        return
 
     for proc in psutil.process_iter():
         try:
@@ -982,7 +1174,7 @@ def build_scrcpy_command() -> list:
     add_control_options(scrcpy_cmd)
     add_advanced_options(scrcpy_cmd)
     add_recording_options(scrcpy_cmd)
-    # add_connection_options(scrcpy_cmd) #scrpy will try usb then wifi on its own
+    add_connection_options(scrcpy_cmd) 
 
     return scrcpy_cmd
 
