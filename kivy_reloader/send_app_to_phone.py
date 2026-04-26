@@ -1,6 +1,7 @@
 import sys
 import os
-
+import subprocess
+import logging
 import trio
 from colorama import Fore, init
 
@@ -14,17 +15,41 @@ white = Fore.WHITE
 init(autoreset=True)
 
 
-async def connect_to_server(IP):
+async def connect_to_server(target_ip):
+    # If using USB mode, ignore the provided IP and find the Windows Host
+    if config.STREAM_USING == "USB":
+        # This command finds the Windows gateway IP from within WSL
+        result = subprocess.run(
+            "ip route show default | awk '{print $3}'", 
+            shell=True, capture_output=True, text=True
+        )
+        IP = result.stdout.strip()
+    else:
+        IP = target_ip
+
+    PORT = int(config.RELOADER_PORT)
+    print(f'Connecting to Windows Host: {green}{IP}:{PORT}')
+    
     try:
-        print("what", config.RELOADER_PORT)
-        PORT = int(config.RELOADER_PORT)
-        print(f'Connecting to IP: {green}{IP}{white} and PORT: {green}{PORT}')
-        with trio.move_on_after(1):
-            client_socket = await trio.open_tcp_stream(IP, PORT)
-            return client_socket
+        with trio.move_on_after(10):
+            return await trio.open_tcp_stream(IP, PORT)
     except Exception as e:
         print(f'{red}Error: {e}')
         return None
+
+
+
+# async def connect_to_server(IP):
+#     try:
+#         print("what", config.RELOADER_PORT)
+#         PORT = int(config.RELOADER_PORT)
+#         print(f'Connecting to IP: {green}{IP}{white} and PORT: {green}{PORT}')
+#         with trio.move_on_after(10):
+#             client_socket = await trio.open_tcp_stream(IP, PORT)
+#             return client_socket
+#     except Exception as e:
+#         print(f'{red}Error: {e}')
+#         return None
 
 async def send_app():
     print('*' * 50)
@@ -38,7 +63,13 @@ async def send_app():
     # Set up ADB port forwarding if USB mode
     if config.STREAM_USING == "USB":
         PORT = config.RELOADER_PORT
-        os.system(f"adb forward tcp:{PORT} tcp:{PORT}")
+        adb_cmd = f"adb forward tcp:{PORT} tcp:{PORT}"
+        # os.system(f"adb forward tcp:{PORT} tcp:{PORT}")
+        os.system(adb_cmd)
+        logging.info(adb_cmd)
+        # adb_cmd = ["adb", "forward", f"tcp:{PORT}", f"tcp:{PORT}"]
+        # logging.info(f"Running: {' '.join(adb_cmd)}")
+        # subprocess.Popen(adb_cmd)
         unique_physical = set(zip(config.PHONE_IPS, (d["model"] for d in devices)))
     else:
         unique_physical = {
@@ -47,8 +78,27 @@ async def send_app():
 
     acked_count = 0
 
+    # import subprocess
+
+    # def check_adb_context():
+    #     try:
+    #         # Check which binary is being called
+    #         which_adb = subprocess.check_output(["which", "adb"]).decode().strip()
+    #         # Check the version and path reported by ADB itself
+    #         version_info = subprocess.check_output(["adb", "version"]).decode().strip()
+    #         print(f"--- ADB DEBUG INFO ---")
+    #         print(f"Python is calling: {which_adb}")
+    #         print(f"{version_info}")
+    #         print(f"----------------------")
+    #     except Exception as e:
+    #         print(f"ADB check failed: {e}")
+
+    # check_adb_context()
+
+    print("unique_physicals", unique_physical)
     for device in unique_physical:
-        IP = device[0]
+        # If using USB, the 'bridge' is on localhost, NOT the phone's Wi-Fi IP
+        IP = "127.0.0.1" if config.STREAM_USING == "USB" else device[0]
 
         client_socket = await connect_to_server(IP)
         if not client_socket:

@@ -751,7 +751,7 @@ def debug(adb_logcat_ready: Event = None):
     if config.STREAM_USING == 'USB':
         start_adb_server()
         clear_logcat()
-        run_logcat()
+        run_logcat(adb_logcat_ready = adb_logcat_ready)
     elif config.STREAM_USING == 'WIFI':
         debug_on_wifi(adb_logcat_ready)
 
@@ -1223,7 +1223,7 @@ def start_logcat_processes(logcat_cmd: list, filter_cmd: list) -> tuple:
         return None, None
 
 
-def run_logcat(IP=None, *args):
+def run_logcat(IP=None, adb_logcat_ready: Event = None, *args):
     """
     Orchestrates logcat execution with connection, command building,
     and process management.
@@ -1249,6 +1249,7 @@ def run_logcat(IP=None, *args):
     # Step 4: Start processes
     logging.info('Starting logcat')
     start_logcat_processes(logcat_cmd, filter_cmd)
+    adb_logcat_ready.set()
 
 
 def livestream(adb_logcat_ready: Event = None):
