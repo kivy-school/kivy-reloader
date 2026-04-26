@@ -5,6 +5,7 @@ import re
 import subprocess
 from fnmatch import fnmatch
 from typing import Optional
+import time
 
 from kivy_reloader.config import config
 
@@ -267,6 +268,11 @@ def get_wifi_ip(serial: str) -> Optional[str]:
     """
     logging.debug(f'Querying Wi-Fi IP for serial: {serial}')
 
+    time.sleep(3)
+
+    def adb(cmd):
+        return subprocess.check_output(["adb"] + cmd).decode().strip()
+
     try:
         result = subprocess.run(
             ['adb', '-s', serial, 'shell', 'ip', '-f', 'inet', 'addr', 'show'],
@@ -275,9 +281,16 @@ def get_wifi_ip(serial: str) -> Optional[str]:
             check=True,
             timeout=15,
         )
-
-        return _parse_ip_output(result.stdout, serial)
-
+        result = _parse_ip_output(result.stdout, serial)
+        if result is None:
+            logging.error(
+                f'Could not find WiFi IP for {serial}. '
+                f'Is WiFi enabled on the device? '
+                f'Check: Settings → WiFi → make sure it\'s ON and connected.'
+            )
+            logging.error(f'ERROR: Could not find WiFi IP on device {serial}.')
+            logging.error(f'Make sure WiFi is enabled and connected on your phone!')
+        return result
     except subprocess.CalledProcessError as e:
         logging.warning(f'Primary command failed for {serial}: {e}')
         return _get_wifi_ip_fallback(serial)
