@@ -237,7 +237,8 @@ def wait_for_authorization(timeout=30):
                     print(f"Device {serial} is authorized (via TCP/IP). Proceeding...")
                     return True
 
-        print("Waiting for any authorized connection...")
+        elapsed = time.time() - start
+        print(f"[+{elapsed:0.2f}s] waiting for authorization on {serial}...")
         time.sleep(1)
     
     return False
@@ -413,7 +414,7 @@ def validate_devices_connected() -> list:
     Raises:
         SystemExit: If no devices are connected
     """
-    print("Waiting for device authorization...")
+
     wait_for_authorization()
 
     devices = get_connected_devices()
@@ -443,7 +444,7 @@ def wait_for_ip_authorization(ip_with_port: str, timeout=30) -> bool:
             if ip_with_port in line and 'device' in line and 'unauthorized' not in line:
                 logging.info(f'{ip_with_port} authorized!')
                 return True
-        logging.info(f'Waiting for authorization tap on phone for {ip_with_port}...')
+        logging.info(f'Waiting for authorization. Tap on phone for {ip_with_port}...')
         time.sleep(1)
     logging.error(f'Authorization timed out for {ip_with_port}')
     return False
