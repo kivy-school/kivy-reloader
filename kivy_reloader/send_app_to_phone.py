@@ -1,6 +1,6 @@
 import sys
 import os
-
+import logging
 import trio
 from colorama import Fore, init
 
@@ -38,7 +38,9 @@ async def send_app():
     # Set up ADB port forwarding if USB mode
     if config.STREAM_USING == "USB":
         PORT = config.RELOADER_PORT
-        os.system(f"adb forward tcp:{PORT} tcp:{PORT}")
+        adb_cmd = f"adb forward tcp:{PORT} tcp:{PORT}"
+        logging.info(adb_cmd)
+        os.system(adb_cmd)
         unique_physical = set(zip(config.PHONE_IPS, (d["model"] for d in devices)))
     else:
         unique_physical = {
@@ -46,6 +48,22 @@ async def send_app():
         }
 
     acked_count = 0
+ 
+    def check_adb_context():
+        import subprocess
+        try:
+            # Check which binary is being called
+            which_adb = subprocess.check_output(["which", "adb"]).decode().strip()
+            # Check the version and path reported by ADB itself
+            version_info = subprocess.check_output(["adb", "version"]).decode().strip()
+            print(f"--- ADB DEBUG INFO ---")
+            print(f"Python is calling: {which_adb}")
+            print(f"{version_info}")
+            print(f"----------------------")
+        except Exception as e:
+            print(f"ADB check failed: {e}")
+
+    # check_adb_context()
 
     for device in unique_physical:
         IP = device[0]
