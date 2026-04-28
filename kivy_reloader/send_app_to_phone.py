@@ -29,6 +29,84 @@ async def connect_to_server(IP):
         print(f'{red}Error: {e}')
         return None
 
+async def run_wsl_firewall_fix(port=8055):
+    try:
+        # 1. Get the IP but convert it to the /20 subnet range 
+        # This matches your working manual command
+        ip_data = subprocess.check_output(["ip", "-o", "-4", "addr", "show", "eth0"]).decode()
+        # Extracts '172.28.x.x'
+        raw_ip = ip_data.split()[3].split('/')[0]
+        # Logic to get the base subnet (e.g., 172.28.0.0/20)
+        # For WSL2 on Win10, the first two octets are usually stable enough
+        parts = raw_ip.split('.')
+        subnet_range = f"{parts[0]}.{parts[1]}.0.0/20"
+        
+        print(f"[*] Detected WSL IP: {raw_ip} -> Using Subnet: {subnet_range}")
+
+        # 2. The PowerShell commands (Note the change to -RemoteAddress)
+        ps_script = f"""
+        Remove-NetFirewallRule -DisplayName 'WSL Kivy Surgical {port}' -ErrorAction SilentlyContinue
+        New-NetFirewallRule -DisplayName 'WSL Kivy Surgical {port}' `
+            -Direction Inbound -Action Allow -Protocol TCP `
+            -LocalPort {port} -RemoteAddress '{subnet_range}' `
+            -InterfaceAlias 'vEthernet (WSL)'
+        """
+
+        # 3. Encode for Windows
+        encoded_script = base64.b64encode(ps_script.encode('utf-16-le')).decode('utf-8')
+
+        # 4. Trigger the UAC Admin prompt
+        launch_command = f'Start-Process powershell -Verb RunAs -ArgumentList "-NoProfile", "-EncodedCommand", "{encoded_script}"'
+        
+        print(f"[*] Triggering Windows UAC prompt for port {port}...")
+        subprocess.run(["powershell.exe", "-Command", launch_command], check=True)
+        
+        print("[+] Check your taskbar for the UAC shield!")
+
+    except Exception as e:
+        print(f"[!] Failed: {e}")
+
+async def wsl_firewall_check_async(port):
+    timeout = 30
+    start_time = time.time()
+    rule_found = False
+    
+    while time.time() - start_time < timeout:
+        # Use netsh.exe to check from WSL
+        check_cmd = ["netsh.exe", "advfirewall", "firewall", "show", "rule", f"name=WSL Kivy Surgical {port}"]
+        
+        # Using trio.run_process for a clean async check
+        try:
+            result = await trio.run_process(check_cmd, capture_stdout=True, capture_stderr=True, check=False)
+            if result.returncode == 0:
+                print(f"{green}Firewall rule detected! Proceeding...")
+                rule_found = True
+                break
+        except Exception as e:
+            print(f"{red}Check failed: {e}")
+
+        elapsed = int(time.time() - start_time)
+        print(f"{yellow}[{elapsed}s] Rule not found yet. Check UAC prompt...")
+        
+        # This allows other async tasks to run while we wait for the UAC click
+        await trio.sleep(1)
+        
+    return rule_found
+
+def check_adb_context():
+    try:
+        # Check which binary is being called
+        which_adb = subprocess.check_output(["which", "adb"]).decode().strip()
+        # Check the version and path reported by ADB itself
+        version_info = subprocess.check_output(["adb", "version"]).decode().strip()
+        print(f"--- ADB DEBUG INFO ---")
+        print(f"Python is calling: {which_adb}")
+        print(f"{version_info}")
+        print(f"----------------------")
+    except Exception as e:
+        print(f"ADB check failed: {e}")
+
+
 async def send_app():
     print('*' * 50)
     print(green + 'Connecting to smartphone...')
@@ -37,43 +115,6 @@ async def send_app():
     if not devices:
         print(f'{yellow}No connected devices found.')
         return 1
-
-    def run_wsl_firewall_fix(port=8055):
-        try:
-            # 1. Get the IP but convert it to the /20 subnet range 
-            # This matches your working manual command
-            ip_data = subprocess.check_output(["ip", "-o", "-4", "addr", "show", "eth0"]).decode()
-            # Extracts '172.28.x.x'
-            raw_ip = ip_data.split()[3].split('/')[0]
-            # Logic to get the base subnet (e.g., 172.28.0.0/20)
-            # For WSL2 on Win10, the first two octets are usually stable enough
-            parts = raw_ip.split('.')
-            subnet_range = f"{parts[0]}.{parts[1]}.0.0/20"
-            
-            print(f"[*] Detected WSL IP: {raw_ip} -> Using Subnet: {subnet_range}")
-
-            # 2. The PowerShell commands (Note the change to -RemoteAddress)
-            ps_script = f"""
-            Remove-NetFirewallRule -DisplayName 'WSL Kivy Surgical {port}' -ErrorAction SilentlyContinue
-            New-NetFirewallRule -DisplayName 'WSL Kivy Surgical {port}' `
-                -Direction Inbound -Action Allow -Protocol TCP `
-                -LocalPort {port} -RemoteAddress '{subnet_range}' `
-                -InterfaceAlias 'vEthernet (WSL)'
-            """
-
-            # 3. Encode for Windows
-            encoded_script = base64.b64encode(ps_script.encode('utf-16-le')).decode('utf-8')
-
-            # 4. Trigger the UAC Admin prompt
-            launch_command = f'Start-Process powershell -Verb RunAs -ArgumentList "-NoProfile", "-EncodedCommand", "{encoded_script}"'
-            
-            print(f"[*] Triggering Windows UAC prompt for port {port}...")
-            subprocess.run(["powershell.exe", "-Command", launch_command], check=True)
-            
-            print("[+] Check your taskbar for the UAC shield!")
-
-        except Exception as e:
-            print(f"[!] Failed: {e}")
 
     # Set up ADB port forwarding if USB mode
     if config.STREAM_USING == "USB":
@@ -89,20 +130,6 @@ async def send_app():
         }
 
     acked_count = 0
- 
-    def check_adb_context():
-        import subprocess
-        try:
-            # Check which binary is being called
-            which_adb = subprocess.check_output(["which", "adb"]).decode().strip()
-            # Check the version and path reported by ADB itself
-            version_info = subprocess.check_output(["adb", "version"]).decode().strip()
-            print(f"--- ADB DEBUG INFO ---")
-            print(f"Python is calling: {which_adb}")
-            print(f"{version_info}")
-            print(f"----------------------")
-        except Exception as e:
-            print(f"ADB check failed: {e}")
 
     # check_adb_context()
 
@@ -118,39 +145,17 @@ async def send_app():
         #     continue
 
         if not client_socket and config.STREAM_USING == "USB" and in_wsl():
-            print(f"{yellow}Waiting for you to approve the UAC prompt...")
-            run_wsl_firewall_fix(port=PORT)
+            print(f"{yellow}Initial connection blocked. Fixing Windows firewall for WSL2. Waiting for you to approve the UAC prompt...")
+            await run_wsl_firewall_fix(port=PORT)
             
             # Wait up to 30 seconds for the rule to actually appear
-            timeout = 30
-            start_time = time.time()
-            rule_found = False
+            rule_found = await wsl_firewall_check_async(PORT)
             
-            while time.time() - start_time < timeout:
-                # Check if Windows sees the rule yet (use netsh because firewall rules in powershell need another UAC)
-                # The 'netsh' version of the check
-                check_cmd = f"netsh.exe advfirewall firewall show rule name='WSL Kivy Surgical {PORT}'"
-
-                # Run it and check returncode
-                result = subprocess.run(check_cmd, shell=True, capture_output=True, text=True)
-                
-                if result.returncode == 0:
-                    # result.stdout will contain the rule details if found
-                    print(f"{green}Firewall rule detected! Proceeding...")
-                    rule_found = True
-                    break
-                else:
-                    # Print diagnostic info so you can see why it's failing
-                    elapsed = int(time.time() - start_time)
-                    print(f"{yellow}[{elapsed}s] Rule not found yet. Check UAC prompt...")
-                    
-                    # If there's a real error (not just 'rule missing'), show it
-                    if result.stderr.strip():
-                        print(f"{red}PowerShell Error: {result.stderr.strip()}")
-                        
-                time.sleep(1)
-            
-            if not rule_found:
+            if rule_found:
+                # RETRY the connection now that the gate is open
+                print(f"{green}Retrying connection to smartphone...")
+                client_socket = await connect_to_server(IP)
+            else:
                 print(f"{red}Timed out waiting for firewall rule. Did you click 'Yes'?")
                 # Maybe exit or handle failure here
             

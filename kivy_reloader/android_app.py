@@ -612,8 +612,43 @@ class AndroidApp(BaseReloaderApp, KivyApp):
         )
         Logger.info(f'Error details: {error}')
 
-    # THIS WORKED
     async def data_receiver(self, data_stream):
+        """
+        Handle incoming data from the desktop development environment.
+
+        Receives a zip file containing the updated application code,
+        unpacks it, and triggers a hot reload of the application.
+
+        Args:
+            data_stream: The incoming TCP data stream
+        """
+        Logger.info('Reloader: ************** SERVER **************')
+        Logger.info('Reloader: Server started: receiving data from computer...')
+        try:
+            # Wrap everything in an extra try/except specifically for stream issues
+            async with data_stream: 
+                Logger.info('Reloader: Server started: receiving data...')
+                
+                async with self._update_lock:
+                    # Use a small timeout for the header to avoid hanging on ghost connections
+                    with trio.move_on_after(5):
+                        # YOUR ZIP LOGIC HERE
+                        zip_file_path = os.path.join(os.getcwd(), f'app_copy_{uuid4().hex}.zip')
+                        await self._receive_zip_file(data_stream, zip_file_path)
+                        
+                    # ... rest of your logic ...
+                    await data_stream.send_all(b'OK')
+                    self.nursery.start_soon(self._process_app_update, zip_file_path)
+
+        except (trio.BrokenResourceError, trio.ClosedResourceError, Exception) as e:
+            # Catch connection resets and "header" exceptions here
+            Logger.warning(f'Reloader: Connection dropped or malformed: {e}')
+            # IMPORTANT: Do NOT re-raise. Just let the function exit.
+            # This keeps the Nursery (and the app) alive.
+
+
+    # THIS WORKED
+    async def data_receiver_WORKED(self, data_stream):
         """
         Handle incoming data from the desktop development environment.
 
@@ -733,6 +768,12 @@ class AndroidApp(BaseReloaderApp, KivyApp):
                 #     Logger.info('Reloader: OK FAILED')
             # Close stream afterwards so that USB connection is kept alive
             # await data_stream.aclose()
+
+        except (trio.BrokenResourceError, trio.ClosedResourceError, Exception) as e:
+            # Catch connection resets and "header" exceptions here
+            Logger.warning(f'Reloader: Connection dropped or malformed: {e}')
+            # IMPORTANT: Do NOT re-raise. Just let the function exit.
+            # This keeps the Nursery (and the app) alive.
 
         except Exception as e:
             self._log_server_error(e)
