@@ -587,7 +587,13 @@ class AndroidApp(BaseReloaderApp, KivyApp):
             await trio.serve_tcp(self.data_receiver, PORT, host=host)
 
         except Exception as e:
-            self._log_server_startup_error(e)
+            import traceback
+            full_trace = traceback.format_exc()
+            # If it's a Trio MultiError, we want to see the sub-exceptions
+            error_detail = repr(e)
+            Logger.info(f"I python full trace, {full_trace}")
+            Logger.info(f"I python error detail, {error_detail}")
+            self._log_server_startup_error(error_detail, full_trace)
 
     def _get_device_ip(self):
         """
@@ -600,7 +606,7 @@ class AndroidApp(BaseReloaderApp, KivyApp):
             probe.connect((DNS_SERVER_IP, DNS_SERVER_PORT))
             return probe.getsockname()[0]
 
-    def _log_server_startup_error(self, error):
+    def _log_server_startup_error(self, error, traceback_error):
         """Log detailed error information when server fails to start."""
         Logger.info(
             'It was not possible to start the server, check if the '
@@ -611,6 +617,7 @@ class AndroidApp(BaseReloaderApp, KivyApp):
             'by another app. Check if the port is free and try again'
         )
         Logger.info(f'Error details: {error}')
+        Logger.error(f"Reloader: Full Traceback:\n{traceback_error}")
 
     async def data_receiver(self, data_stream):
         """
@@ -706,6 +713,7 @@ class AndroidApp(BaseReloaderApp, KivyApp):
                 # Send ACK immediately, before processing ZIP
                 await data_stream.send_all(b"EARLY")
                 Logger.info("EARLY ACK SENT")
+                Logger.info("EARLY ACK SENTZIPFILE ERR?")
                 await trio.sleep(1)
                 
                 # Use a unique filename per connection to prevent collisions
@@ -811,6 +819,48 @@ class AndroidApp(BaseReloaderApp, KivyApp):
         #     self._log_server_error(e)
 
     async def _receive_zip_file(self, data_stream, zip_file_path):
+        # 1. Read header until newline
+        header = b""
+        while not header.endswith(b"\n"):
+            try:
+                chunk = await data_stream.receive_some(1)
+                if not chunk:
+                    Logger.warning("Reloader: Connection closed before header received")
+                    return None  # Return None instead of raising
+                header += chunk
+            except Exception as e:
+                Logger.warning(f"Reloader: Socket error during header: {e}")
+                return None
+
+        try:
+            zip_size = int(header.strip())
+        except ValueError:
+            Logger.warning(f"Reloader: Invalid header received: {header}")
+            return None
+
+        Logger.info(f"Reloader: expecting {zip_size} bytes")
+        received = 0
+
+        # 2. Receive exactly zip_size bytes
+        try:
+            with open(zip_file_path, "wb") as zip_file:
+                while received < zip_size:
+                    data = await data_stream.receive_some(65536)
+                    if not data:
+                        Logger.warning("Reloader: Connection closed early while receiving ZIP")
+                        return None # Return None instead of raising
+
+                    zip_file.write(data)
+                    received += len(data)
+        except Exception as e:
+            Logger.error(f"Reloader: File/Socket error during ZIP receive: {e}")
+            return None
+
+        Logger.info("Reloader: ZIP fully received")
+        return zip_file_path # Success!
+
+
+    async def _receive_zip_file_old(self, data_stream, zip_file_path):
         # 1. Read header until newline
         header = b""
         while not header.endswith(b"\n"):
