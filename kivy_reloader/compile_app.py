@@ -231,14 +231,18 @@ def wait_for_authorization(timeout=30):
         # 2. Check if our "Target" USB device is already covered
         # Even if the USB shows as 'unauthorized', if its serial is in 
         # authorized_hardware_serials (via IP), we are good to go.
+        serial_list = []
         for serial, state in devices:
             if ":" not in serial: # Physical USB
                 if serial in authorized_hardware_serials:
                     print(f"Device {serial} is authorized (via TCP/IP). Proceeding...")
                     return True
+                else:
+                    serial_list.append(serial)
+
 
         elapsed = time.time() - start
-        print(f"[+{elapsed:0.2f}s] waiting for authorization on {serial}...")
+        print(f"[+{elapsed:0.2f}s] waiting for authorization on {','.join(serial_list)}...")
         time.sleep(1)
     
     return False
@@ -446,7 +450,8 @@ def wait_for_ip_authorization(ip_with_port: str, timeout=30) -> bool:
                 return True
         logging.info(f'Waiting for authorization. Tap on phone for {ip_with_port}...')
         time.sleep(1)
-    logging.error(f'Authorization timed out for {ip_with_port}')
+    elapsed = time.time() - start
+    logging.error(f'[+{elapsed:0.2f}s] Authorization timed out for {ip_with_port}')
     return False
 
 

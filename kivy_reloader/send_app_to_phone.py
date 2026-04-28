@@ -3,9 +3,12 @@ import os
 import logging
 import trio
 from colorama import Fore, init
+import subprocess
+import time
+import base64
 
 from kivy_reloader.config import config
-from kivy_reloader.utils import get_connected_devices
+from kivy_reloader.utils import get_connected_devices, in_wsl
 
 red = Fore.RED
 green = Fore.GREEN
@@ -35,8 +38,204 @@ async def send_app():
         print(f'{yellow}No connected devices found.')
         return 1
 
+    def run_ps(script):
+        """Run PowerShell from WSL using Base64 encoding to avoid quoting issues."""
+        # Ensure no leading/trailing whitespace in the script before encoding
+        clean_script = script.strip()
+        # PowerShell expects UTF-16LE for encoded commands
+        encoded_script = base64.b64encode(script.encode('utf-16-le')).decode()
+        
+        result = subprocess.run(
+            ["powershell.exe", "-NoProfile", "-EncodedCommand", encoded_script],
+            capture_output=True,
+            text=True
+        )
+        
+        output = result.stdout.strip()
+        logging.info(f"PS Command: '{script}'")
+        logging.info(f"PS Output: '{output}'")
+        return output
+
+    
+    # def run_ps(script):
+    #     """Run PowerShell from WSL and return stdout."""
+    #     # Wrap the script in double quotes so PowerShell doesn't split it on spaces
+    #     result = subprocess.run(
+    #         ["powershell.exe", "-NoProfile", "-Command", f'"{script}"'],
+    #         capture_output=True,
+    #         text=True
+    #     )
+    #     # Add this to see what WSL thinks is happening
+    #     rule_name="ADB WSL Dynamic Ports"
+    #     debug_cmd = f"powershell.exe -Command \"Get-NetFirewallRule -Name '{rule_name}'\""
+
+    #     logging.info(f"DEBUG COMMAND: {debug_cmd}")
+    #     return result.stdout.strip()
+
+    # def run_ps(script):
+    #     """Run PowerShell from WSL and return stdout."""
+    #     result = subprocess.run(
+    #         ["powershell.exe", "-NoProfile", "-Command", script],
+    #         capture_output=True,
+    #         text=True
+    #     )
+    #     # Add this to see what WSL thinks is happening
+    #     rule_name="ADB WSL Dynamic Ports"
+    #     debug_cmd = f"powershell.exe -Command \"Get-NetFirewallRule -Name '{rule_name}'\""
+
+    #     logging.info(f"DEBUG COMMAND: {debug_cmd}")
+
+    #     return result.stdout.strip()
+
+    def ensure_firewall_rule(rule_name, port_range, timeout_time = 30):
+# $rule = Get-NetFirewallRule -Name "{rule_name}" -PolicyStore ActiveStore -ErrorAction SilentlyContinue
+        ps_check2 = fr'''
+$rule = Get-NetFirewallRule -Name "{rule_name}" -PolicyStore PersistentStore -ErrorAction SilentlyContinue        
+Write-Output $rule
+Write-Output "Type: $($rule.GetType().Name)"
+Write-Output "Rule: $($rule.Name)"
+'''
+        ps_check = fr'''
+# Specify the PolicyStore to ensure WSL can see the Admin-created rule
+$rule = Get-NetFirewallRule -Name "{rule_name}" -PolicyStore ActiveStore -ErrorAction SilentlyContinue
+if (-not $rule) {{
+    $rule = Get-NetFirewallRule -Name "{rule_name}" -PolicyStore PersistentStore -ErrorAction SilentlyContinue
+}}
+
+if (-not $rule) {{
+    Write-Output "MISSING"
+    exit
+}}
+
+$port = ($rule | Get-NetFirewallPortFilter).LocalPort
+if ($port) {{
+    Write-Output ([string]$port)
+}} else {{
+    Write-Output "FOUND_BUT_NO_PORT"
+}}
+'''
+
+
+
+#         ps_check = fr'''
+# $rule = Get-NetFirewallRule -Name "{rule_name}" -ErrorAction SilentlyContinue
+# if (-not $rule) {{
+#     Write-Output "MISSING"
+#     exit
+# }}
+# $port = ($rule | Get-NetFirewallPortFilter).LocalPort
+# if ($port) {{
+#     Write-Output ([string]$port)
+# }} else {{
+#     Write-Output "FOUND_BUT_NO_PORT"
+# }}
+# '''
+
+
+#         ps_check = fr'''
+# $rule = Get-NetFirewallRule -Name '{rule_name}' -ErrorAction SilentlyContinue
+# if (-not $rule) {{
+#     Write-Output "MISSING"
+#     exit
+# }}
+# # Explicitly expand the property and convert to string
+# $port = ($rule | Get-NetFirewallPortFilter).LocalPort
+# if ($port) {{
+#     Write-Output ([string]$port)
+# }} else {{
+#     Write-Output "FOUND_BUT_NO_PORT"
+# }}
+# '''
+
+        # kinda worked but didn't
+#         ps_check = fr'''
+# $rule = Get-NetFirewallRule -Name '{rule_name}' -ErrorAction SilentlyContinue
+# if (-not $rule) {{
+#     Write-Output "MISSING"
+#     exit
+# }}
+# $port = $rule | Get-NetFirewallPortFilter
+# Write-Output $port.LocalPort
+# '''
+
+#         ps_check = fr'''
+#     $rule = Get-NetFirewallRule -Name "{rule_name}" -ErrorAction SilentlyContinue
+#     if (-not $rule) {{
+#         Write-Output "MISSING"
+#         exit
+#     }}
+#     $port = $rule | Get-NetFirewallPortFilter
+#     Write-Output $port.LocalPort
+# '''
+
+        result = run_ps(ps_check2)
+        result = run_ps(ps_check)
+        
+        if result == "MISSING":
+            print(f"{red}[Firewall] Rule '{rule_name}' missing → creating new one. Please accept on Windows Powershell")
+            # Use a here-string passed as encoded command to avoid quoting hell
+#             create_script = f'''
+# New-NetFirewallRule -DisplayName "{rule_name}" -Direction Inbound -LocalPort {port_range} -Protocol TCP -Action Allow -RemoteAddress 172.16.0.0/12
+# '''
+#             # Updated create_script with explicit -Name
+#             create_script = f'''
+# if (-not (Get-NetFirewallRule -Name "{rule_name}" -ErrorAction SilentlyContinue)) {{
+#     New-NetFirewallRule -Name "{rule_name}" -Name "{rule_name}" -Direction Inbound -LocalPort {port_range} -Protocol TCP -Action Allow -RemoteAddress 172.16.0.0/12
+# }}
+# '''
+            create_script = f'''
+if (-not (Get-NetFirewallRule -Name "{rule_name}" -ErrorAction SilentlyContinue)) {{
+    New-NetFirewallRule -Name "{rule_name}" `
+        -DisplayName "{rule_name}" `
+        -Direction Inbound -LocalPort {port_range} -Protocol TCP `
+        -Action Allow -RemoteAddress 172.16.0.0/12
+}}
+'''
+
+
+            encoded = __import__('base64').b64encode(
+                create_script.encode('utf-16-le')
+            ).decode()
+            subprocess.run([
+                "powershell.exe", "-Command",
+                f'Start-Process powershell -Verb RunAs -ArgumentList "-EncodedCommand {encoded}"'
+            ])
+        else:
+            existing_ports = result
+            if port_range in existing_ports:
+                print(f"[Firewall] Rule '{rule_name}' already includes {port_range}")
+                return True
+            print(f"[Firewall] Rule exists but missing {port_range} → widening")
+            new_ports = existing_ports + "," + port_range
+            widen_script = f'''
+Set-NetFirewallRule -Name "{rule_name}" -LocalPort "{new_ports}"
+'''
+
+            encoded = __import__('base64').b64encode(
+                widen_script.encode('utf-16-le')
+            ).decode()
+            subprocess.run([
+                "powershell.exe", "-Command",
+                f'Start-Process powershell -Verb RunAs -ArgumentList "-EncodedCommand {encoded}"'
+            ])
+        for _ in range(timeout_time):
+            check = run_ps(ps_check)
+            logging.info(f"WHAT IS PS CHECK SAYING IN TIMEOUT? {str(check)}")
+            if check != "MISSING" and port_range in check:
+                print(f"[Firewall] Rule '{rule_name}' verified")
+                return True
+            time.sleep(1)
+        print(f"{red}[Firewall] ERROR: Rule '{rule_name}' did not appear within timeout {timeout_time}")
+        return False
+
     # Set up ADB port forwarding if USB mode
     if config.STREAM_USING == "USB":
+        if in_wsl:
+            # in wsl, so check if the correct powershell firewall rule is set in windows with a timeout
+            ensure_firewall_rule(
+                rule_name="ADB WSL Dynamic Ports",
+                port_range=str(config.RELOADER_PORT)
+            )
         PORT = config.RELOADER_PORT
         adb_cmd = f"adb forward tcp:{PORT} tcp:{PORT}"
         logging.info(adb_cmd)

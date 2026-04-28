@@ -6,6 +6,7 @@ import subprocess
 from fnmatch import fnmatch
 from typing import Optional
 import time
+import platform
 
 from kivy_reloader.config import config
 
@@ -497,6 +498,11 @@ def _validate_wifi_ip_ifconfig(ip: str, interface: str, serial: str) -> Optional
         return ip
 
     return None
+
+def in_wsl():
+    ans = "microsoft" in platform.release().lower()
+    print("WSL:", ans)
+    return ans
 
 
 # Example usage and testing
