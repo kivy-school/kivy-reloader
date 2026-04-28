@@ -110,12 +110,52 @@ async def send_app():
         IP = device[0]
 
         client_socket = await connect_to_server(IP)
+        # WORKS
+        # if not client_socket and config.STREAM_USING == "USB" and in_wsl():
+        #     # in wsl, so check if the correct powershell firewall rule is set in windows with a timeout
+        #     run_wsl_firewall_fix(port=PORT)
+        #     print(f"{yellow}Attempted to fix windows firewall for wsl2 connection to phone.")
+        #     continue
+
         if not client_socket and config.STREAM_USING == "USB" and in_wsl():
-            # in wsl, so check if the correct powershell firewall rule is set in windows with a timeout
+            print(f"{yellow}Waiting for you to approve the UAC prompt...")
             run_wsl_firewall_fix(port=PORT)
-            print(f"{yellow}Attempted to fix windows firewall for wsl2 connection to phone.")
+            
+            # Wait up to 30 seconds for the rule to actually appear
+            timeout = 30
+            start_time = time.time()
+            rule_found = False
+            
+            while time.time() - start_time < timeout:
+                # Check if Windows sees the rule yet (use netsh because firewall rules in powershell need another UAC)
+                # The 'netsh' version of the check
+                check_cmd = f"netsh.exe advfirewall firewall show rule name='WSL Kivy Surgical {PORT}'"
+
+                # Run it and check returncode
+                result = subprocess.run(check_cmd, shell=True, capture_output=True, text=True)
+                
+                if result.returncode == 0:
+                    # result.stdout will contain the rule details if found
+                    print(f"{green}Firewall rule detected! Proceeding...")
+                    rule_found = True
+                    break
+                else:
+                    # Print diagnostic info so you can see why it's failing
+                    elapsed = int(time.time() - start_time)
+                    print(f"{yellow}[{elapsed}s] Rule not found yet. Check UAC prompt...")
+                    
+                    # If there's a real error (not just 'rule missing'), show it
+                    if result.stderr.strip():
+                        print(f"{red}PowerShell Error: {result.stderr.strip()}")
+                        
+                time.sleep(1)
+            
+            if not rule_found:
+                print(f"{red}Timed out waiting for firewall rule. Did you click 'Yes'?")
+                # Maybe exit or handle failure here
+            
             continue
-        
+
         if not client_socket:
             print(f"{yellow}Couldn't connect to smartphone: {IP}")
             continue
