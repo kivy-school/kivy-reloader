@@ -635,17 +635,28 @@ class AndroidApp(BaseReloaderApp, KivyApp):
             # Wrap everything in an extra try/except specifically for stream issues
             async with data_stream: 
                 Logger.info('Reloader: Server started: receiving data...')
+                Logger.info('Reloader: THE CHANGE IS LIVE')
                 
                 async with self._update_lock:
                     # Use a small timeout for the header to avoid hanging on ghost connections
                     with trio.move_on_after(5):
                         # YOUR ZIP LOGIC HERE
                         zip_file_path = os.path.join(os.getcwd(), f'app_copy_{uuid4().hex}.zip')
-                        await self._receive_zip_file(data_stream, zip_file_path)
+                        # Try to receive the file
+                        # If this returns None (due to your new logic), success_path will be None
+                        success_path = await self._receive_zip_file(data_stream, zip_file_path)
                         
-                    # ... rest of your logic ...
+                    # CRITICAL GUARD: Only update if the file actually exists
+                if success_path and os.path.exists(success_path):
                     await data_stream.send_all(b'OK')
-                    self.nursery.start_soon(self._process_app_update, zip_file_path)
+                    Logger.info(f"Reloader: Zip saved to {success_path}. Starting update...")
+                    self.nursery.start_soon(self._process_app_update, success_path)
+                else:
+                    Logger.warning("Reloader: No valid zip received. Ignoring update request.")
+                    # If the file was partially created, clean it up
+                    if success_path and os.path.exists(success_path):
+                        os.remove(success_path)
+                    return # Exit cleanly, nursery stays alive!
 
         except (trio.BrokenResourceError, trio.ClosedResourceError, Exception) as e:
             # Catch connection resets and "header" exceptions here
@@ -654,169 +665,169 @@ class AndroidApp(BaseReloaderApp, KivyApp):
             # This keeps the Nursery (and the app) alive.
 
 
-    # THIS WORKED
-    async def data_receiver_WORKED(self, data_stream):
-        """
-        Handle incoming data from the desktop development environment.
+    # # THIS WORKED
+    # async def data_receiver_WORKED(self, data_stream):
+    #     """
+    #     Handle incoming data from the desktop development environment.
 
-        Receives a zip file containing the updated application code,
-        unpacks it, and triggers a hot reload of the application.
+    #     Receives a zip file containing the updated application code,
+    #     unpacks it, and triggers a hot reload of the application.
 
-        Args:
-            data_stream: The incoming TCP data stream
-        """
-        Logger.info('Reloader: ************** SERVER **************')
-        Logger.info('Reloader: Server started: receiving data from computer...')
+    #     Args:
+    #         data_stream: The incoming TCP data stream
+    #     """
+    #     Logger.info('Reloader: ************** SERVER **************')
+    #     Logger.info('Reloader: Server started: receiving data from computer...')
 
-        try:
-            # # Ensure only one update is applied at a time
-            # async with self._update_lock:
+    #     try:
+    #         # # Ensure only one update is applied at a time
+    #         # async with self._update_lock:
 
-                # # Send ACK immediately, before processing ZIP
-                # await data_stream.send_all(b"EARLY")
-                # Logger.info("EARLY ACK SENT")
-                # await trio.sleep(1)
+    #             # # Send ACK immediately, before processing ZIP
+    #             # await data_stream.send_all(b"EARLY")
+    #             # Logger.info("EARLY ACK SENT")
+    #             # await trio.sleep(1)
                 
-                # # Use a unique filename per connection to prevent collisions
-                # zip_file_path = os.path.join(os.getcwd(), f'app_copy_{uuid4().hex}.zip')
+    #             # # Use a unique filename per connection to prevent collisions
+    #             # zip_file_path = os.path.join(os.getcwd(), f'app_copy_{uuid4().hex}.zip')
 
-                # # Receive and save the zip file
-                # await self._receive_zip_file(data_stream, zip_file_path)
+    #             # # Receive and save the zip file
+    #             # await self._receive_zip_file(data_stream, zip_file_path)
 
-                # # Send ACK back to the desktop after successful processing. it's moved here because the reload was killing the app before the acknowledgement was sent, preventing state file from being made
-                # try:
-                #     await data_stream.send_all(b'OK')
-                #     Logger.info('Reloader: OK SENT')
-                #     # Give the OS time to flush the ACK before reload kills the process
-                #     # await trio.sleep(0.1)
-                #     await trio.sleep(1)
-                # except Exception as ack_err:
-                #     Logger.warning(
-                #         f'Reloader: Failed to send ACK to desktop: {ack_err}'
-                #     )
-                #     Logger.info('Reloader: OK FAILED')
+    #             # # Send ACK back to the desktop after successful processing. it's moved here because the reload was killing the app before the acknowledgement was sent, preventing state file from being made
+    #             # try:
+    #             #     await data_stream.send_all(b'OK')
+    #             #     Logger.info('Reloader: OK SENT')
+    #             #     # Give the OS time to flush the ACK before reload kills the process
+    #             #     # await trio.sleep(0.1)
+    #             #     await trio.sleep(1)
+    #             # except Exception as ack_err:
+    #             #     Logger.warning(
+    #             #         f'Reloader: Failed to send ACK to desktop: {ack_err}'
+    #             #     )
+    #             #     Logger.info('Reloader: OK FAILED')
 
-                # # Close stream cleanly
-                # try:
-                #     await data_stream.aclose()
-                # except Exception:
-                #     pass
+    #             # # Close stream cleanly
+    #             # try:
+    #             #     await data_stream.aclose()
+    #             # except Exception:
+    #             #     pass
 
-                # # Schedule reload AFTER handler exits
-                # self.nursery.start_soon(self._delayed_reload, zip_file_path)
+    #             # # Schedule reload AFTER handler exits
+    #             # self.nursery.start_soon(self._delayed_reload, zip_file_path)
 
-            # =-=-=-=-=
+    #         # =-=-=-=-=
 
-            # Ensure only one update is applied at a time
-            async with self._update_lock:
+    #         # Ensure only one update is applied at a time
+    #         async with self._update_lock:
 
-                # Send ACK immediately, before processing ZIP
-                await data_stream.send_all(b"EARLY")
-                Logger.info("EARLY ACK SENT")
-                Logger.info("EARLY ACK SENTZIPFILE ERR?")
-                await trio.sleep(1)
+    #             # Send ACK immediately, before processing ZIP
+    #             await data_stream.send_all(b"EARLY")
+    #             Logger.info("EARLY ACK SENT")
+    #             Logger.info("EARLY ACK SENTZIPFILE ERR?")
+    #             await trio.sleep(1)
                 
-                # Use a unique filename per connection to prevent collisions
-                zip_file_path = os.path.join(os.getcwd(), f'app_copy_{uuid4().hex}.zip')
+    #             # Use a unique filename per connection to prevent collisions
+    #             zip_file_path = os.path.join(os.getcwd(), f'app_copy_{uuid4().hex}.zip')
 
-                # Receive and save the zip file
-                await self._receive_zip_file(data_stream, zip_file_path)
+    #             # Receive and save the zip file
+    #             await self._receive_zip_file(data_stream, zip_file_path)
 
-                await data_stream.send_all(b"EARLY3")
-                Logger.info("EARLY ACK SENT3")
+    #             await data_stream.send_all(b"EARLY3")
+    #             Logger.info("EARLY ACK SENT3")
 
-                # Send ACK back to the desktop after successful processing. it's moved here because the reload was killing the app before the acknowledgement was sent, preventing state file from being made
-                # try:
-                #     await data_stream.send_all(b'OK')
-                #     Logger.info('Reloader: OK SENT')
-                #     # Give the OS time to flush the ACK before reload kills the process
-                #     # await trio.sleep(0.1)
-                #     await trio.sleep(1)
-                # except Exception as ack_err:
-                #     Logger.warning(
-                #         f'Reloader: Failed to send ACK to desktop: {ack_err}'
-                #     )
-                #     Logger.info('Reloader: OK FAILED')
+    #             # Send ACK back to the desktop after successful processing. it's moved here because the reload was killing the app before the acknowledgement was sent, preventing state file from being made
+    #             # try:
+    #             #     await data_stream.send_all(b'OK')
+    #             #     Logger.info('Reloader: OK SENT')
+    #             #     # Give the OS time to flush the ACK before reload kills the process
+    #             #     # await trio.sleep(0.1)
+    #             #     await trio.sleep(1)
+    #             # except Exception as ack_err:
+    #             #     Logger.warning(
+    #             #         f'Reloader: Failed to send ACK to desktop: {ack_err}'
+    #             #     )
+    #             #     Logger.info('Reloader: OK FAILED')
 
-                Logger.info('Reloader: starting app update ????')
-                # Close stream 
-                await data_stream.aclose()
-                self.nursery.start_soon(self._process_app_update, zip_file_path)
+    #             Logger.info('Reloader: starting app update ????')
+    #             # Close stream 
+    #             await data_stream.aclose()
+    #             self.nursery.start_soon(self._process_app_update, zip_file_path)
 
-                # await self._process_app_update(zip_file_path)
+    #             # await self._process_app_update(zip_file_path)
 
-                # await data_stream.send_all(b"EARLY4")
-                # Logger.info("EARLY ACK SENT4")
+    #             # await data_stream.send_all(b"EARLY4")
+    #             # Logger.info("EARLY ACK SENT4")
 
-                # # Send ACK back to the desktop after successful processing
-                # try:
-                #     await data_stream.send_all(b'OK')
-                # except Exception as ack_err:
-                #     Logger.warning(
-                #         f'Reloader: Failed to send ACK to desktop: {ack_err}'
-                #     )
+    #             # # Send ACK back to the desktop after successful processing
+    #             # try:
+    #             #     await data_stream.send_all(b'OK')
+    #             # except Exception as ack_err:
+    #             #     Logger.warning(
+    #             #         f'Reloader: Failed to send ACK to desktop: {ack_err}'
+    #             #     )
 
-                # # In android_app.py after processing
-                # import trio
-                # async with await trio.open_tcp_stream("127.0.0.1", 8056) as ack_stream:
-                #     await ack_stream.send_all(b'OK')
-                #     Logger.info('Reloader: OK SENT')
+    #             # # In android_app.py after processing
+    #             # import trio
+    #             # async with await trio.open_tcp_stream("127.0.0.1", 8056) as ack_stream:
+    #             #     await ack_stream.send_all(b'OK')
+    #             #     Logger.info('Reloader: OK SENT')
 
-                # # Send ACK back to the desktop after successful processing. it's moved here because the reload was killing the app before the acknowledgement was sent, preventing state file from being made
-                # try:
-                #     await data_stream.send_all(b'OK')
-                #     Logger.info('Reloader: OK SENT')
-                #     # Give the OS time to flush the ACK before reload kills the process
-                #     # await trio.sleep(0.1)
-                #     await trio.sleep(1)
-                # except Exception as ack_err:
-                #     Logger.warning(
-                #         f'Reloader: Failed to send ACK to desktop: {ack_err}'
-                #     )
-                #     Logger.info('Reloader: OK FAILED')
-            # Close stream afterwards so that USB connection is kept alive
-            # await data_stream.aclose()
+    #             # # Send ACK back to the desktop after successful processing. it's moved here because the reload was killing the app before the acknowledgement was sent, preventing state file from being made
+    #             # try:
+    #             #     await data_stream.send_all(b'OK')
+    #             #     Logger.info('Reloader: OK SENT')
+    #             #     # Give the OS time to flush the ACK before reload kills the process
+    #             #     # await trio.sleep(0.1)
+    #             #     await trio.sleep(1)
+    #             # except Exception as ack_err:
+    #             #     Logger.warning(
+    #             #         f'Reloader: Failed to send ACK to desktop: {ack_err}'
+    #             #     )
+    #             #     Logger.info('Reloader: OK FAILED')
+    #         # Close stream afterwards so that USB connection is kept alive
+    #         # await data_stream.aclose()
 
-        except (trio.BrokenResourceError, trio.ClosedResourceError, Exception) as e:
-            # Catch connection resets and "header" exceptions here
-            Logger.warning(f'Reloader: Connection dropped or malformed: {e}')
-            # IMPORTANT: Do NOT re-raise. Just let the function exit.
-            # This keeps the Nursery (and the app) alive.
+    #     except (trio.BrokenResourceError, trio.ClosedResourceError, Exception) as e:
+    #         # Catch connection resets and "header" exceptions here
+    #         Logger.warning(f'Reloader: Connection dropped or malformed: {e}')
+    #         # IMPORTANT: Do NOT re-raise. Just let the function exit.
+    #         # This keeps the Nursery (and the app) alive.
 
-        except Exception as e:
-            self._log_server_error(e)
-            Logger.error(f'{repr(e)}, {traceback.format_exc()}')
+    #     except Exception as e:
+    #         self._log_server_error(e)
+    #         Logger.error(f'{repr(e)}, {traceback.format_exc()}')
 
-        # try:
-        #     # Ensure only one update is applied at a time
-        #     Logger.info(f'Reloader: attempting to acquire lock...')
-        #     # just log timing
-        #     import time
-        #     t = time.time()
-        #     # async with self._update_lock:
-        #     #     Logger.info(f'Reloader: lock wait time: {time.time() - t:.4f}s')
-        #     #     Logger.info(f'Reloader: lock acquired!')
-        #     #     # Use a unique filename per connection to prevent collisions
-        #     #     zip_file_path = os.path.join(os.getcwd(), f'app_copy_{uuid4().hex}.zip')
+    #     # try:
+    #     #     # Ensure only one update is applied at a time
+    #     #     Logger.info(f'Reloader: attempting to acquire lock...')
+    #     #     # just log timing
+    #     #     import time
+    #     #     t = time.time()
+    #     #     # async with self._update_lock:
+    #     #     #     Logger.info(f'Reloader: lock wait time: {time.time() - t:.4f}s')
+    #     #     #     Logger.info(f'Reloader: lock acquired!')
+    #     #     #     # Use a unique filename per connection to prevent collisions
+    #     #     #     zip_file_path = os.path.join(os.getcwd(), f'app_copy_{uuid4().hex}.zip')
 
-        #     #     # Receive and save the zip file
-        #     #     await self._receive_zip_file(data_stream, zip_file_path)
+    #     #     #     # Receive and save the zip file
+    #     #     #     await self._receive_zip_file(data_stream, zip_file_path)
 
-        #     #     # Process the received update
-        #     #     await self._process_app_update(data_stream, zip_file_path)
-        #     Logger.info(f'Reloader: lock wait time: {time.time() - t:.4f}s')
-        #     Logger.info(f'Reloader: lock acquired!')
-        #     # Use a unique filename per connection to prevent collisions
-        #     zip_file_path = os.path.join(os.getcwd(), f'app_copy_{uuid4().hex}.zip')
+    #     #     #     # Process the received update
+    #     #     #     await self._process_app_update(data_stream, zip_file_path)
+    #     #     Logger.info(f'Reloader: lock wait time: {time.time() - t:.4f}s')
+    #     #     Logger.info(f'Reloader: lock acquired!')
+    #     #     # Use a unique filename per connection to prevent collisions
+    #     #     zip_file_path = os.path.join(os.getcwd(), f'app_copy_{uuid4().hex}.zip')
 
-        #     # Receive and save the zip file
-        #     await self._receive_zip_file(data_stream, zip_file_path)
+    #     #     # Receive and save the zip file
+    #     #     await self._receive_zip_file(data_stream, zip_file_path)
 
-        #     # Process the received update
-        #     await self._process_app_update(data_stream, zip_file_path)
+    #     #     # Process the received update
+    #     #     await self._process_app_update(data_stream, zip_file_path)
 
-        # except Exception as e:
-        #     self._log_server_error(e)
+    #     # except Exception as e:
+    #     #     self._log_server_error(e)
 
     async def _receive_zip_file(self, data_stream, zip_file_path):
         # 1. Read header until newline
