@@ -955,8 +955,8 @@ def wait_for_adb_online(serial: str, timeout: float = 10.0) -> bool:
             ["adb", "-s", serial, "wait-for-device"],
             timeout=timeout,
             check=True,
+            stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL
         )
         return True
     except (subprocess.TimeoutExpired, subprocess.CalledProcessError):
