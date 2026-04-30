@@ -8,6 +8,16 @@ put this in uninstall +
 undo this on kivy reloader exit 
  Set-NetFirewallProfile -Profile Public -DisabledInterfaceAliases "vEthernet (WSL)"
 =-=-==
+Remove-NetFirewallRule -DisplayName "WSL Kivy Surgical 8055" -ErrorAction SilentlyContinue
+Get-NetFirewallRule | Where-Object {$_.DisplayName -like "*8055*"} | Select-Object DisplayName, Enabled, Profile, Action
+
+get wsl unblocked
+Set-NetFirewallProfile -Profile Public -DisabledInterfaceAliases "vEthernet (WSL)"
+undo wsl unblocking
+Set-NetFirewallProfile -Profile Public -DisabledInterfaceAliases @()
+
+=-=-==
+
 still need to 
 adb nodaemon
 netsh interface portproxy add v4tov4 `

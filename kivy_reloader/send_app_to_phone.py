@@ -17,18 +17,60 @@ yellow = Fore.YELLOW
 white = Fore.WHITE
 init(autoreset=True)
 
-
 async def connect_to_server(IP):
-    try:
-        print("what", config.RELOADER_PORT)
-        PORT = int(config.RELOADER_PORT)
-        print(f'Connecting to IP: {green}{IP}{white} and PORT: {green}{PORT}')
-        with trio.move_on_after(1):
-            client_socket = await trio.open_tcp_stream(IP, PORT)
-            return client_socket
-    except Exception as e:
-        print(f'{red}Error: {e}')
-        return None
+    PORT = int(config.RELOADER_PORT)
+    timeout = 60  # Total time we are willing to wait for a success
+    start_time = trio.current_time()
+
+    while (trio.current_time() - start_time) < timeout:
+        try:
+            print(f'Connecting to IP: {green}{IP}{white} and PORT: {green}{PORT}')
+            # Attempt the connection with a 5s window
+            with trio.move_on_after(5) as cancel_scope:
+                client_socket = await trio.open_tcp_stream(IP, PORT)
+                return client_socket # SUCCESS: Return the socket
+            
+            # If we reached here, the connection timed out
+            print(f"{yellow}Connection timed out. Checking Firewall/ADB...")
+
+            if in_wsl() and config.STREAM_USING == "USB":
+                # 1. Trigger the Firewall Fix (UAC)
+                print(f"{yellow}Initial connection blocked. Fixing Windows firewall for WSL2. Waiting for you to approve the UAC prompt...")
+                await run_wsl_firewall_fix(port=PORT) 
+                
+                # Wait up to 30 seconds for the rule to actually appear
+                rule_found = await wsl_firewall_check_async(PORT)
+                # 2. Poll for the rule to appear (Wait up to 10s for user click)
+                if rule_found:
+                    print(f"{green}Firewall cleared. Resetting ADB tunnel...")
+                    # 3. Clear the 'Ghost' connection
+                    await trio.run_process(["adb.exe", "forward", "--remove", f"tcp:{PORT}"], check=False)
+                    await trio.sleep(0.5)
+                    await trio.run_process(["adb.exe", "forward", f"tcp:{PORT}", f"tcp:{PORT}"], check=False)
+                    print(f"{green}Tunnel reset. Retrying immediately...")
+                else:
+                    print(f"{red}Firewall rule not detected. Please click 'Yes' on UAC!")
+
+        except Exception as e:
+            print(f'{red}Attempt failed: {e}. Retrying in 2s...')
+        
+        await trio.sleep(2) # Wait before the next full attempt
+
+    print(f"{red}Global timeout reached in {timeout}s. Could not connect to {IP}")
+    return None
+
+
+# async def connect_to_server(IP):
+#     try:
+#         print("what", config.RELOADER_PORT)
+#         PORT = int(config.RELOADER_PORT)
+#         print(f'Connecting to IP: {green}{IP}{white} and PORT: {green}{PORT}')
+#         with trio.move_on_after(10):
+#             client_socket = await trio.open_tcp_stream(IP, PORT)
+#             return client_socket
+#     except Exception as e:
+#         print(f'{red}Error: {e}')
+#         return None
 
 def wsl_network_dead(timeout=1.0):
     """
@@ -60,40 +102,190 @@ def wsl_network_dead(timeout=1.0):
 
 async def run_wsl_firewall_fix(port=8055):
     try:
-        # 1. Get the IP but convert it to the /20 subnet range 
-        # This matches your working manual command
+        # 1. Get the IP and convert to /20 subnet range
         ip_data = subprocess.check_output(["ip", "-o", "-4", "addr", "show", "eth0"]).decode()
-        # Extracts '172.28.x.x'
         raw_ip = ip_data.split()[3].split('/')[0]
-        # Logic to get the base subnet (e.g., 172.28.0.0/20)
-        # For WSL2 on Win10, the first two octets are usually stable enough
         parts = raw_ip.split('.')
         subnet_range = f"{parts[0]}.{parts[1]}.0.0/20"
-        
         print(f"[*] Detected WSL IP: {raw_ip} -> Using Subnet: {subnet_range}")
 
-        # 2. The PowerShell commands (Note the change to -RemoteAddress)
-        ps_script = f"""
-        Remove-NetFirewallRule -DisplayName 'WSL Kivy Surgical {port}' -ErrorAction SilentlyContinue
-        New-NetFirewallRule -DisplayName 'WSL Kivy Surgical {port}' `
-            -Direction Inbound -Action Allow -Protocol TCP `
-            -LocalPort {port} -RemoteAddress '{subnet_range}' `
-            -InterfaceAlias 'vEthernet (WSL)'
-        """
+        rule_name = f"WSL Kivy Surgical {port}"
 
-        # 3. Encode for Windows
-        encoded_script = base64.b64encode(ps_script.encode('utf-16-le')).decode('utf-8')
+        # 2. Read current state (no admin needed)
+        check_cmd = [
+            "powershell.exe", "-NoProfile", "-Command",
+            f"$aliases = (Get-NetFirewallProfile -Profile Public).DisabledInterfaceAliases;"
+            f"$rule = Get-NetFirewallRule -DisplayName '{rule_name}' -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Enabled;"
+            f"Write-Output \"ALIASES:$aliases|RULE:$rule\""
+        ]
+        check_result = subprocess.run(check_cmd, capture_output=True, text=True)
+        output = check_result.stdout.strip()
 
-        # 4. Trigger the UAC Admin prompt
-        launch_command = f'Start-Process powershell -Verb RunAs -ArgumentList "-NoProfile", "-EncodedCommand", "{encoded_script}"'
-        
-        print(f"[*] Triggering Windows UAC prompt for port {port}...")
+        wsl_allowed = "vEthernet (WSL)" in output
+        rule_enabled = "RULE:True" in output
+
+        # 3. Report each case clearly
+        print()
+        print(f"[Case 1] WSL interface allowed: {'✓ YES' if wsl_allowed else '✗ NO — will fix'}")
+        print(f"[Case 2] Port {port} rule enabled: {'✓ YES' if rule_enabled else '✗ NO — will fix'}")
+        print()
+
+        # 4. Nothing to do
+        if wsl_allowed and rule_enabled:
+            print("[✓] All good — nothing to fix!")
+            return
+
+        # 5. Build a single script covering only what needs fixing
+        ps_parts = []
+
+        # Case 1 fix: allow WSL interface on Public profile
+        if not wsl_allowed:
+            ps_parts.append(
+                "$p = Get-NetFirewallProfile -Profile Public; "
+                "$aliases = $p.DisabledInterfaceAliases + 'vEthernet (WSL)'; "
+                "Set-NetFirewallProfile -Profile Public -DisabledInterfaceAliases $aliases; "
+                "Write-Host '[+] Case 1 fixed: WSL interface now allowed on Public firewall profile.'"
+            )
+
+        # Case 2 fix: create inbound port rule
+        if not rule_enabled:
+            ps_parts.append(
+                f"Remove-NetFirewallRule -DisplayName '{rule_name}' -ErrorAction SilentlyContinue; "
+                f"New-NetFirewallRule -DisplayName '{rule_name}' "
+                f"-Direction Inbound -Action Allow -Protocol TCP "
+                f"-LocalPort {port} -RemoteAddress '{subnet_range}' "
+                f"-InterfaceAlias 'vEthernet (WSL)'; "
+                f"Write-Host '[+] Case 2 fixed: Inbound rule for port {port} created.'"
+            )
+
+        # 6. Fire single UAC prompt with combined script
+        combined_script = " ".join(ps_parts)
+        encoded_script = base64.b64encode(combined_script.encode('utf-16-le')).decode('utf-8')
+        launch_command = (
+            f'Start-Process powershell -Verb RunAs '
+            f'-ArgumentList "-NoProfile", "-EncodedCommand", "{encoded_script}"'
+        )
+
+        print("[*] Triggering single UAC prompt for all required fixes...")
         subprocess.run(["powershell.exe", "-Command", launch_command], check=True)
-        
-        print("[+] Check your taskbar for the UAC shield!")
+        print("[+] Done! Check your taskbar for the UAC shield.")
 
+    except subprocess.CalledProcessError as e:
+        print(f"[!] Subprocess error: {e}")
     except Exception as e:
         print(f"[!] Failed: {e}")
+
+# async def run_wsl_firewall_fix(port=8055):
+#     try:
+#         # 1. Get the IP and convert to /20 subnet range
+#         ip_data = subprocess.check_output(["ip", "-o", "-4", "addr", "show", "eth0"]).decode()
+#         raw_ip = ip_data.split()[3].split('/')[0]
+#         parts = raw_ip.split('.')
+#         subnet_range = f"{parts[0]}.{parts[1]}.0.0/20"
+
+#         print(f"[*] Detected WSL IP: {raw_ip} -> Using Subnet: {subnet_range}")
+
+#         rule_name = f"WSL Kivy Surgical {port}"
+
+#         # 2. Check if the firewall profile already allows WSL interface
+#         check_cmd = [
+#             "powershell.exe", "-NoProfile", "-Command",
+#             "(Get-NetFirewallProfile -Profile Public).DisabledInterfaceAliases"
+#         ]
+#         check_result = subprocess.run(check_cmd, capture_output=True, text=True)
+#         disabled_aliases = check_result.stdout.strip()
+
+#         if "vEthernet (WSL)" in disabled_aliases:
+#             print("[✓] WSL interface is already allowed on the Public firewall profile. No changes needed.")
+#         else:
+#             print("[!] WSL interface is NOT allowed. Applying profile fix... (Windows will complain in Win 10)")
+#             profile_fix = (
+#                 "$p = Get-NetFirewallProfile -Profile Public;"
+#                 "$aliases = $p.DisabledInterfaceAliases + 'vEthernet (WSL)';"
+#                 "Set-NetFirewallProfile -Profile Public -DisabledInterfaceAliases $aliases"
+#             )
+#             encoded_profile_fix = base64.b64encode(profile_fix.encode('utf-16-le')).decode('utf-8')
+#             launch_profile_fix = (
+#                 f'Start-Process powershell -Verb RunAs '
+#                 f'-ArgumentList "-NoProfile", "-EncodedCommand", "{encoded_profile_fix}"'
+#             )
+#             subprocess.run(["powershell.exe", "-Command", launch_profile_fix], check=True)
+#             print("[+] WSL interface allowed on Public firewall profile. Check taskbar for UAC prompt.")
+
+#         # 3. Check if the inbound port rule already exists and is enabled
+#         check_rule_cmd = [
+#             "powershell.exe", "-NoProfile", "-Command",
+#             f"Get-NetFirewallRule -DisplayName '{rule_name}' -ErrorAction SilentlyContinue"
+#             " | Select-Object -ExpandProperty Enabled"
+#         ]
+#         rule_result = subprocess.run(check_rule_cmd, capture_output=True, text=True)
+#         rule_enabled = rule_result.stdout.strip().lower() == "true"
+
+#         if rule_enabled:
+#             print(f"[✓] Firewall rule '{rule_name}' already exists and is enabled. No changes needed.")
+#             return
+
+#         print(f"[!] Rule '{rule_name}' not found or disabled. Requesting admin prompt to apply fix...")
+
+#         # 4. Build and encode the rule creation script
+#         ps_script = (
+#             f"Remove-NetFirewallRule -DisplayName '{rule_name}' -ErrorAction SilentlyContinue; "
+#             f"New-NetFirewallRule -DisplayName '{rule_name}' "
+#             f"-Direction Inbound -Action Allow -Protocol TCP "
+#             f"-LocalPort {port} -RemoteAddress '{subnet_range}' "
+#             f"-InterfaceAlias 'vEthernet (WSL)'"
+#         )
+#         encoded_script = base64.b64encode(ps_script.encode('utf-16-le')).decode('utf-8')
+#         launch_command = (
+#             f'Start-Process powershell -Verb RunAs '
+#             f'-ArgumentList "-NoProfile", "-EncodedCommand", "{encoded_script}"'
+#         )
+
+#         print(f"[*] Triggering Windows UAC prompt for port {port}...")
+#         subprocess.run(["powershell.exe", "-Command", launch_command], check=True)
+#         print("[+] Firewall rule applied. Check your taskbar for the UAC shield!")
+
+#     except subprocess.CalledProcessError as e:
+#         print(f"[!] Subprocess error: {e}")
+#     except Exception as e:
+#         print(f"[!] Failed: {e}")
+
+# async def run_wsl_firewall_fix(port=8055):
+#     try:
+#         # 1. Get the IP but convert it to the /20 subnet range 
+#         # This matches your working manual command
+#         ip_data = subprocess.check_output(["ip", "-o", "-4", "addr", "show", "eth0"]).decode()
+#         # Extracts '172.28.x.x'
+#         raw_ip = ip_data.split()[3].split('/')[0]
+#         # Logic to get the base subnet (e.g., 172.28.0.0/20)
+#         # For WSL2 on Win10, the first two octets are usually stable enough
+#         parts = raw_ip.split('.')
+#         subnet_range = f"{parts[0]}.{parts[1]}.0.0/20"
+        
+#         print(f"[*] Detected WSL IP: {raw_ip} -> Using Subnet: {subnet_range}")
+
+#         # 2. The PowerShell commands (Note the change to -RemoteAddress)
+#         ps_script = f"""
+#         Remove-NetFirewallRule -DisplayName 'WSL Kivy Surgical {port}' -ErrorAction SilentlyContinue
+#         New-NetFirewallRule -DisplayName 'WSL Kivy Surgical {port}' `
+#             -Direction Inbound -Action Allow -Protocol TCP `
+#             -LocalPort {port} -RemoteAddress '{subnet_range}' `
+#             -InterfaceAlias 'vEthernet (WSL)'
+#         """
+
+#         # 3. Encode for Windows
+#         encoded_script = base64.b64encode(ps_script.encode('utf-16-le')).decode('utf-8')
+
+#         # 4. Trigger the UAC Admin prompt
+#         launch_command = f'Start-Process powershell -Verb RunAs -ArgumentList "-NoProfile", "-EncodedCommand", "{encoded_script}"'
+        
+#         print(f"[*] Triggering Windows UAC prompt for port {port}...")
+#         subprocess.run(["powershell.exe", "-Command", launch_command], check=True)
+        
+#         print("[+] Check your taskbar for the UAC shield!")
+
+#     except Exception as e:
+#         print(f"[!] Failed: {e}")
 
 async def wsl_firewall_check_async(port):
     timeout = 30
@@ -173,28 +365,28 @@ async def send_app():
         #     print(f"{yellow}Attempted to fix windows firewall for wsl2 connection to phone.")
         #     continue
 
-        if not client_socket and config.STREAM_USING == "USB" and in_wsl():
+        # if not client_socket and config.STREAM_USING == "USB" and in_wsl():
 
-            # if wsl_network_dead():
-            #     print(f"{red}WSL2 networking is down. Please run: wsl --shutdown")
+        #     # if wsl_network_dead():
+        #     #     print(f"{red}WSL2 networking is down. Please run: wsl --shutdown")
             
-            print(f"{yellow}Initial connection blocked. Fixing Windows firewall for WSL2. Waiting for you to approve the UAC prompt...")
-            await run_wsl_firewall_fix(port=PORT)
+        #     print(f"{yellow}Initial connection blocked. Fixing Windows firewall for WSL2. Waiting for you to approve the UAC prompt...")
+        #     await run_wsl_firewall_fix(port=PORT)
             
-            # Wait up to 30 seconds for the rule to actually appear
-            rule_found = await wsl_firewall_check_async(PORT)
+        #     # Wait up to 30 seconds for the rule to actually appear
+        #     rule_found = await wsl_firewall_check_async(PORT)
 
-            # rule_found = True
+        #     # rule_found = True
             
-            if rule_found:
-                # RETRY the connection now that the gate is open
-                print(f"{green}Retrying connection to smartphone...")
-                client_socket = await connect_to_server(IP)
-            else:
-                print(f"{red}Timed out waiting for firewall rule. Did you click 'Yes'?")
-                # Maybe exit or handle failure here
+        #     if rule_found:
+        #         # RETRY the connection now that the gate is open
+        #         print(f"{green}Retrying connection to smartphone...")
+        #         client_socket = await connect_to_server(IP)
+        #     else:
+        #         print(f"{red}Timed out waiting for firewall rule. Did you click 'Yes'?")
+        #         # Maybe exit or handle failure here
             
-            continue
+        #     continue
 
         if not client_socket:
             print(f"{yellow}Couldn't connect to smartphone: {IP}")
