@@ -2,6 +2,7 @@
 
 new steps:
 =-=-==
+=-=-==
 (I still need to adb -a daemon btw)
 this is the final fix just let windows firewall complain + 
 put this in uninstall + 
@@ -780,3 +781,8 @@ netsh advfirewall export "C:\Users\RaptorPatrolCore\fw_backup.wfw"
 # In WSL:
 ip -4 addr show eth0
 ```
+=-=-=-=-=-=
+2 tests:
+1 where the wsl is not allowed
+1 where port is open but wsl not allowed
+=-=-=-=-=-=

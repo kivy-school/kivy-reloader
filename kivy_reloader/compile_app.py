@@ -16,7 +16,7 @@ import typer
 from colorama import Fore, Style, init
 
 from .config import config
-from .utils import get_connected_devices, get_wifi_ip
+from .utils import get_connected_devices, get_wifi_ip, in_wsl
 
 
 def is_ci_environment() -> bool:
@@ -724,7 +724,13 @@ def debug_and_livestream(buildozer_compiled: Event = None) -> None:
     validate_devices_connected()
 
     logging.info(f"DEBUG RAN!0000!")
+
     try:
+        if in_wsl() and config.STREAM_USING == "USB":
+            kill_adb_server()
+            start_nodaemon_adb_server()
+            wait_for_adb_online()
+
         logging.info(f"DEBUG RAN!!")
         adb_logcat_ready = Event()
         adb_logcat = Process(target=debug, args=(adb_logcat_ready,))
@@ -733,7 +739,6 @@ def debug_and_livestream(buildozer_compiled: Event = None) -> None:
 
         adb_logcat.start()
         scrcpy.start()
-
         # Wait for processes and handle termination
         try:
             adb_logcat.join()
@@ -782,6 +787,21 @@ def start_adb_server():
     logging.info('Starting adb server')
     try:
         subprocess.run(['adb', 'start-server'], check=True)
+    except FileNotFoundError:
+        logging.error('adb not found')
+        print(
+            f'{red}Please, install `scrcpy`: {yellow}https://github.com/Genymobile/scrcpy{Fore.RESET}'
+        )
+
+def start_nodaemon_adb_server():
+    logging.info('Starting adb server')
+    try:
+        adb_port = getattr(config, "ADB_PORT", 5037)
+        subprocess.Popen(
+            ["adb", "-a", "-P", str(adb_port), "nodaemon", "server"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
+        )
     except FileNotFoundError:
         logging.error('adb not found')
         print(
@@ -928,7 +948,6 @@ def determine_wifi_targets(devices: list) -> tuple[list, list]:
 
 
 def wait_for_adb_online(serial: str, timeout: float = 10.0) -> bool:
-    import subprocess
     try:
         # This blocks natively until the state is 'device'
         # We use a timeout at the subprocess level to avoid hanging forever
@@ -936,6 +955,7 @@ def wait_for_adb_online(serial: str, timeout: float = 10.0) -> bool:
             ["adb", "-s", serial, "wait-for-device"],
             timeout=timeout,
             check=True,
+            stderr=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL
         )
         return True
