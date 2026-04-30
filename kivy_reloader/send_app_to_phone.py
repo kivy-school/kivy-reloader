@@ -6,6 +6,7 @@ from colorama import Fore, init
 import subprocess
 import time
 import base64
+import socket
 
 from kivy_reloader.config import config
 from kivy_reloader.utils import get_connected_devices, in_wsl
@@ -28,6 +29,34 @@ async def connect_to_server(IP):
     except Exception as e:
         print(f'{red}Error: {e}')
         return None
+
+def wsl_network_dead(timeout=1.0):
+    """
+    Returns True if WSL2 networking is dead (Windows 10 adapter vanished).
+    """
+    try:
+        # 1. Get default gateway (Windows host)
+        route = subprocess.check_output(
+            ["sh", "-c", "ip route | grep default | awk '{print $3}'"],
+            stderr=subprocess.DEVNULL
+        ).decode().strip()
+
+        if not route:
+            return True  # No gateway at all → WSL networking dead
+
+        # 2. Try connecting to the gateway on any port (TCP SYN)
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(timeout)
+        try:
+            s.connect((route, 53))  # DNS port is always closed but reachable
+            s.close()
+            return False  # Gateway reachable → networking alive
+        except ConnectionRefusedError:
+            return False  # Host reachable, port just closed — networking alive
+        except Exception:
+            return True   # Timeout or no route — networking dead
+    except Exception:
+        return True  # Any failure → treat as dead
 
 async def run_wsl_firewall_fix(port=8055):
     try:
@@ -145,11 +174,17 @@ async def send_app():
         #     continue
 
         if not client_socket and config.STREAM_USING == "USB" and in_wsl():
+
+            # if wsl_network_dead():
+            #     print(f"{red}WSL2 networking is down. Please run: wsl --shutdown")
+            
             print(f"{yellow}Initial connection blocked. Fixing Windows firewall for WSL2. Waiting for you to approve the UAC prompt...")
             await run_wsl_firewall_fix(port=PORT)
             
             # Wait up to 30 seconds for the rule to actually appear
             rule_found = await wsl_firewall_check_async(PORT)
+
+            # rule_found = True
             
             if rule_found:
                 # RETRY the connection now that the gate is open
