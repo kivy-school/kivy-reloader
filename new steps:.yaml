@@ -14,6 +14,11 @@ then test on windows itself (most likely will work)
 
 then test out mac
 ask filipe to test ubuntu/linux
+
+uv run kivy reloader run first
+uv run main py run first
+
+
 =-=-==
 debug starts its own adb server btw which is why there are dupes
 =-=-==

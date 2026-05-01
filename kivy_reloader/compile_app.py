@@ -555,10 +555,15 @@ def select_option(option: str, app_name: str) -> None:
     3. Create aab
     4. Restart adb server
     """
-    setup_adb_env()
-    if in_wsl() and config.STREAM_USING == "USB":
-        trio.run(fix_wsl)
-        start_nodaemon_adb_server()
+    # setup_adb_env()
+    # if in_wsl() and config.STREAM_USING == "USB":
+    #     #run adb nodaemon
+    #     start_nodaemon_adb_server()
+    #     # fix wsl
+    #     trio.run(fix_wsl)
+    #     # check for auth
+    #     wait_for_authorization()
+
     try:
         if option == '1':
             buildozer_compiled = Event()
@@ -858,7 +863,7 @@ def start_nodaemon_adb_server():
             f'{red}Please, install `scrcpy`: {yellow}https://github.com/Genymobile/scrcpy{Fore.RESET}'
         )
     for _ in range(5): # Give it 5 seconds to bind
-        if is_adb_listening(host=host_ip, port=adb_port):
+        if is_adb_listening(host=host_ip):
             # logging.info('adb server is up and listening')
             wait_for_authorization()
             return True
