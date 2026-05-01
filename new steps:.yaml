@@ -2,6 +2,20 @@
 
 new steps:
 =-=-==
+so much setup to test:
+WSL SETUP (partials as well):
+- Remove-NetFirewallRule -DisplayName "WSL Kivy Surgical 8055" -ErrorAction SilentlyContinue
+- Get-NetFirewallRule | Where-Object {$_.DisplayName -like "*8055*"} | Select-Object DisplayName, Enabled, Profile, Action
+- Set-NetFirewallProfile -Profile Public -DisabledInterfaceAliases @()
+
+then if uv kivy reloader run is first or uv main.py is first
+
+then test on windows itself (most likely will work)
+
+then test out mac
+ask filipe to test ubuntu/linux
+=-=-==
+debug starts its own adb server btw which is why there are dupes
 =-=-==
 (I still need to adb -a daemon btw)
 this is the final fix just let windows firewall complain + 

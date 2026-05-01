@@ -4,12 +4,11 @@ import logging
 import trio
 from colorama import Fore, init
 import subprocess
-import time
-import base64
+
 import socket
 
 from kivy_reloader.config import config
-from kivy_reloader.utils import get_connected_devices, in_wsl
+from kivy_reloader.utils import get_connected_devices, in_wsl, fix_wsl
 
 red = Fore.RED
 green = Fore.GREEN
@@ -21,6 +20,7 @@ async def connect_to_server(IP):
     PORT = int(config.RELOADER_PORT)
     timeout = 60  # Total time we are willing to wait for a success
     start_time = trio.current_time()
+    UAC_count = 0
 
     while (trio.current_time() - start_time) < timeout:
         try:
@@ -33,23 +33,9 @@ async def connect_to_server(IP):
             # If we reached here, the connection timed out
             print(f"{yellow}Connection timed out. Checking Firewall/ADB...")
 
-            if in_wsl() and config.STREAM_USING == "USB":
-                # 1. Trigger the Firewall Fix (UAC)
-                print(f"{yellow}Initial connection blocked. Fixing Windows firewall for WSL2. Waiting for you to approve the UAC prompt...")
-                await run_wsl_firewall_fix(port=PORT) 
-                
-                # Wait up to 30 seconds for the rule to actually appear
-                rule_found = await wsl_firewall_check_async(PORT)
-                # 2. Poll for the rule to appear (Wait up to 10s for user click)
-                if rule_found:
-                    print(f"{green}Firewall cleared. Resetting ADB tunnel...")
-                    # 3. Clear the 'Ghost' connection
-                    await trio.run_process(["adb.exe", "forward", "--remove", f"tcp:{PORT}"], check=False)
-                    await trio.sleep(0.5)
-                    await trio.run_process(["adb.exe", "forward", f"tcp:{PORT}", f"tcp:{PORT}"], check=False)
-                    print(f"{green}Tunnel reset. Retrying immediately...")
-                else:
-                    print(f"{red}Firewall rule not detected. Please click 'Yes' on UAC!")
+            if in_wsl() and config.STREAM_USING == "USB" and UAC_count < 1:
+                await fix_wsl()
+                UAC_count += 1
 
         except Exception as e:
             print(f'{red}Attempt failed: {e}. Retrying in 2s...')
@@ -100,80 +86,7 @@ def wsl_network_dead(timeout=1.0):
     except Exception:
         return True  # Any failure → treat as dead
 
-async def run_wsl_firewall_fix(port=8055):
-    try:
-        # 1. Get the IP and convert to /20 subnet range
-        ip_data = subprocess.check_output(["ip", "-o", "-4", "addr", "show", "eth0"]).decode()
-        raw_ip = ip_data.split()[3].split('/')[0]
-        parts = raw_ip.split('.')
-        subnet_range = f"{parts[0]}.{parts[1]}.0.0/20"
-        print(f"[*] Detected WSL IP: {raw_ip} -> Using Subnet: {subnet_range}")
 
-        rule_name = f"WSL Kivy Surgical {port}"
-
-        # 2. Read current state (no admin needed)
-        check_cmd = [
-            "powershell.exe", "-NoProfile", "-Command",
-            f"$aliases = (Get-NetFirewallProfile -Profile Public).DisabledInterfaceAliases;"
-            f"$rule = Get-NetFirewallRule -DisplayName '{rule_name}' -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Enabled;"
-            f"Write-Output \"ALIASES:$aliases|RULE:$rule\""
-        ]
-        check_result = subprocess.run(check_cmd, capture_output=True, text=True)
-        output = check_result.stdout.strip()
-
-        wsl_allowed = "vEthernet (WSL)" in output
-        rule_enabled = "RULE:True" in output
-
-        # 3. Report each case clearly
-        print()
-        print(f"[Case 1] WSL interface allowed: {'✓ YES' if wsl_allowed else '✗ NO — will fix'}")
-        print(f"[Case 2] Port {port} rule enabled: {'✓ YES' if rule_enabled else '✗ NO — will fix'}")
-        print()
-
-        # 4. Nothing to do
-        if wsl_allowed and rule_enabled:
-            print("[✓] All good — nothing to fix!")
-            return
-
-        # 5. Build a single script covering only what needs fixing
-        ps_parts = []
-
-        # Case 1 fix: allow WSL interface on Public profile
-        if not wsl_allowed:
-            ps_parts.append(
-                "$p = Get-NetFirewallProfile -Profile Public; "
-                "$aliases = $p.DisabledInterfaceAliases + 'vEthernet (WSL)'; "
-                "Set-NetFirewallProfile -Profile Public -DisabledInterfaceAliases $aliases; "
-                "Write-Host '[+] Case 1 fixed: WSL interface now allowed on Public firewall profile.'"
-            )
-
-        # Case 2 fix: create inbound port rule
-        if not rule_enabled:
-            ps_parts.append(
-                f"Remove-NetFirewallRule -DisplayName '{rule_name}' -ErrorAction SilentlyContinue; "
-                f"New-NetFirewallRule -DisplayName '{rule_name}' "
-                f"-Direction Inbound -Action Allow -Protocol TCP "
-                f"-LocalPort {port} -RemoteAddress '{subnet_range}' "
-                f"-InterfaceAlias 'vEthernet (WSL)'; "
-                f"Write-Host '[+] Case 2 fixed: Inbound rule for port {port} created.'"
-            )
-
-        # 6. Fire single UAC prompt with combined script
-        combined_script = " ".join(ps_parts)
-        encoded_script = base64.b64encode(combined_script.encode('utf-16-le')).decode('utf-8')
-        launch_command = (
-            f'Start-Process powershell -Verb RunAs '
-            f'-ArgumentList "-NoProfile", "-EncodedCommand", "{encoded_script}"'
-        )
-
-        print("[*] Triggering single UAC prompt for all required fixes...")
-        subprocess.run(["powershell.exe", "-Command", launch_command], check=True)
-        print("[+] Done! Check your taskbar for the UAC shield.")
-
-    except subprocess.CalledProcessError as e:
-        print(f"[!] Subprocess error: {e}")
-    except Exception as e:
-        print(f"[!] Failed: {e}")
 
 # async def run_wsl_firewall_fix(port=8055):
 #     try:
@@ -287,32 +200,7 @@ async def run_wsl_firewall_fix(port=8055):
 #     except Exception as e:
 #         print(f"[!] Failed: {e}")
 
-async def wsl_firewall_check_async(port):
-    timeout = 30
-    start_time = time.time()
-    rule_found = False
-    
-    while time.time() - start_time < timeout:
-        # Use netsh.exe to check from WSL
-        check_cmd = ["netsh.exe", "advfirewall", "firewall", "show", "rule", f"name=WSL Kivy Surgical {port}"]
-        
-        # Using trio.run_process for a clean async check
-        try:
-            result = await trio.run_process(check_cmd, capture_stdout=True, capture_stderr=True, check=False)
-            if result.returncode == 0:
-                print(f"{green}Firewall rule detected! Proceeding...")
-                rule_found = True
-                break
-        except Exception as e:
-            print(f"{red}Check failed: {e}")
 
-        elapsed = int(time.time() - start_time)
-        print(f"{yellow}[{elapsed}s] Rule not found yet. Check UAC prompt...")
-        
-        # This allows other async tasks to run while we wait for the UAC click
-        await trio.sleep(1)
-        
-    return rule_found
 
 def check_adb_context():
     try:

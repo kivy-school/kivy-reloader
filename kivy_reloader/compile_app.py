@@ -1,14 +1,17 @@
 import logging
 import os
 import platform as _platform
+import re
 import signal
 import subprocess
 import sys
+
 import time
 from contextlib import suppress
 from multiprocessing import Process, Event
 from sys import platform as _sys_platform
 from threading import Thread
+import trio
 
 import psutil
 import readchar
@@ -16,7 +19,7 @@ import typer
 from colorama import Fore, Style, init
 
 from .config import config
-from .utils import get_connected_devices, get_wifi_ip, in_wsl
+from .utils import get_connected_devices, get_wifi_ip, in_wsl, fix_wsl, is_adb_listening, extract_ip, get_wsl_nameservers
 
 
 def is_ci_environment() -> bool:
@@ -224,6 +227,8 @@ def wait_for_authorization(timeout=30):
                             stderr=subprocess.DEVNULL, timeout=2
                         ).decode().strip()
                         authorized_hardware_serials.add(hw_serial)
+                        print("hw serial list", hw_serial)
+
                     except: continue
                 else:
                     authorized_hardware_serials.add(serial)
@@ -239,6 +244,12 @@ def wait_for_authorization(timeout=30):
                     return True
                 else:
                     serial_list.append(serial)
+
+        adb_devices = subprocess.check_output(
+                            ["adb", "devices", "-l"],
+                            stderr=subprocess.DEVNULL, timeout=2
+                        ).decode().strip()
+        print("adb devices -l", adb_devices)
 
 
         elapsed = time.time() - start
@@ -544,6 +555,10 @@ def select_option(option: str, app_name: str) -> None:
     3. Create aab
     4. Restart adb server
     """
+    setup_adb_env()
+    if in_wsl() and config.STREAM_USING == "USB":
+        trio.run(fix_wsl)
+        start_nodaemon_adb_server()
     try:
         if option == '1':
             buildozer_compiled = Event()
@@ -551,8 +566,9 @@ def select_option(option: str, app_name: str) -> None:
             logging.info(f"debug_and_livestream RAN!!A")
             debug_and_livestream(buildozer_compiled)
         elif option == '2':
+            buildozer_compiled.set()
             logging.info(f"debug_and_livestream RAN!!B")
-            debug_and_livestream()
+            debug_and_livestream(buildozer_compiled)
         elif option == '3':
             create_aab()
         elif option == '4':
@@ -674,6 +690,16 @@ def deploy_app_to_devices(
             check=True,
         )
 
+def start_adb_claude():
+    subprocess.run(['adb', 'kill-server'], check=False)
+    subprocess.Popen(
+        ['adb', '-a', '-P', '5037', 'nodaemon', 'server'],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL
+    )
+    time.sleep(0.8)
+    # wait_for_adb_online()
+    # wait_for_authorization()
 
 def compile_app(buildozer_compiled: Event = None):
     """
@@ -684,6 +710,10 @@ def compile_app(buildozer_compiled: Event = None):
     """
     # Step 1: Validate environment
     validate_compilation_environment()
+
+    # #     # wait_for_adb_online()
+        # start_adb_claude()
+    #     # wait_for_authorization()
 
     # Step 2: Compile using buildozer
     run_buildozer_compilation()
@@ -726,11 +756,6 @@ def debug_and_livestream(buildozer_compiled: Event = None) -> None:
     logging.info(f"DEBUG RAN!0000!")
 
     try:
-        if in_wsl() and config.STREAM_USING == "USB":
-            kill_adb_server()
-            start_nodaemon_adb_server()
-            wait_for_adb_online()
-
         logging.info(f"DEBUG RAN!!")
         adb_logcat_ready = Event()
         adb_logcat = Process(target=debug, args=(adb_logcat_ready,))
@@ -759,24 +784,32 @@ def debug(adb_logcat_ready: Event = None):
     logging.info(f"stream using? {config.STREAM_USING}")
     # clear auth to check again
     if config.STREAM_USING == 'USB':
-        start_adb_server()
+        if is_adb_listening():
+            pass
+        else:
+            start_adb_server()
         clear_logcat()
         run_logcat(adb_logcat_ready = adb_logcat_ready)
     elif config.STREAM_USING == 'WIFI':
         debug_on_wifi(adb_logcat_ready)
 
-
 def restart_adb_server():
-    kill_adb_server()
+    connection = True
+    if in_wsl():
+        connection = False
+    kill_adb_server(disconnect=connection)
     start_adb_server()
     sys.exit(0)
 
 
-def kill_adb_server():
+def kill_adb_server(disconnect: bool = True):
     logging.info('Restarting adb server')
     try:
-        subprocess.run(['adb', 'disconnect'], check=True)
-        subprocess.run(['adb', 'kill-server'], check=True)
+        if disconnect:
+            subprocess.run(['adb', 'disconnect'], check=True, timeout=5)
+        subprocess.run(['adb', 'kill-server'], check=True, timeout=5)
+    except subprocess.TimeoutExpired:
+        logging.warning('adb kill-server timed out, assuming server is already gone')
     except FileNotFoundError:
         print(
             f'{red}Please, install `scrcpy`: {yellow}https://github.com/Genymobile/scrcpy{Fore.RESET}'
@@ -793,21 +826,97 @@ def start_adb_server():
             f'{red}Please, install `scrcpy`: {yellow}https://github.com/Genymobile/scrcpy{Fore.RESET}'
         )
 
+def setup_adb_env():
+    host_ip = extract_ip(get_wsl_nameservers()[0])
+    os.environ["ADB_SERVER_SOCKET"] = f"tcp:{host_ip}:5037"
+    logging.info(f"ADB_SERVER_SOCKET set to tcp:{host_ip}:5037")
+
 def start_nodaemon_adb_server():
+    # Don't restart if server already reachable
+    host_ip = extract_ip(get_wsl_nameservers()[0])
+    if is_adb_listening(host=host_ip):
+        logging.info('adb server already running, skipping restart')
+        wait_for_authorization()
+        return True
     logging.info('Starting adb server')
+    kill_adb_server(disconnect = False)
     try:
         adb_port = getattr(config, "ADB_PORT", 5037)
+        adb_path = get_adb_windows_path()
+        # Convert /mnt/c/... to C:\... for cmd.exe
+        win_path = subprocess.check_output(["wslpath", "-w", adb_path]).decode().strip()
+        cmd = ["cmd.exe", "/c", f"{win_path} -a -P {adb_port} nodaemon server"]
         subprocess.Popen(
-            ["adb", "-a", "-P", str(adb_port), "nodaemon", "server"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE
+            cmd,
+            stdout=subprocess.DEVNULL,  # don't buffer, just discard
+            stderr=subprocess.DEVNULL
         )
+        logging.info(f'started new adb server {" ".join(cmd)}')
     except FileNotFoundError:
         logging.error('adb not found')
         print(
             f'{red}Please, install `scrcpy`: {yellow}https://github.com/Genymobile/scrcpy{Fore.RESET}'
         )
+    for _ in range(5): # Give it 5 seconds to bind
+        if is_adb_listening(host=host_ip, port=adb_port):
+            # logging.info('adb server is up and listening')
+            wait_for_authorization()
+            return True
+        logging.debug("Server not ready yet, retrying...")
+        time.sleep(1)
+    else:
+        logging.error('adb server never came up')
+        return False
+    
 
+# def start_nodaemon_adb_server():
+#     logging.info('Starting adb server')
+#     kill_adb_server(disconnect = False)
+#     try:
+#         adb_port = getattr(config, "ADB_PORT", 5037)
+#         cmd = ["adb", "-a", "-P", str(adb_port), "nodaemon", "server"]
+#         subprocess.Popen(
+#             cmd,
+#             stdout=subprocess.DEVNULL,  # don't buffer, just discard
+#             stderr=subprocess.DEVNULL
+#         )
+#         logging.info(f'started new adb server {" ".join(cmd)}')
+#     except FileNotFoundError:
+#         logging.error('adb not found')
+#         print(
+#             f'{red}Please, install `scrcpy`: {yellow}https://github.com/Genymobile/scrcpy{Fore.RESET}'
+#         )
+#     host_ip = extract_ip(get_wsl_nameservers()[0])
+#     print("whawwwwwwt", host_ip)
+#     if not is_adb_listening(host = host_ip):
+#         logging.error('adb server never came up')
+#         return False
+#     # logging.info('adb server is up and listening')
+#     wait_for_authorization()
+#     return True
+
+def get_adb_windows_path():
+    """Extract the adb.exe path from the bash alias in .bashrc"""
+    bashrc = os.path.expanduser("~/.bashrc")
+    try:
+        with open(bashrc) as f:
+            for line in f:
+                # matches: alias adb='/mnt/c/.../adb.exe'
+                match = re.search(r"alias adb=['\"](.+?)['\"]", line)
+                if match:
+                    return match.group(1)
+    except FileNotFoundError:
+        pass
+    
+    # Fallback: which adb (catches symlinks/wrappers too)
+    try:
+        path = subprocess.check_output(["which", "adb"]).decode().strip()
+        if path:
+            return path
+    except Exception:
+        pass
+    
+    return "adb"  # last resort
 
 def clear_device_logcat(device: dict) -> None:
     """
@@ -947,12 +1056,16 @@ def determine_wifi_targets(devices: list) -> tuple[list, list]:
 #     return target_usb_devices, target_tcpip_ips
 
 
-def wait_for_adb_online(serial: str, timeout: float = 10.0) -> bool:
+def wait_for_adb_online(serial: str = None, timeout: float = 10.0) -> bool:
     try:
         # This blocks natively until the state is 'device'
         # We use a timeout at the subprocess level to avoid hanging forever
+        cmd = ["adb"]
+        if serial != None:
+            cmd += ["-s", serial]
+        cmd.append("wait-for-device")
         subprocess.run(
-            ["adb", "-s", serial, "wait-for-device"],
+            cmd,
             timeout=timeout,
             check=True,
             stdout=subprocess.DEVNULL,
@@ -1182,20 +1295,16 @@ def build_logcat_command(ip: str = None) -> list:
     # Handle USB/local device connection
     connected = get_connected_devices()
 
-    unique_devices = {
-        (d['wifi_ip'], d['model']) for d in connected if d['wifi_ip'] != 'unknown'
-    }
-
-    if len(unique_devices) == 1:
-        # Prefer USB if available
-        serial = next(
-            (d['serial'] for d in connected if d['transport'] == 'usb'),
-            connected[0]['serial'],  # fallback
-        )
-        return ['adb', '-s', serial, 'logcat']
-    else:
-        logging.error('Multiple devices connected. Specify IP or disambiguate.')
+    if not connected:
+        logging.error('No devices connected.')
         return []
+
+    # Prefer USB if available
+    serial = next(
+        (d['serial'] for d in connected if d['transport'] == 'usb'),
+        connected[0]['serial'],  # fallback
+    )
+    return ['adb', '-s', serial, 'logcat']
 
 
 def build_filter_command() -> list:
