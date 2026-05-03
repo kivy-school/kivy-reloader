@@ -794,6 +794,7 @@ def debug(adb_logcat_ready: Event = None):
         # Don't restart if server already reachable
         if in_wsl():
             host_ip = extract_ip(get_wsl_nameservers()[0])
+            print("what is host ip", host_ip)
             listen_state = is_adb_listening(host=host_ip)
         else:
             listen_state = is_adb_listening()

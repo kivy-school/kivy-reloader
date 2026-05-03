@@ -563,6 +563,7 @@ async def fix_wsl():
     # Check ADB separately — it should already be up, but wait briefly if not
     if in_wsl() and config.STREAM_USING == "USB":
         host_ip = extract_ip(get_wsl_nameservers()[0])
+        print("what is host ip?", host_ip)
         adb_ready = is_adb_listening(host_ip)
     else:
         adb_ready = is_adb_listening()

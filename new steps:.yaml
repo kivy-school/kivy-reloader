@@ -2,6 +2,8 @@
 
 new steps:
 =-=-==
+the old adb server isn't being killed and it's hanging for some reason
+=-=-==
 so much setup to test:
 WSL SETUP (partials as well):
 - Remove-NetFirewallRule -DisplayName "WSL Kivy Surgical 8055" -ErrorAction SilentlyContinue
