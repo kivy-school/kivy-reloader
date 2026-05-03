@@ -790,7 +790,14 @@ def debug(adb_logcat_ready: Event = None):
     logging.info(f"stream using? {config.STREAM_USING}")
     # clear auth to check again
     if config.STREAM_USING == 'USB':
-        if is_adb_listening():
+        # if is_adb_listening():
+        # Don't restart if server already reachable
+        if in_wsl():
+            host_ip = extract_ip(get_wsl_nameservers()[0])
+            listen_state = is_adb_listening(host=host_ip)
+        else:
+            listen_state = is_adb_listening()
+        if listen_state:
             pass
         else:
             start_adb_server()
@@ -1389,9 +1396,19 @@ def run_logcat(IP=None, adb_logcat_ready: Event = None, *args):
     filter_cmd = build_filter_command()
 
     # Step 4: Start processes
+    # logging.info('Starting logcat')
+    # start_logcat_processes(logcat_cmd, filter_cmd)
+    # adb_logcat_ready.set()
     logging.info('Starting logcat')
-    start_logcat_processes(logcat_cmd, filter_cmd)
-    adb_logcat_ready.set()
+    logcat_proc, filter_proc = start_logcat_processes(logcat_cmd, filter_cmd)
+
+    # Signal ready BEFORE blocking on wait
+    if adb_logcat_ready is not None:
+        adb_logcat_ready.set()
+
+    # Now block waiting for processes
+    if logcat_proc:
+        logcat_proc.wait()
 
 
 def livestream(adb_logcat_ready: Event = None):
