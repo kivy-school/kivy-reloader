@@ -556,9 +556,10 @@ def select_option(option: str, app_name: str) -> None:
     4. Restart adb server
     """
     # setup_adb_env()
-    # if in_wsl() and config.STREAM_USING == "USB":
+    if in_wsl() and config.STREAM_USING == "USB":
     #     #run adb nodaemon
-    #     start_nodaemon_adb_server()
+        kill_adb_server(disconnect = False)
+        start_nodaemon_adb_server()
     #     # fix wsl
     #     trio.run(fix_wsl)
     #     # check for auth
@@ -850,7 +851,8 @@ def start_nodaemon_adb_server():
         adb_path = get_adb_windows_path()
         # Convert /mnt/c/... to C:\... for cmd.exe
         win_path = subprocess.check_output(["wslpath", "-w", adb_path]).decode().strip()
-        cmd = ["cmd.exe", "/c", f"{win_path} -a -P {adb_port} nodaemon server"]
+        # cmd = ["cmd.exe", "/c", f"{win_path} -a -P {adb_port} nodaemon server"]
+        cmd = ["cmd.exe", "/c", "start", f"{win_path} -a -P {adb_port} nodaemon server"]
         subprocess.Popen(
             cmd,
             stdout=subprocess.DEVNULL,  # don't buffer, just discard
@@ -862,16 +864,16 @@ def start_nodaemon_adb_server():
         print(
             f'{red}Please, install `scrcpy`: {yellow}https://github.com/Genymobile/scrcpy{Fore.RESET}'
         )
-    for _ in range(5): # Give it 5 seconds to bind
-        if is_adb_listening(host=host_ip):
-            # logging.info('adb server is up and listening')
-            wait_for_authorization()
-            return True
-        logging.debug("Server not ready yet, retrying...")
-        time.sleep(1)
-    else:
-        logging.error('adb server never came up')
-        return False
+    # for _ in range(5): # Give it 5 seconds to bind
+    #     if is_adb_listening(host=host_ip):
+    #         # logging.info('adb server is up and listening')
+    #         wait_for_authorization()
+    #         return True
+    #     logging.debug("Server not ready yet, retrying...")
+    #     time.sleep(1)
+    # else:
+    #     logging.error('adb server never came up')
+    #     return False
     
 
 # def start_nodaemon_adb_server():
