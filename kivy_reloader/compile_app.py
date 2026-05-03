@@ -852,7 +852,8 @@ def start_nodaemon_adb_server():
         # Convert /mnt/c/... to C:\... for cmd.exe
         win_path = subprocess.check_output(["wslpath", "-w", adb_path]).decode().strip()
         # cmd = ["cmd.exe", "/c", f"{win_path} -a -P {adb_port} nodaemon server"]
-        cmd = ["cmd.exe", "/c", "start", f"{win_path} -a -P {adb_port} nodaemon server"]
+        # cmd = ["cmd.exe", "/c", "start", f"{win_path} -a -P {adb_port} nodaemon server"]
+        cmd = ["cmd.exe", "/c", f"{win_path} -a -P {adb_port} nodaemon server"]
         subprocess.Popen(
             cmd,
             stdout=subprocess.DEVNULL,  # don't buffer, just discard

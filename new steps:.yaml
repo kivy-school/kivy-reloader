@@ -5,6 +5,7 @@ new steps:
 so much setup to test:
 WSL SETUP (partials as well):
 - Remove-NetFirewallRule -DisplayName "WSL Kivy Surgical 8055" -ErrorAction SilentlyContinue
+- Get-NetFirewallRule | Where-Object { $_.DisplayName -like "*WSL*" }
 - Get-NetFirewallRule | Where-Object {$_.DisplayName -like "*8055*"} | Select-Object DisplayName, Enabled, Profile, Action
 - Set-NetFirewallProfile -Profile Public -DisabledInterfaceAliases @()
 

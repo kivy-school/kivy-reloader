@@ -570,7 +570,13 @@ async def fix_wsl():
         print(f"{yellow}ADB not listening yet, waiting up to 5s...")
         for _ in range(10):
             await trio.sleep(0.5)
-            if is_adb_listening():
+            ip_data = subprocess.check_output(["ip", "-o", "-4", "addr", "show", "eth0"]).decode()
+            raw_ip = ip_data.split()[3].split('/')[0]
+            parts = raw_ip.split('.')
+            subnet_range = f"{parts[0]}.{parts[1]}.0.0/20"
+            print(f"[*] Detected WSL IP: {raw_ip} -> Using Subnet: {subnet_range}")
+            wsl_ip = f"{parts[0]}.{parts[1]}.0.0"
+            if is_adb_listening(host = wsl_ip):
                 adb_ready = True
                 break
 
@@ -580,7 +586,9 @@ async def fix_wsl():
     print("Removing old forward...")
     with trio.move_on_after(10) as cancel_scope:
         res_remove = await trio.run_process(
-            ["adb.exe", "forward", "--remove", f"tcp:{PORT}"],
+            # ["adb.exe", "forward", "--remove", f"tcp:{PORT}"],
+            # ["cmd.exe", "/c", "start", "adb.exe", "forward", "--remove", f"tcp:{PORT}"],
+            ["cmd.exe", "/c", "adb.exe", "forward", "--remove", f"tcp:{PORT}"],
             check=False,
             capture_stdout=True,
             capture_stderr=True,
@@ -596,7 +604,9 @@ async def fix_wsl():
     await trio.sleep(0.5)
     print("Re-adding forward...")
     res_add = await trio.run_process(
-        ["adb.exe", "forward", f"tcp:{PORT}", f"tcp:{PORT}"],
+        # ["adb.exe", "forward", f"tcp:{PORT}", f"tcp:{PORT}"],
+        # ["cmd.exe", "/c", "start", "adb.exe", "forward", f"tcp:{PORT}", f"tcp:{PORT}"],
+        ["cmd.exe", "/c", "adb.exe", "forward", f"tcp:{PORT}", f"tcp:{PORT}"],
         check=False,
         capture_stdout=True,
         capture_stderr=True
@@ -622,14 +632,61 @@ async def run_wsl_firewall_fix(port=8055):
         rule_name = f"WSL Kivy Surgical {port}"
 
         # 2. Read current state (no admin needed)
+        # check_cmd = [
+        #     "powershell.exe", "-NoProfile", "-Command",
+        #     f"$aliases = (Get-NetFirewallProfile -Profile Public).DisabledInterfaceAliases;"
+        #     f"$rule = Get-NetFirewallRule -DisplayName '{rule_name}' -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Enabled;"
+        #     f"Write-Output \"ALIASES:$aliases|RULE:$rule\""
+        # ]
+        # check_cmd = [
+        #     "powershell.exe", "-NoProfile", "-Command",
+        #     (
+        #         f'$aliases = (Get-NetFirewallProfile -Profile Public).DisabledInterfaceAliases;'
+        #         f'$rule = Get-NetFirewallRule -DisplayName "{rule_name}" -ErrorAction SilentlyContinue '
+        #         f'| Select-Object -ExpandProperty Enabled;'
+        #         f'Write-Output "ALIASES:$aliases|RULE:$rule"'
+        #     )
+        # ]
+        # check_cmd = [
+        #     "powershell.exe", "-NoProfile", "-Command",
+        #     (
+        #         f'$aliases = (Get-NetFirewallProfile -Profile Public).DisabledInterfaceAliases;'
+        #         f'$rule = Get-NetFirewallRule | Where-Object {{ $_.DisplayName -like "*{port}*" }} '
+        #         f'| Select-Object -First 1;'
+        #         f'$ruleEnabled = if ($rule) {{ [string]$rule.Enabled }} else {{ "NotFound" }};'
+        #         f'Write-Output "ALIASES:$aliases|RULE:$ruleEnabled"'
+        #     )
+        # ]
+        #     check_cmd = [
+        #     "powershell.exe", "-NoProfile", "-Command",
+        #     (
+        #         f'$aliases = (Get-NetFirewallProfile -Profile Public).DisabledInterfaceAliases;'
+        #         f'$count = (Get-NetFirewallRule | Measure-Object).Count;'
+        #         f'$rule = Get-NetFirewallRule | Where-Object {{ $_.DisplayName -like "*{port}*" }} '
+        #         f'| Select-Object -First 1;'
+        #         f'$ruleEnabled = if ($rule) {{ [string]$rule.Enabled }} else {{ "NotFound" }};'
+        #         f'Write-Output "ALIASES:$aliases|RULE:$ruleEnabled|COUNT:$count"'
+        #     )
+        # ]
+
         check_cmd = [
             "powershell.exe", "-NoProfile", "-Command",
-            f"$aliases = (Get-NetFirewallProfile -Profile Public).DisabledInterfaceAliases;"
-            f"$rule = Get-NetFirewallRule -DisplayName '{rule_name}' -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Enabled;"
-            f"Write-Output \"ALIASES:$aliases|RULE:$rule\""
+            (
+                f'$aliases = (Get-NetFirewallProfile -Profile Public).DisabledInterfaceAliases;'
+                f'$regPath = "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\SharedAccess\\Parameters\\FirewallPolicy\\FirewallRules";'
+                f'$key = Get-Item $regPath;'
+                f'$match = $key.Property | Where-Object {{ $key.GetValue($_) -like "*LPort={port}*" }} | Select-Object -First 1;'
+                f'$ruleEnabled = if ($match) {{'
+                f'  $val = $key.GetValue($match);'
+                f'  if ($val -like "*Active=TRUE*") {{ "True" }} else {{ "False" }}'
+                f'}} else {{ "NotFound" }};'
+                f'Write-Output "ALIASES:$aliases|RULE:$ruleEnabled"'
+            )
         ]
+
         check_result = subprocess.run(check_cmd, capture_output=True, text=True)
         output = check_result.stdout.strip()
+        print(f"RAW OUTPUT: {repr(output)}") 
 
         wsl_allowed = "vEthernet (WSL)" in output
         rule_enabled = "RULE:True" in output
