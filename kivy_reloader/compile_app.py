@@ -616,7 +616,7 @@ def select_option(option: str, app_name: str) -> None:
         if option == '1':
             compile_app(buildozer_compiled)
             logging.info(f"debug_and_livestream RAN!!A")
-            debug_and_livestream(buildozer_compiled)
+            # debug_and_livestream(buildozer_compiled)
         elif option == '2':
             buildozer_compiled.set()
             logging.info(f"debug_and_livestream RAN!!B")
@@ -710,13 +710,25 @@ def deploy_app_to_devices(target_devices, apk_file_path, package_name):
     for device in target_devices.values():
         logging.info(f'Installing APK on {device["model"]} | ({device["serial"]})')
         try:
-            result = subprocess.run(
-                ['adb', '-s', device['serial'], 'install', '-r', apk_file_path],
-                check=True,
-                timeout=120,  # don't hang forever
-                capture_output=True,
-                text=True,
-            )
+            print("in wsl or not?", in_wsl())
+            if in_wsl():
+                adb_path = get_adb_windows_path()  # returns /mnt/c/.../adb.exe
+                win_path = subprocess.check_output(['wslpath', '-w', adb_path]).decode().strip()
+
+                result = subprocess.run(
+                    ['cmd.exe', '/c', win_path, '-s', device['serial'], 'install', '-r', apk_file_path],
+                    timeout=120,
+                    capture_output=True,
+                    text=True,
+                )
+            else:
+                result = subprocess.run(
+                    ['adb', '-s', device['serial'], 'install', '-r', apk_file_path],
+                    check=True,
+                    timeout=120,  # don't hang forever
+                    capture_output=True,
+                    text=True,
+                )
             logging.info(f'Install stdout: {result.stdout.strip()}')
             logging.info(f'Install stderr: {result.stderr.strip()}')
             # ── signature mismatch detection ──────────────────────────
@@ -896,7 +908,8 @@ def debug(adb_logcat_ready: Event = None):
         # if is_adb_listening():
         # Don't restart if server already reachable
         if in_wsl():
-            host_ip = extract_ip(get_wsl_nameservers()[0])
+            # host_ip = extract_ip(get_wsl_nameservers()[0])
+            host_ip = get_wsl_host_ip()
             print("what is host ip", host_ip)
             listen_state = is_adb_listening(host=host_ip)
         else:
@@ -939,6 +952,8 @@ def kill_windows_adb():
 
 def kill_adb_server(disconnect: bool = True):
     logging.info('Restarting adb server')
+    if in_wsl():
+        kill_windows_adb()
     try:
         if disconnect:
             subprocess.run(['adb', 'disconnect'], check=True, timeout=5)
@@ -950,7 +965,6 @@ def kill_adb_server(disconnect: bool = True):
             f'{red}Please, install `scrcpy`: {yellow}https://github.com/Genymobile/scrcpy{Fore.RESET}'
         )
 
-
 def start_adb_server():
     logging.info('Starting adb server')
     try:
@@ -961,31 +975,43 @@ def start_adb_server():
             f'{red}Please, install `scrcpy`: {yellow}https://github.com/Genymobile/scrcpy{Fore.RESET}'
         )
 
+def get_wsl_host_ip() -> str:
+    """With mirrored networking, Windows host is localhost. 
+    Fall back to nameserver parsing for NAT mode."""
+    try:
+        wslconfig_path = "/mnt/c/Users/" + os.environ.get("WINDOWS_USERNAME", "") + "/.wslconfig"
+        # Try current user from environment
+        import pathlib
+        for candidate in pathlib.Path("/mnt/c/Users").iterdir():
+            wslconfig = candidate / ".wslconfig"
+            if wslconfig.exists() and "mirrored" in wslconfig.read_text().lower():
+                return "127.0.0.1"
+    except Exception:
+        pass
+    # NAT mode fallback
+    nameservers = get_wsl_nameservers()
+    return extract_ip(nameservers[0]) if nameservers else "127.0.0.1"
+
 def start_nodaemon_adb_server():
-    # Don't restart if server already reachable
-    host_ip = extract_ip(get_wsl_nameservers()[0])
+    host_ip = get_wsl_host_ip()
+    print("host ip resolved to:", host_ip)
+    
     if is_adb_listening(host=host_ip):
         logging.info('adb server already running, skipping restart')
         wait_for_authorization()
         return True
+    
     logging.info('Starting adb server')
-    kill_adb_server(disconnect = False)
+    kill_adb_server(disconnect=False)
+    
     try:
-        adb_port = getattr(config, "ADB_PORT", 5037)
         adb_path = get_adb_windows_path()
-        # Convert /mnt/c/... to C:\... for cmd.exe
         win_path = subprocess.check_output(["wslpath", "-w", adb_path]).decode().strip()
-        # cmd = ["cmd.exe", "/c", f"{win_path} -a -P {adb_port} nodaemon server"]
-        # cmd = ["cmd.exe", "/c", "start", f"{win_path} -a -P {adb_port} nodaemon server"]
-        cmd = ["cmd.exe", "/c", f"{win_path} -a -P {adb_port} nodaemon server"]
-        subprocess.Popen(
-            cmd,
-            stdout=subprocess.DEVNULL,  # don't buffer, just discard
-            stderr=subprocess.DEVNULL
-        )
+        # ALWAYS use 5037 for the server port, never config.ADB_PORT
+        cmd = ["cmd.exe", "/c", f"{win_path} -a -P 5037 nodaemon server"]
+        subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         logging.info(f'started new adb server {" ".join(cmd)}')
 
-        # Wait for it to actually bind
         for _ in range(10):
             if is_adb_listening(host=host_ip):
                 logging.info('adb server is up')
@@ -993,19 +1019,54 @@ def start_nodaemon_adb_server():
             time.sleep(0.5)
     except FileNotFoundError:
         logging.error('adb not found')
-        print(
-            f'{red}Please, install `scrcpy`: {yellow}https://github.com/Genymobile/scrcpy{Fore.RESET}'
-        )
-    # for _ in range(5): # Give it 5 seconds to bind
-    #     if is_adb_listening(host=host_ip):
-    #         # logging.info('adb server is up and listening')
-    #         wait_for_authorization()
-    #         return True
-    #     logging.debug("Server not ready yet, retrying...")
-    #     time.sleep(1)
-    # else:
-    #     logging.error('adb server never came up')
-    #     return False
+
+# WORKED ON WIN10
+# def start_nodaemon_adb_server():
+#     # Don't restart if server already reachable
+#     host_ip = extract_ip(get_wsl_nameservers()[0])
+#     print("what is host ip?", host_ip,get_wsl_nameservers(), type(get_wsl_nameservers()))
+#     if is_adb_listening(host=host_ip):
+#         logging.info('adb server already running, skipping restart')
+#         wait_for_authorization()
+#         return True
+#     logging.info('Starting adb server')
+#     kill_adb_server(disconnect = False)
+#     try:
+#         adb_port = getattr(config, "ADB_PORT", 5037)
+#         adb_path = get_adb_windows_path()
+#         # Convert /mnt/c/... to C:\... for cmd.exe
+#         win_path = subprocess.check_output(["wslpath", "-w", adb_path]).decode().strip()
+#         # cmd = ["cmd.exe", "/c", f"{win_path} -a -P {adb_port} nodaemon server"]
+#         # cmd = ["cmd.exe", "/c", "start", f"{win_path} -a -P {adb_port} nodaemon server"]
+#         cmd = ["cmd.exe", "/c", f"{win_path} -a -P {adb_port} nodaemon server"]
+#         subprocess.Popen(
+#             cmd,
+#             stdout=subprocess.DEVNULL,  # don't buffer, just discard
+#             stderr=subprocess.DEVNULL
+#         )
+#         logging.info(f'started new adb server {" ".join(cmd)}')
+
+#         # Wait for it to actually bind
+#         for _ in range(10):
+#             if is_adb_listening(host=host_ip):
+#                 logging.info('adb server is up')
+#                 return True
+#             time.sleep(0.5)
+#     except FileNotFoundError:
+#         logging.error('adb not found')
+#         print(
+#             f'{red}Please, install `scrcpy`: {yellow}https://github.com/Genymobile/scrcpy{Fore.RESET}'
+#         )
+#     # for _ in range(5): # Give it 5 seconds to bind
+#     #     if is_adb_listening(host=host_ip):
+#     #         # logging.info('adb server is up and listening')
+#     #         wait_for_authorization()
+#     #         return True
+#     #     logging.debug("Server not ready yet, retrying...")
+#     #     time.sleep(1)
+#     # else:
+#     #     logging.error('adb server never came up')
+#     #     return False
     
 
 # def start_nodaemon_adb_server():

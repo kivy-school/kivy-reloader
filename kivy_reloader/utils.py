@@ -575,15 +575,48 @@ def extract_ip(line):
     match = re.search(r'\b\d+\.\d+\.\d+\.\d+\b', line)
     return match.group(0) if match else None
 
+# def get_wsl_nameservers():
+#     if not in_wsl():
+#         return []
+#     nameservers = []
+#     with open("/etc/resolv.conf") as f:
+#         for line in f:
+#             if line.startswith("nameserver"):
+#                 nameservers.append(line.strip())
+#     return nameservers
+
 def get_wsl_nameservers():
-    if not in_wsl():
-        return []
-    nameservers = []
-    with open("/etc/resolv.conf") as f:
-        for line in f:
-            if line.startswith("nameserver"):
-                nameservers.append(line.strip())
-    return nameservers
+    """
+    Returns the Windows Host IP by checking the default route.
+    Fallback to /etc/resolv.conf if routing table is unavailable.
+    """
+    try:
+        if not in_wsl():
+            return []
+        # Method 1: Get IP from the default gateway (Best for WSL2)
+        try:
+            # Runs 'ip route show default' and looks for 'via'
+            route_output = subprocess.check_output(['ip', 'route', 'show', 'default'], 
+                                                stderr=subprocess.DEVNULL).decode()
+            parts = route_output.split()
+            if "via" in parts:
+                return [parts[parts.index("via") + 1]]
+        except Exception:
+            pass
+
+        # Method 2: Fallback to nameserver in resolv.conf
+        try:
+            if os.path.exists("/etc/resolv.conf"):
+                with open("/etc/resolv.conf", "r") as f:
+                    for line in f:
+                        if line.strip().startswith("nameserver"):
+                            return [line.split()[1].strip()]
+        except Exception:
+            pass
+            
+        return ["127.0.0.1"] # Absolute fallback
+    except:
+        return "NAMESERVERS FAILED"
 
 def in_wsl():
     ans = "wsl2" in platform.release().lower()
