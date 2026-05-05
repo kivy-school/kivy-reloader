@@ -601,7 +601,7 @@ def select_option(option: str, app_name: str) -> None:
     3. Create aab
     4. Restart adb server
     """
-    # setup_adb_env()
+
     if in_wsl() and config.STREAM_USING == "USB":
     #     #run adb nodaemon
         kill_adb_server(disconnect = False)
@@ -941,11 +941,6 @@ def start_adb_server():
         print(
             f'{red}Please, install `scrcpy`: {yellow}https://github.com/Genymobile/scrcpy{Fore.RESET}'
         )
-
-def setup_adb_env():
-    host_ip = extract_ip(get_wsl_nameservers()[0])
-    os.environ["ADB_SERVER_SOCKET"] = f"tcp:{host_ip}:5037"
-    logging.info(f"ADB_SERVER_SOCKET set to tcp:{host_ip}:5037")
 
 def start_nodaemon_adb_server():
     # Don't restart if server already reachable

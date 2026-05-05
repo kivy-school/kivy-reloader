@@ -576,6 +576,8 @@ def extract_ip(line):
     return match.group(0) if match else None
 
 def get_wsl_nameservers():
+    if not in_wsl():
+        return []
     nameservers = []
     with open("/etc/resolv.conf") as f:
         for line in f:
