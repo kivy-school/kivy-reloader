@@ -4,13 +4,15 @@ new steps:
 =-=-==
 TODO
 ✔️ the old adb server isn't being killed and it's hanging for some reason
-ask claude what's wrong with my code and ask it to check for errors
+✔️ ask claude what's wrong with my code and ask it to check for errors
 check on win11 
 check on mac 
 then clear this + trello and continue
+uninstall the windows firewallsettings+check if im on win10 actually?
+i need to check if networking is good on win11
 =-=-==
-to claude (search this at the bottom):
-"it works but now when I reset there are ghost adbs in my windows task manager what do"
+✔️ to claude (search this at the bottom):
+✔️ "it works but now when I reset there are ghost adbs in my windows task manager what do"
 =-=-==
 so much setup to test:
 WSL SETUP (partials as well):
@@ -19,7 +21,7 @@ WSL SETUP (partials as well):
 - Get-NetFirewallRule | Where-Object {$_.DisplayName -like "*8055*"} | Select-Object DisplayName, Enabled, Profile, Action
 - Set-NetFirewallProfile -Profile Public -DisabledInterfaceAliases @()
 
-then if uv kivy reloader run is first or uv main.py is first
+✔️ then if uv kivy reloader run is first or uv main.py is first
 
 then test on windows itself (most likely will work)
 

@@ -719,6 +719,25 @@ def deploy_app_to_devices(target_devices, apk_file_path, package_name):
             )
             logging.info(f'Install stdout: {result.stdout.strip()}')
             logging.info(f'Install stderr: {result.stderr.strip()}')
+            # ── signature mismatch detection ──────────────────────────
+            if 'INSTALL_FAILED_UPDATE_INCOMPATIBLE' in result.stdout + result.stderr:
+                logging.warning(f'Signature mismatch on {device["serial"]} — uninstalling old version')
+                print(f'{yellow}⚠️  Signature mismatch on {device["model"]}. Uninstalling old version...{Style.RESET_ALL}')
+                subprocess.run(
+                    ['adb', '-s', device['serial'], 'uninstall', package_name],
+                    timeout=30, capture_output=True
+                )
+                # Retry install after uninstall
+                result = subprocess.run(
+                    ['adb', '-s', device['serial'], 'install', '-r', apk_file_path],
+                    timeout=120, capture_output=True, text=True,
+                )
+                logging.info(f'Retry stdout: {result.stdout.strip()}')
+
+            if 'Success' not in result.stdout + result.stderr:
+                logging.error(f'Install failed: {result.stdout} {result.stderr}')
+                return
+            # ──────────────────────────────────────────────────────────
         except subprocess.TimeoutExpired:
             logging.error(f'adb install TIMED OUT after 120s for {device["serial"]}')
             return
