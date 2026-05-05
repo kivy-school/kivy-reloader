@@ -19,7 +19,7 @@ import typer
 from colorama import Fore, Style, init
 
 from .config import config
-from .utils import get_connected_devices, get_wifi_ip, in_wsl, fix_wsl, is_adb_listening, extract_ip, get_wsl_nameservers
+from .utils import get_connected_devices, get_wifi_ip, in_wsl, is_adb_listening, extract_ip, get_wsl_nameservers
 
 
 def is_ci_environment() -> bool:
@@ -727,10 +727,17 @@ def deploy_app_to_devices(target_devices, apk_file_path, package_name):
             return
 
         logging.info(f'Starting app on {device["model"]} | ({device["serial"]})')
-        subprocess.run([
-            'adb', '-s', device['serial'], 'shell', 'am', 'start',
-            '-n', f'{package_name}/org.kivy.android.PythonActivity',
-        ], check=True, timeout=30)
+        # subprocess.run([
+        #     'adb', '-s', device['serial'], 'shell', 'am', 'start',
+        #     '-n', f'{package_name}/org.kivy.android.PythonActivity',
+        # ], check=True, timeout=30)
+        try:
+            subprocess.run([
+                'adb', '-s', device['serial'], 'shell', 'am', 'start',
+                '-n', f'{package_name}/org.kivy.android.PythonActivity',
+            ], timeout=60)  # longer timeout, no check=True
+        except subprocess.TimeoutExpired:
+            logging.warning('am start timed out - app may still have launched, continuing...')
 
 # worked? unsure
 # def deploy_app_to_devices(

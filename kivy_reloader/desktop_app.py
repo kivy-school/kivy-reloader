@@ -47,7 +47,7 @@ from . import __version__
 from .base_app import BaseReloaderApp
 from .config import config
 from .delta_transfer import DeltaTransferManager
-from .utils import get_auto_reloader_paths, get_connected_devices, get_kv_files_paths
+from .utils import get_auto_reloader_paths, get_connected_devices, get_kv_files_paths, in_wsl
 
 # Constants
 F5_KEYCODE = 286
@@ -425,6 +425,14 @@ class DesktopApp(BaseReloaderApp, KakiApp):
         """Handle Android hot reload if configured and available."""
         if not self.HOT_RELOAD_ON_PHONE:
             return
+        
+        # # Only check devices if adb server is already running - don't auto-start one
+        # if in_wsl():
+        #     from .utils import extract_ip, get_wsl_nameservers, is_adb_listening
+        #     host_ip = extract_ip(get_wsl_nameservers()[0])
+        #     if not is_adb_listening(host=host_ip):
+        #         Logger.warning('Reloader: ADB server not running, skipping device check')
+        #         return
 
         # Check if any devices are connected before processing
         connected_devices = get_connected_devices()
