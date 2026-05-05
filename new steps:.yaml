@@ -2,7 +2,15 @@
 
 new steps:
 =-=-==
+TODO
 the old adb server isn't being killed and it's hanging for some reason
+ask claude what's wrong with my code and ask it to check for errors
+check on win11 
+check on mac 
+then clear this + trello and continue
+=-=-==
+to claude (search this at the bottom):
+"it works but now when I reset there are ghost adbs in my windows task manager what do"
 =-=-==
 so much setup to test:
 WSL SETUP (partials as well):
@@ -808,3 +816,45 @@ ip -4 addr show eth0
 1 where the wsl is not allowed
 1 where port is open but wsl not allowed
 =-=-=-=-=-=
+=-=-=-=-=-=
+it works but now when I reset there are ghost adbs in my windows task manager what do
+
+The ghost ADB processes come from `start_adb_server()` being called in `debug()` even though nodaemon is already running — so you get multiple ADB server instances stacking up on each reset.
+
+Since you're in WSL and nodaemon handles it, add a cleanup in `start_nodaemon_adb_server()` to kill existing Windows ADB processes before starting a new one:
+
+```python
+def start_nodaemon_adb_server():
+    host_ip = extract_ip(get_wsl_nameservers()[0])
+    if is_adb_listening(host=host_ip):
+        logging.info('adb server already running, skipping restart')
+        wait_for_authorization()
+        return True
+    
+    # Kill any orphaned adb.exe on Windows before starting fresh
+    subprocess.run(
+        ["taskkill.exe", "/F", "/IM", "adb.exe"],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL
+    )
+    time.sleep(0.5)  # give taskkill time to clean up
+    
+    logging.info('Starting adb server')
+    kill_adb_server(disconnect=False)
+    try:
+        adb_port = getattr(config, "ADB_PORT", 5037)
+        adb_path = get_adb_windows_path()
+        win_path = subprocess.check_output(["wslpath", "-w", adb_path]).decode().strip()
+        cmd = ["cmd.exe", "/c", f"{win_path} -a -P {adb_port} nodaemon server"]
+        subprocess.Popen(
+            cmd,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
+        )
+        logging.info(f'started new adb server {" ".join(cmd)}')
+    except FileNotFoundError:
+        logging.error('adb not found')
+        print(f'{red}Please, install `scrcpy`: {yellow}https://github.com/Genymobile/scrcpy{Fore.RESET}')
+```
+
+`taskkill.exe /F /IM adb.exe` is callable directly from WSL and kills all `adb.exe` instances on the Windows side before spawning a fresh nodaemon server. This way each reset starts clean with exactly one ADB process.

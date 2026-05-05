@@ -220,13 +220,13 @@ def get_kv_files_paths():
     return KV_FILES
 
 
-def get_connected_devices() -> list[dict[str, str]]:
+def get_connected_devices(fetch_wifi_ip: bool = False) -> list[dict[str, str]]:
     """
     Returns a list of connected devices with metadata:
     - serial: device serial (USB or IP)
     - transport: usb or tcpip
     - model: device model name if available
-    - wifi_ip: IP address of wlan0 (if available)
+    - wifi_ip: IP address of wlan0 (only fetched if fetch_wifi_ip=True, requires adb shell call per device)
     """
     result = subprocess.run(
         ['adb', 'devices', '-l'], capture_output=True, text=True, check=True
@@ -244,12 +244,10 @@ def get_connected_devices() -> list[dict[str, str]]:
             (p.split(':')[1] for p in parts if p.startswith('model:')),
             'unknown',
         )
-
         logging.info(
             f'Detected device: serial={serial}, transport={transport}, model={model}'
         )
-        wifi_ip = get_wifi_ip(serial)
-
+        wifi_ip = get_wifi_ip(serial) if fetch_wifi_ip else None
         devices.append({
             'serial': serial,
             'transport': transport,
@@ -262,6 +260,49 @@ def get_connected_devices() -> list[dict[str, str]]:
     }
     logging.info(f'Total physical devices connected: {len(unique_physical)}')
     return devices
+
+# def get_connected_devices() -> list[dict[str, str]]:
+#     """
+#     Returns a list of connected devices with metadata:
+#     - serial: device serial (USB or IP)
+#     - transport: usb or tcpip
+#     - model: device model name if available
+#     - wifi_ip: IP address of wlan0 (if available)
+#     """
+#     result = subprocess.run(
+#         ['adb', 'devices', '-l'], capture_output=True, text=True, check=True
+#     )
+#     lines = result.stdout.strip().splitlines()[1:]  # Skip header
+#     print("get connected devices output", lines)
+#     devices = []
+#     for line in lines:
+#         if not line.strip() or 'device' not in line:
+#             continue
+#         parts = line.strip().split()
+#         serial = parts[0]
+#         transport = 'tcpip' if ':' in serial else 'usb'
+#         model = next(
+#             (p.split(':')[1] for p in parts if p.startswith('model:')),
+#             'unknown',
+#         )
+
+#         logging.info(
+#             f'Detected device: serial={serial}, transport={transport}, model={model}'
+#         )
+#         wifi_ip = get_wifi_ip(serial)
+
+#         devices.append({
+#             'serial': serial,
+#             'transport': transport,
+#             'model': model,
+#             'wifi_ip': wifi_ip,
+#         })
+#     logging.info(f'Total serials connected: {len(devices)}')
+#     unique_physical = {
+#         (d['wifi_ip'], d['model']) for d in devices if d['wifi_ip'] is not None
+#     }
+#     logging.info(f'Total physical devices connected: {len(unique_physical)}')
+#     return devices
 
 
 def get_wifi_ip(serial: str) -> Optional[str]:
@@ -280,7 +321,7 @@ def get_wifi_ip(serial: str) -> Optional[str]:
     """
     logging.debug(f'Querying Wi-Fi IP for serial: {serial}')
 
-    time.sleep(3)
+    # time.sleep(3)
 
     def adb(cmd):
         return subprocess.check_output(["adb"] + cmd).decode().strip()

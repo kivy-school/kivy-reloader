@@ -208,18 +208,18 @@ def _terminate(proc: subprocess.Popen) -> None:
         if proc and proc.poll() is None:
             proc.terminate()
 
-
 def wait_for_authorization(timeout=30):
     start = time.time()
     while time.time() - start < timeout:
         output = subprocess.check_output(["adb", "devices"]).decode().strip().splitlines()[1:]
         devices = [line.split() for line in output if line.strip()]
         
-        # 1. Collect all authorized hardware serials
         authorized_hardware_serials = set()
-        for serial, state in devices:
+        for parts in devices:
+            if len(parts) < 2:
+                continue
+            serial, state = parts[0], parts[1]
             if state == 'device':
-                # If it's an IP, get the underlying hardware serial
                 if ":" in serial:
                     try:
                         hw_serial = subprocess.check_output(
@@ -227,36 +227,77 @@ def wait_for_authorization(timeout=30):
                             stderr=subprocess.DEVNULL, timeout=2
                         ).decode().strip()
                         authorized_hardware_serials.add(hw_serial)
-                        print("hw serial list", hw_serial)
-
-                    except: continue
+                    except:
+                        continue
                 else:
-                    authorized_hardware_serials.add(serial)
+                    authorized_hardware_serials.add(serial)  # ← USB serial is authorized directly
 
-        # 2. Check if our "Target" USB device is already covered
-        # Even if the USB shows as 'unauthorized', if its serial is in 
-        # authorized_hardware_serials (via IP), we are good to go.
-        serial_list = []
-        for serial, state in devices:
-            if ":" not in serial: # Physical USB
+        # Now check: any physical USB device authorized?
+        for parts in devices:
+            if len(parts) < 2:
+                continue
+            serial, state = parts[0], parts[1]
+            if ":" not in serial:  # physical USB
                 if serial in authorized_hardware_serials:
-                    print(f"Device {serial} is authorized (via TCP/IP). Proceeding...")
+                    print(f"Device {serial} is authorized. Proceeding...")
                     return True
-                else:
-                    serial_list.append(serial)
-
-        adb_devices = subprocess.check_output(
-                            ["adb", "devices", "-l"],
-                            stderr=subprocess.DEVNULL, timeout=2
-                        ).decode().strip()
-        print("adb devices -l", adb_devices)
-
 
         elapsed = time.time() - start
+        serial_list = [parts[0] for parts in devices if len(parts) >= 2 and ":" not in parts[0]]
         print(f"[+{elapsed:0.2f}s] waiting for authorization on {','.join(serial_list)}...")
         time.sleep(1)
     
     return False
+
+# PARTIALLY WORKED SCRCPY HANGED/HUNG
+# def wait_for_authorization(timeout=30):
+#     start = time.time()
+#     while time.time() - start < timeout:
+#         output = subprocess.check_output(["adb", "devices"]).decode().strip().splitlines()[1:]
+#         devices = [line.split() for line in output if line.strip()]
+        
+#         # 1. Collect all authorized hardware serials
+#         authorized_hardware_serials = set()
+#         for serial, state in devices:
+#             if state == 'device':
+#                 # If it's an IP, get the underlying hardware serial
+#                 if ":" in serial:
+#                     try:
+#                         hw_serial = subprocess.check_output(
+#                             ["adb", "-s", serial, "shell", "getprop", "ro.serialno"],
+#                             stderr=subprocess.DEVNULL, timeout=2
+#                         ).decode().strip()
+#                         authorized_hardware_serials.add(hw_serial)
+#                         print("hw serial list", hw_serial)
+
+#                     except: continue
+#                 else:
+#                     authorized_hardware_serials.add(serial)
+
+#         # 2. Check if our "Target" USB device is already covered
+#         # Even if the USB shows as 'unauthorized', if its serial is in 
+#         # authorized_hardware_serials (via IP), we are good to go.
+#         serial_list = []
+#         for serial, state in devices:
+#             if ":" not in serial: # Physical USB
+#                 if serial in authorized_hardware_serials:
+#                     print(f"Device {serial} is authorized (via TCP/IP). Proceeding...")
+#                     return True
+#                 else:
+#                     serial_list.append(serial)
+
+#         adb_devices = subprocess.check_output(
+#                             ["adb", "devices", "-l"],
+#                             stderr=subprocess.DEVNULL, timeout=2
+#                         ).decode().strip()
+#         print("adb devices -l", adb_devices)
+
+
+#         elapsed = time.time() - start
+#         print(f"[+{elapsed:0.2f}s] waiting for authorization on {','.join(serial_list)}...")
+#         time.sleep(1)
+    
+#     return False
 
 
 # def wait_for_authorization(timeout=30):
@@ -432,7 +473,12 @@ def validate_devices_connected() -> list:
 
     wait_for_authorization()
 
-    devices = get_connected_devices()
+    if config.STREAM_USING == "WIFI":
+        fetch_wifi_ip =True
+    else:
+        fetch_wifi_ip= False
+
+    devices = get_connected_devices(fetch_wifi_ip)
 
 
     if not devices:
@@ -566,8 +612,8 @@ def select_option(option: str, app_name: str) -> None:
     #     wait_for_authorization()
 
     try:
+        buildozer_compiled = Event()
         if option == '1':
-            buildozer_compiled = Event()
             compile_app(buildozer_compiled)
             logging.info(f"debug_and_livestream RAN!!A")
             debug_and_livestream(buildozer_compiled)
@@ -660,41 +706,67 @@ def filter_target_devices(devices: list) -> dict:
 
     return physical_map
 
-
-def deploy_app_to_devices(
-    target_devices: dict, apk_file_path: str, package_name: str
-) -> None:
-    """
-    Installs APK and starts the application on target devices.
-
-    Args:
-        target_devices: Dictionary of filtered target devices
-        apk_file_path: Path to the APK file to install
-        package_name: Full package name for the application
-
-    Raises:
-        subprocess.CalledProcessError: If ADB commands fail
-    """
+def deploy_app_to_devices(target_devices, apk_file_path, package_name):
     for device in target_devices.values():
         logging.info(f'Installing APK on {device["model"]} | ({device["serial"]})')
-        subprocess.run(
-            ['adb', '-s', device['serial'], 'install', '-r', apk_file_path], check=True
-        )
+        try:
+            result = subprocess.run(
+                ['adb', '-s', device['serial'], 'install', '-r', apk_file_path],
+                check=True,
+                timeout=120,  # don't hang forever
+                capture_output=True,
+                text=True,
+            )
+            logging.info(f'Install stdout: {result.stdout.strip()}')
+            logging.info(f'Install stderr: {result.stderr.strip()}')
+        except subprocess.TimeoutExpired:
+            logging.error(f'adb install TIMED OUT after 120s for {device["serial"]}')
+            return
+        except subprocess.CalledProcessError as e:
+            logging.error(f'adb install FAILED: {e.stderr}')
+            return
 
         logging.info(f'Starting app on {device["model"]} | ({device["serial"]})')
-        subprocess.run(
-            [
-                'adb',
-                '-s',
-                device['serial'],
-                'shell',
-                'am',
-                'start',
-                '-n',
-                f'{package_name}/org.kivy.android.PythonActivity',
-            ],
-            check=True,
-        )
+        subprocess.run([
+            'adb', '-s', device['serial'], 'shell', 'am', 'start',
+            '-n', f'{package_name}/org.kivy.android.PythonActivity',
+        ], check=True, timeout=30)
+
+# worked? unsure
+# def deploy_app_to_devices(
+#     target_devices: dict, apk_file_path: str, package_name: str
+# ) -> None:
+#     """
+#     Installs APK and starts the application on target devices.
+
+#     Args:
+#         target_devices: Dictionary of filtered target devices
+#         apk_file_path: Path to the APK file to install
+#         package_name: Full package name for the application
+
+#     Raises:
+#         subprocess.CalledProcessError: If ADB commands fail
+#     """
+#     for device in target_devices.values():
+#         logging.info(f'Installing APK on {device["model"]} | ({device["serial"]})')
+#         subprocess.run(
+#             ['adb', '-s', device['serial'], 'install', '-r', apk_file_path], check=True
+#         )
+
+#         logging.info(f'Starting app on {device["model"]} | ({device["serial"]})')
+#         subprocess.run(
+#             [
+#                 'adb',
+#                 '-s',
+#                 device['serial'],
+#                 'shell',
+#                 'am',
+#                 'start',
+#                 '-n',
+#                 f'{package_name}/org.kivy.android.PythonActivity',
+#             ],
+#             check=True,
+#         )
 
 def start_adb_claude():
     subprocess.run(['adb', 'kill-server'], check=False)
@@ -727,7 +799,12 @@ def compile_app(buildozer_compiled: Event = None):
     # Step 3: Get and filter target devices
     logging.info("compile app wait for auth")
     wait_for_authorization()
-    devices = get_connected_devices()
+    if config.STREAM_USING == "WIFI":
+        fetch_wifi_ip =True
+    else:
+        fetch_wifi_ip= False
+
+    devices = get_connected_devices(fetch_wifi_ip)
     if not devices:
         logging.error('No connected devices found. APK will not be installed.')
         return
@@ -811,10 +888,28 @@ def restart_adb_server():
     connection = True
     if in_wsl():
         connection = False
+        kill_windows_adb()
     kill_adb_server(disconnect=connection)
     start_adb_server()
     sys.exit(0)
 
+def kill_windows_adb():
+    """Kill any orphaned adb.exe processes on the Windows side (WSL only)."""
+    result = subprocess.run(
+        ["tasklist.exe", "/FI", "IMAGENAME eq adb.exe", "/NH"],
+        capture_output=True, text=True
+    )
+    print(f"[kill_windows_adb] tasklist output: {result.stdout.strip()}")
+    if "adb.exe" in result.stdout:
+        print("[kill_windows_adb] Found adb.exe, killing...")
+        kill_result = subprocess.run(
+            ["taskkill.exe", "/F", "/IM", "adb.exe"],
+            capture_output=True, text=True
+        )
+        print(f"[kill_windows_adb] taskkill result: {kill_result.stdout.strip()} {kill_result.stderr.strip()}")
+        time.sleep(0.5)
+    else:
+        print("[kill_windows_adb] No adb.exe found on Windows, skipping kill.")
 
 def kill_adb_server(disconnect: bool = True):
     logging.info('Restarting adb server')
@@ -868,6 +963,13 @@ def start_nodaemon_adb_server():
             stderr=subprocess.DEVNULL
         )
         logging.info(f'started new adb server {" ".join(cmd)}')
+
+        # Wait for it to actually bind
+        for _ in range(10):
+            if is_adb_listening(host=host_ip):
+                logging.info('adb server is up')
+                return True
+            time.sleep(0.5)
     except FileNotFoundError:
         logging.error('adb not found')
         print(
@@ -965,8 +1067,12 @@ def clear_logcat():
     logging.info('Clearing logcat')
 
     try:
+        if config.STREAM_USING == "WIFI":
+            fetch_wifi_ip =True
+        else:
+            fetch_wifi_ip= False
         # wait_for_authorization()
-        devices = get_connected_devices()
+        devices = get_connected_devices(fetch_wifi_ip)
         # Reuse existing device filtering logic
         filtered_devices = filter_target_devices(devices)
         logging.debug(f'Estimated physical devices connected: {len(filtered_devices)}')
@@ -1254,7 +1360,11 @@ def debug_on_wifi(adb_logcat_ready: Event = None):
     """
     logging.info('Switching ADB to TCP/IP mode...')
     # wait_for_authorization()
-    devices = get_connected_devices()
+    if config.STREAM_USING == "WIFI":
+        fetch_wifi_ip =True
+    else:
+        fetch_wifi_ip= False
+    devices = get_connected_devices(fetch_wifi_ip)
     logging.debug(f'Connected devices: {devices}')
 
     # Step 1: Determine target devices and IPs
@@ -1309,7 +1419,11 @@ def build_logcat_command(ip: str = None) -> list:
 
     # wait_for_authorization()
     # Handle USB/local device connection
-    connected = get_connected_devices()
+    if config.STREAM_USING == "WIFI":
+        fetch_wifi_ip =True
+    else:
+        fetch_wifi_ip= False
+    connected = get_connected_devices(fetch_wifi_ip)
 
     if not connected:
         logging.error('No devices connected.')
