@@ -3,6 +3,21 @@
 new steps:
 =-=-==
 TODO
+
+Yes:
+
+```bash
+export DISPLAY=$(grep -oP '(?<=nameserver )[\d.]+' /etc/resolv.conf | grep -v '^10\.255\.255\.254$' | head -1 || echo localhost):0.0
+```
+
+If the nameserver is `10.255.255.254` (mirrored mode), it falls back to `localhost`. If it's a real host IP (NAT mode), it uses that.
+
+export DISPLAY=$(grep -m1 nameserver /etc/resolv.conf | awk '{print $2}'):0.0
+
+is this because mirrored networking is on
+
+so I need to make it work with mirrored networking as well
+=-=-=-=
 ✔️ the old adb server isn't being killed and it's hanging for some reason
 ✔️ ask claude what's wrong with my code and ask it to check for errors
 check on win11 
@@ -10,6 +25,8 @@ check on mac
 then clear this + trello and continue
 uninstall the windows firewallsettings+check if im on win10 actually?
 i need to check if networking is good on win11
+mirrored networking means vcxsrv and localhost for wslg fails, see "
+Your `.bashrc` is setting `DISPLAY` to the nameserver IP (a WSL2 networking workaround), but with **mirrored networking mode**, that's wrong — mirrored networking makes `localhost` work directly, so you don't need to hunt for the host IP."
 =-=-==
 ✔️ to claude (search this at the bottom):
 ✔️ "it works but now when I reset there are ghost adbs in my windows task manager what do"
@@ -860,3 +877,29 @@ def start_nodaemon_adb_server():
 ```
 
 `taskkill.exe /F /IM adb.exe` is callable directly from WSL and kills all `adb.exe` instances on the Windows side before spawning a fresh nodaemon server. This way each reset starts clean with exactly one ADB process.
+=-=-=-=-=
+
+Your `.bashrc` is setting `DISPLAY` to the nameserver IP (a WSL2 networking workaround), but with **mirrored networking mode**, that's wrong — mirrored networking makes `localhost` work directly, so you don't need to hunt for the host IP.
+
+**The fix:**
+
+In your `.bashrc`, change this line:
+```bash
+export DISPLAY=$(grep -m1 nameserver /etc/resolv.conf | awk '{print $2}'):0.0
+```
+to:
+```bash
+export DISPLAY=:0.0
+```
+
+Or if WSLg is your target (which it should be with mirrored networking), you can just **remove the `DISPLAY` export entirely** — WSLg sets both `DISPLAY` and `WAYLAND_DISPLAY` automatically on startup, and your `echo` already shows `wayland-0` is set correctly.
+
+**Why this happens:** The nameserver trick was the classic WSL2 workaround to find the Windows host IP for forwarding X11 to an external X server (like VcXsrv). With mirrored networking, the host is reachable at `localhost`/`127.0.0.1`, and WSLg handles the socket itself — overriding `DISPLAY` with the nameserver IP breaks it.
+
+**Steps:**
+1. Remove or comment out that `export DISPLAY=...` line
+2. Run `source ~/.bashrc` or open a new terminal
+3. Check: `echo $DISPLAY` should show `:0` and `echo $WAYLAND_DISPLAY` should show `wayland-0`
+
+Your `adb`/`scrcpy`/`bundletool` aliases are fine and unrelated to this.
+
