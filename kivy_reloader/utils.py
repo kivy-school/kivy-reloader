@@ -8,17 +8,21 @@ from typing import Optional
 import time
 import platform
 import trio
-from colorama import Fore, init
 import base64
 import socket
 
 from kivy_reloader.config import config
 
-red = Fore.RED
-green = Fore.GREEN
-yellow = Fore.YELLOW
-white = Fore.WHITE
-init(autoreset=True)
+try:
+    from colorama import Fore, init
+    init(autoreset=True)
+    red = Fore.RED
+    green = Fore.GREEN
+    yellow = Fore.YELLOW
+    white = Fore.WHITE
+except ImportError:
+    # colorama not available on Android
+    red = green = yellow = white = ''
 
 logging.basicConfig(
     level=logging.INFO,
