@@ -650,6 +650,7 @@ class AndroidApp(BaseReloaderApp, KivyApp):
                 if success_path and os.path.exists(success_path):
                     await data_stream.send_all(b'OK')
                     Logger.info(f"Reloader: Zip saved to {success_path}. Starting update...")
+                    await trio.sleep(0.5)  # let ACK flush before reload kills the stream
                     self.nursery.start_soon(self._process_app_update, success_path)
                 else:
                     Logger.warning("Reloader: No valid zip received. Ignoring update request.")

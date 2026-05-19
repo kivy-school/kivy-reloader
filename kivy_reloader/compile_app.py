@@ -616,7 +616,7 @@ def select_option(option: str, app_name: str) -> None:
         if option == '1':
             compile_app(buildozer_compiled)
             logging.info(f"debug_and_livestream RAN!!A")
-            # debug_and_livestream(buildozer_compiled)
+            debug_and_livestream(buildozer_compiled)
         elif option == '2':
             buildozer_compiled.set()
             logging.info(f"debug_and_livestream RAN!!B")
@@ -714,13 +714,24 @@ def deploy_app_to_devices(target_devices, apk_file_path, package_name):
             if in_wsl():
                 adb_path = get_adb_windows_path()  # returns /mnt/c/.../adb.exe
                 win_path = subprocess.check_output(['wslpath', '-w', adb_path]).decode().strip()
+                
+                # Copy APK to a Windows-accessible temp path (CMD can't handle UNC \\wsl.localhost paths)
+                win_user = os.environ.get('WINDOWS_USERNAME') or subprocess.check_output(
+                    ['cmd.exe', '/c', 'echo %USERNAME%'], text=True
+                ).strip()
+                win_temp = f'/mnt/c/Users/{win_user}/AppData/Local/Temp/kivy_install.apk'
+                subprocess.run(['cp', apk_file_path, win_temp], check=True)
+                win_apk_path = subprocess.check_output(['wslpath', '-w', win_temp]).decode().strip()
+
 
                 result = subprocess.run(
-                    ['cmd.exe', '/c', win_path, '-s', device['serial'], 'install', '-r', apk_file_path],
+                    ['cmd.exe', '/c', win_path, '-s', device['serial'], 'install', '-r', win_apk_path],
                     timeout=120,
                     capture_output=True,
                     text=True,
                 )
+                # Clean up temp file
+                subprocess.run(['rm', '-f', win_temp], check=False)
             else:
                 result = subprocess.run(
                     ['adb', '-s', device['serial'], 'install', '-r', apk_file_path],

@@ -8,7 +8,7 @@ import subprocess
 import socket
 
 from kivy_reloader.config import config
-from kivy_reloader.utils import get_connected_devices, in_wsl, fix_wsl
+from kivy_reloader.utils import get_connected_devices, in_wsl, fix_wsl, get_adb_host_ip
 
 red = Fore.RED
 green = Fore.GREEN
@@ -232,7 +232,9 @@ async def send_app():
         adb_cmd = f"adb forward tcp:{PORT} tcp:{PORT}"
         logging.info(adb_cmd)
         os.system(adb_cmd)
-        unique_physical = set(zip(config.PHONE_IPS, (d["model"] for d in devices)))
+        # unique_physical = set(zip(config.PHONE_IPS, (d["model"] for d in devices)))
+        host_ip = get_adb_host_ip()
+        unique_physical = {(host_ip, d["model"]) for d in devices}
     else:
         unique_physical = {
             (d['wifi_ip'], d['model']) for d in devices if d['wifi_ip'] is not None

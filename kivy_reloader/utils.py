@@ -258,7 +258,7 @@ def get_connected_devices(fetch_wifi_ip: bool = False) -> list[dict[str, str]]:
     unique_physical = {
         (d['wifi_ip'], d['model']) for d in devices if d['wifi_ip'] is not None
     }
-    logging.info(f'Total physical devices connected: {len(unique_physical)}')
+    logging.info(f'Total devices connected: {len(unique_physical)}. WIFI: {fetch_wifi_ip}')
     return devices
 
 # def get_connected_devices() -> list[dict[str, str]]:
@@ -617,6 +617,33 @@ def get_wsl_nameservers():
         return ["127.0.0.1"] # Absolute fallback
     except:
         return "NAMESERVERS FAILED"
+
+import re
+
+def get_adb_host_ip() -> str:
+    """In WSL2 mirrored networking mode, localhost works directly."""
+    if in_wsl():
+        try:
+            wslconfig = subprocess.check_output(
+                ["sh", "-c", "cat /mnt/c/Users/$(cmd.exe /c 'echo %USERNAME%' 2>/dev/null | tr -d '\r')/.wslconfig 2>/dev/null"],
+                text=True
+            ).strip()
+            if re.search(r'networkingMode\s*=\s*mirrored', wslconfig, re.IGNORECASE):
+                return "127.0.0.1"
+        except Exception:
+            pass
+        # NAT mode fallback: use eth0 gateway
+        try:
+            gateway = subprocess.check_output(
+                ["sh", "-c", "ip route show dev eth0 | grep default | awk '{print $3}'"],
+                text=True
+            ).strip()
+            if gateway:
+                return gateway
+        except Exception:
+            pass
+    return "127.0.0.1"
+
 
 def in_wsl():
     ans = "wsl2" in platform.release().lower()
