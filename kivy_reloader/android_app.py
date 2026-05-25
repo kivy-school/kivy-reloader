@@ -668,7 +668,7 @@ class AndroidApp(BaseReloaderApp, KivyApp):
                         return
 
                     # Calculate timeout: assume minimum 1 MB/s over USB, plus 30s buffer
-                    min_speed_bytes_per_sec = 1 * 1024 * 1024
+                    min_speed_bytes_per_sec = 0.5 * 1024 * 1024
                     timeout = (zip_size / min_speed_bytes_per_sec) + 30
 
                     Logger.info(f'Reloader: expecting {zip_size} bytes, timeout={timeout:.0f}s')
@@ -1045,7 +1045,7 @@ class AndroidApp(BaseReloaderApp, KivyApp):
         transfer_type = self._detect_transfer_type(zip_file_path)
 
         # Log transfer metadata
-        self._log_transfer_metadata(zip_file_path, transfer_type)
+        # self._log_transfer_metadata(zip_file_path, transfer_type)
 
         if transfer_type == 'delta':
             self._process_delta_update(zip_file_path)

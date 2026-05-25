@@ -325,7 +325,7 @@ async def send_app():
         #     print(f"{yellow}Warning: shutdown(SHUT_WR) failed: {e}")
 
         # 4. Wait for OK
-        min_speed_bytes_per_sec = 1 * 1024 * 1024  # 1 MB/s
+        min_speed_bytes_per_sec = 0.5 * 1024 * 1024  # 1 MB/s
         timeout = (zip_size / min_speed_bytes_per_sec) + 30
         print(f'{yellow}Waiting ({timeout} seconds) for ACK from smartphone {IP}...')
         ack_ok = False
