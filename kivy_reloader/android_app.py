@@ -636,7 +636,7 @@ class AndroidApp(BaseReloaderApp, KivyApp):
             async with data_stream: 
                 Logger.info('Reloader: Server started: receiving data...')
                 Logger.info('Reloader: THE CHANGE IS LIVE')
-                success_path = None  # ← initialize here
+                success_path = None 
                 zip_size = None
                 
                 async with self._update_lock:
@@ -1267,6 +1267,7 @@ class AndroidApp(BaseReloaderApp, KivyApp):
         Returns:
             set: Set of relative file paths that are part of the project
         """
+        Logger.info('Reloader: Walking filesystem to snapshot current files...')
         exclude_patterns = config.FOLDERS_AND_FILES_TO_EXCLUDE_FROM_PHONE + [
             '.kivy',
             'libpybundle.version',
@@ -1299,6 +1300,7 @@ class AndroidApp(BaseReloaderApp, KivyApp):
                 if not self._should_exclude_path(rel_path, exclude_patterns):
                     project_files.add(rel_path)
 
+        Logger.info(f'Reloader: Filesystem snapshot done: {len(project_files)} files found')
         return project_files
 
     def _should_exclude_path(self, rel_path, exclude_patterns):
