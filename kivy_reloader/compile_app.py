@@ -735,7 +735,7 @@ def deploy_app_to_devices(target_devices, apk_file_path, package_name):
             else:
                 result = subprocess.run(
                     ['adb', '-s', device['serial'], 'install', '-r', apk_file_path],
-                    check=True,
+                    check=False,
                     timeout=120,  # don't hang forever
                     capture_output=True,
                     text=True,

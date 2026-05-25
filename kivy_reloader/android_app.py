@@ -638,13 +638,34 @@ class AndroidApp(BaseReloaderApp, KivyApp):
                 Logger.info('Reloader: THE CHANGE IS LIVE')
                 
                 async with self._update_lock:
-                    # Use a small timeout for the header to avoid hanging on ghost connections
+                    # THIS WORKED
+                    # # Use a small timeout for the header to avoid hanging on ghost connections
+                    # with trio.move_on_after(5):
+                    #     # YOUR ZIP LOGIC HERE
+                    #     zip_file_path = os.path.join(os.getcwd(), f'app_copy_{uuid4().hex}.zip')
+                    #     # Try to receive the file
+                    #     # If this returns None (due to your new logic), success_path will be None
+                    #     success_path = await self._receive_zip_file(data_stream, zip_file_path)
+                    # Read header first to get size
+                    header = b""
                     with trio.move_on_after(5):
-                        # YOUR ZIP LOGIC HERE
+                        while not header.endswith(b"\n"):
+                            chunk = await data_stream.receive_some(1)
+                            if not chunk:
+                                return
+                            header += chunk
+
+                    zip_size = int(header.strip())
+
+                    # Calculate timeout: assume minimum 1 MB/s over USB, plus 30s buffer
+                    min_speed_bytes_per_sec = 1 * 1024 * 1024
+                    timeout = (zip_size / min_speed_bytes_per_sec) + 30
+
+                    Logger.info(f'Reloader: expecting {zip_size} bytes, timeout={timeout:.0f}s')
+
+                    with trio.move_on_after(timeout):
                         zip_file_path = os.path.join(os.getcwd(), f'app_copy_{uuid4().hex}.zip')
-                        # Try to receive the file
-                        # If this returns None (due to your new logic), success_path will be None
-                        success_path = await self._receive_zip_file(data_stream, zip_file_path)
+                        success_path = await self._receive_zip_file(data_stream, zip_file_path, zip_size=zip_size)
                         
                     # CRITICAL GUARD: Only update if the file actually exists
                 if success_path and os.path.exists(success_path):
@@ -830,38 +851,37 @@ class AndroidApp(BaseReloaderApp, KivyApp):
     #     # except Exception as e:
     #     #     self._log_server_error(e)
 
-    async def _receive_zip_file(self, data_stream, zip_file_path):
-        # 1. Read header until newline
-        header = b""
-        while not header.endswith(b"\n"):
-            try:
-                chunk = await data_stream.receive_some(1)
-                if not chunk:
-                    Logger.warning("Reloader: Connection closed before header received")
-                    return None  # Return None instead of raising
-                header += chunk
-            except Exception as e:
-                Logger.warning(f"Reloader: Socket error during header: {e}")
-                return None
+    async def _receive_zip_file(self, data_stream, zip_file_path, zip_size=None):
+        if zip_size is None:
+            # Read header
+            header = b""
+            while not header.endswith(b"\n"):
+                try:
+                    chunk = await data_stream.receive_some(1)
+                    if not chunk:
+                        Logger.warning("Reloader: Connection closed before header received")
+                        return None
+                    header += chunk
+                except Exception as e:
+                    Logger.warning(f"Reloader: Socket error during header: {e}")
+                    return None
 
-        try:
-            zip_size = int(header.strip())
-        except ValueError:
-            Logger.warning(f"Reloader: Invalid header received: {header}")
-            return None
+            try:
+                zip_size = int(header.strip())
+            except ValueError:
+                Logger.warning(f"Reloader: Invalid header received: {header}")
+                return None
 
         Logger.info(f"Reloader: expecting {zip_size} bytes")
         received = 0
 
-        # 2. Receive exactly zip_size bytes
         try:
             with open(zip_file_path, "wb") as zip_file:
                 while received < zip_size:
                     data = await data_stream.receive_some(65536)
                     if not data:
                         Logger.warning("Reloader: Connection closed early while receiving ZIP")
-                        return None # Return None instead of raising
-
+                        return None
                     zip_file.write(data)
                     received += len(data)
         except Exception as e:
@@ -869,7 +889,49 @@ class AndroidApp(BaseReloaderApp, KivyApp):
             return None
 
         Logger.info("Reloader: ZIP fully received")
-        return zip_file_path # Success!
+        return zip_file_path
+
+    # OLD WORKING
+    # async def _receive_zip_file(self, data_stream, zip_file_path):
+    #     # 1. Read header until newline
+    #     header = b""
+    #     while not header.endswith(b"\n"):
+    #         try:
+    #             chunk = await data_stream.receive_some(1)
+    #             if not chunk:
+    #                 Logger.warning("Reloader: Connection closed before header received")
+    #                 return None  # Return None instead of raising
+    #             header += chunk
+    #         except Exception as e:
+    #             Logger.warning(f"Reloader: Socket error during header: {e}")
+    #             return None
+
+    #     try:
+    #         zip_size = int(header.strip())
+    #     except ValueError:
+    #         Logger.warning(f"Reloader: Invalid header received: {header}")
+    #         return None
+
+    #     Logger.info(f"Reloader: expecting {zip_size} bytes")
+    #     received = 0
+
+    #     # 2. Receive exactly zip_size bytes
+    #     try:
+    #         with open(zip_file_path, "wb") as zip_file:
+    #             while received < zip_size:
+    #                 data = await data_stream.receive_some(65536)
+    #                 if not data:
+    #                     Logger.warning("Reloader: Connection closed early while receiving ZIP")
+    #                     return None # Return None instead of raising
+
+    #                 zip_file.write(data)
+    #                 received += len(data)
+    #     except Exception as e:
+    #         Logger.error(f"Reloader: File/Socket error during ZIP receive: {e}")
+    #         return None
+
+    #     Logger.info("Reloader: ZIP fully received")
+    #     return zip_file_path # Success!
 
 
     async def _receive_zip_file_old(self, data_stream, zip_file_path):
