@@ -636,6 +636,8 @@ class AndroidApp(BaseReloaderApp, KivyApp):
             async with data_stream: 
                 Logger.info('Reloader: Server started: receiving data...')
                 Logger.info('Reloader: THE CHANGE IS LIVE')
+                success_path = None  # ← initialize here
+                zip_size = None
                 
                 async with self._update_lock:
                     # THIS WORKED
@@ -655,7 +657,15 @@ class AndroidApp(BaseReloaderApp, KivyApp):
                                 return
                             header += chunk
 
-                    zip_size = int(header.strip())
+                    if not header.strip():
+                        Logger.warning("Reloader: Header timeout or empty, aborting")
+                        return
+
+                    try:
+                        zip_size = int(header.strip())
+                    except ValueError:
+                        Logger.warning(f"Reloader: Invalid header: {header!r}")
+                        return
 
                     # Calculate timeout: assume minimum 1 MB/s over USB, plus 30s buffer
                     min_speed_bytes_per_sec = 1 * 1024 * 1024
