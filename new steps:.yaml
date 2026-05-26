@@ -9,6 +9,11 @@ rebuild app
 test if timeout on max app works
 delete venv
 
+ghost pyc stuck on my mac?
+If the problem persists even after a new package build on a clean environment, the "ghost" is definitely living on your Mac, specifically within the **Buildozer project directory** or your **Python environment**.
+
+When you run `buildozer appclean`, it removes the build artifacts, but it **does not** touch your project's hidden cache folders or the site-packages of the Python environment you are currently using.
+
 
 - [ ] rebuild app
 - [ ] test if timeout on max app works
@@ -1003,5 +1008,85 @@ drwx------  3 u0_a797 u0_a797  4096 2026-05-26 09:19 p4a-recipes
 rm: files/app/kivy-reloader/send_app_to_phone.pyc: No such file or directory
 (kivyschool-hello) raidraptorultimatefalcon@MacBookAir kivyschool-hello % adb shell run-as org.example.kivy_reloader rm files/app/kivy-reloader/kivy_reloader/send_app_to_phone.pyc                  
 (kivyschool-hello) raidraptorultimatefalcon@MacBookAir kivyschool-hello % 
+=-=-=-=-=-=
+If the problem persists even after a new package build on a clean environment, the "ghost" is definitely living on your Mac, specifically within the **Buildozer project directory** or your **Python environment**.
+
+When you run `buildozer appclean`, it removes the build artifacts, but it **does not** touch your project's hidden cache folders or the site-packages of the Python environment you are currently using.
+
+Here is how to flush the cache on your Mac:
+
+### 1. Delete the local `__pycache__` and `.pyc` files
+
+Even if you are using a new app name, Buildozer often copies your project folder into its internal staging area. If your source folder has `.pyc` files, they might be getting bundled into the APK.
+
+Run this from the root of your project:
+
+```bash
+find . -name "__pycache__" -type d -exec rm -rf {} +
+find . -name "*.pyc" -delete
+
+```
+
+### 2. Wipe the Buildozer Hidden Cache
+
+Buildozer maintains a global cache of downloaded dependencies and recipes in your home directory. If a library (like `kivy-reloader`) was cached once in a broken state, it might be reusing that cached `.zip` or `.tar` instead of your local editable version.
+
+Run this to clear the global cache:
+
+```bash
+rm -rf ~/.buildozer/android/platform/python-for-android/builds
+rm -rf ~/.buildozer/cache
+
+```
+
+### 3. Check the `.buildozer` folder in your project
+
+Inside your project folder, there is a hidden `.buildozer` directory. `appclean` usually handles this, but it can leave behind "ghost" versions of your app in the `applibs` or `pip_dist` folders.
+
+**Force delete it manually:**
+
+```bash
+rm -rf .buildozer/
+
+```
+
+### 4. Verify your `main.py` entry point
+
+Check if you have a `main.py` in your root folder that might be importing an old version of your code from a different subdirectory.
+
+> **The "Smoking Gun" Test:**
+> Change a piece of static text in your `main.py` that is visible on the screen (like a Label's text). If the app installs but the **text** doesn't change, Buildozer is definitely pulling the source code from a different directory than the one you are editing.
+
+### 5. Check your `buildozer.spec` paths
+
+Double-check your `source.dir` line in `buildozer.spec`. It should almost always be:
+
+```ini
+source.dir = .
+
+```
+
+If it is pointing to a specific subdirectory, your edits in the root might be ignored during the build process.
+
+---
+
+### The Final "Nuke & Rebuild" Command
+
+If you want to be absolutely certain everything is fresh on the next build:
+
+```bash
+# 1. Clean local pyc
+find . -name "*.pyc" -delete && find . -name "__pycache__" -delete
+
+# 2. Kill the buildozer project folder
+rm -rf .buildozer/
+
+# 3. Kill the global buildozer cache
+rm -rf ~/.buildozer/cache
+
+# 4. Rebuild from scratch
+buildozer android debug deploy run
+
+```
 
 =-=-== BELOW IS ASSUMED CLEARED END =-=-=-==

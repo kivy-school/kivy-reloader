@@ -630,6 +630,7 @@ class AndroidApp(BaseReloaderApp, KivyApp):
         Args:
             data_stream: The incoming TCP data stream
         """
+        Logger.info('Reloader: CHANGE IS LIVE')
         Logger.info('Reloader: ************** SERVER **************')
         Logger.info('Reloader: Server started: receiving data from computer...')
         try:
