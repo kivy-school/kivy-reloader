@@ -1213,11 +1213,11 @@ class AndroidApp(BaseReloaderApp, KivyApp):
         # Step 1: Snapshot current Android file system
         files_on_android_before = self._get_current_project_files()
         Logger.info('Full update: Scanning current Android file system')
-        Logger.info(
-            tree_formatter.format_file_tree(
-                files_on_android_before, 'Android: Files currently on device'
-            )
-        )
+        # Logger.info(
+        #     tree_formatter.format_file_tree(
+        #         files_on_android_before, 'Android: Files currently on device'
+        #     )
+        # )
 
         # Step 2: Extract new desktop state
         with zipfile.ZipFile(zip_file_path, 'r') as zip_file:

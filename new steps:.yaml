@@ -1,5 +1,22 @@
 =-=-== BELOW IS ASSUMED CLEARED END =-=-=-==
 
+rebuild app
+test if timeout on max app works
+delete venv
+
+
+- [ ] rebuild app
+- [ ] test if timeout on max app works
+- [ ] delete venv
+- [ ] REdo the filepath message on android
+	- [ ] # Log transfer metadata
+	- [ ]         # self._log_transfer_metadata(zip_file_path, transfer_type)
+	- [ ] # Logger.info(
+	- [ ]         #     tree_formatter.format_file_tree(
+	- [ ]         #         files_on_android_before, 'Android: Files currently on device'
+	- [ ]         #     )
+	- [ ]         # )
+
 
 new steps:
 =-=-==
