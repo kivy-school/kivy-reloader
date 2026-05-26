@@ -560,6 +560,7 @@ class AndroidApp(BaseReloaderApp, KivyApp):
         The server runs in the background to receive file updates from
         the desktop development environment.
         """
+        Logger.info(f'starting async server')
         self.nursery.start_soon(self.start_async_server)
 
     async def start_async_server(self):

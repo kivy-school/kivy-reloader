@@ -1,5 +1,10 @@
 =-=-== BELOW IS ASSUMED CLEARED END =-=-=-==
 
+STALE PYC IS A PROBLEM???
+(update the updater to remove pyc?)
+deak with FAT APKs
+(delete the venv)
+
 rebuild app
 test if timeout on max app works
 delete venv
@@ -17,6 +22,10 @@ delete venv
 	- [ ]         #     )
 	- [ ]         # )
 
+you can use adb to use android as a linux machine btw, 
+- adb shell run-as org.example.kivy_reloader find files/app -name "android_app*.pyc"
+- adb shell run-as org.example.kivy_reloader ls -la files/app/kivy-reloader/kivy_reloader/
+- adb shell run-as org.example.kivy_reloader rm files/app/kivy-reloader/kivy_reloader/send_app_to_phone.pyc    
 
 new steps:
 =-=-==
@@ -943,6 +952,56 @@ Or if WSLg is your target (which it should be with mirrored networking), you can
 3. Check: `echo $DISPLAY` should show `:0` and `echo $WAYLAND_DISPLAY` should show `wayland-0`
 
 Your `adb`/`scrcpy`/`bundletool` aliases are fine and unrelated to this.
-
+=-=-=-=-=-=
+n@MacBookAir kivyschool-hello % 
+(kivyschool-hello) raidraptorultimatefalcon@MacBookAir kivyschool-hello % adb shell run-as your.package.name find files/app -name "android_app*.pyc"
+run-as: unknown package: your.package.name
+(kivyschool-hello) raidraptorultimatefalcon@MacBookAir kivyschool-hello % adb shell run-as kivy_reloader find files/app -name "android_app*.pyc"
+run-as: unknown package: kivy_reloader
+(kivyschool-hello) raidraptorultimatefalcon@MacBookAir kivyschool-hello % adb shell run-as org.example.kivy_reloader find files/app -name "android_app*.pyc"
+files/app/kivy-reloader/kivy_reloader/android_app.pyc
+files/app/_python_bundle/site-packages/kivy_reloader/android_app.pyc
+(kivyschool-hello) raidraptorultimatefalcon@MacBookAir kivyschool-hello % adb shell run-as org.example.kivy_reloader ls -la files/app/__pycache__/
+ls: files/app/__pycache__/: No such file or directory
+(kivyschool-hello) raidraptorultimatefalcon@MacBookAir kivyschool-hello % adb shell run-as org.example.kivy_reloader ls -la files/app/kivy-reloader/kivy_reloader/
+total 588
+drwx------  4 u0_a797 u0_a797  4096 2026-05-26 09:19 .
+drwx------ 12 u0_a797 u0_a797  4096 2026-05-26 09:20 ..
+-rw-------  1 u0_a797 u0_a797    22 2026-05-26 09:19 __init__.py
+-rw-------  1 u0_a797 u0_a797   243 2026-05-26 09:08 __init__.pyc
+-rw-------  1 u0_a797 u0_a797 51821 2026-05-26 09:19 android_app.py
+-rw-------  1 u0_a797 u0_a797 45090 2026-05-26 09:08 android_app.pyc
+-rw-------  1 u0_a797 u0_a797  1494 2026-05-26 09:19 app.py
+-rw-------  1 u0_a797 u0_a797   987 2026-05-26 09:08 app.pyc
+-rw-------  1 u0_a797 u0_a797  1914 2026-05-26 09:19 base_app.py
+-rw-------  1 u0_a797 u0_a797  3178 2026-05-26 09:08 base_app.pyc
+-rw-------  1 u0_a797 u0_a797  5859 2026-05-26 09:19 bootstrap.py
+-rw-------  1 u0_a797 u0_a797  7239 2026-05-26 09:08 bootstrap.pyc
+-rw-------  1 u0_a797 u0_a797 16765 2026-05-26 09:19 buildozer.spec
+-rw-------  1 u0_a797 u0_a797 67250 2026-05-26 09:19 compile_app.py
+-rw-------  1 u0_a797 u0_a797 68040 2026-05-26 09:08 compile_app.pyc
+-rw-------  1 u0_a797 u0_a797 18854 2026-05-26 09:19 config.py
+-rw-------  1 u0_a797 u0_a797 29258 2026-05-26 09:08 config.pyc
+drwx------  6 u0_a797 u0_a797  4096 2026-05-26 09:19 configurator
+-rw-------  1 u0_a797 u0_a797 12128 2026-05-26 09:19 delta_transfer.py
+-rw-------  1 u0_a797 u0_a797 15835 2026-05-26 09:08 delta_transfer.pyc
+-rw-------  1 u0_a797 u0_a797 23856 2026-05-26 09:19 desktop_app.py
+-rw-------  1 u0_a797 u0_a797 28653 2026-05-26 09:08 desktop_app.pyc
+-rw-------  1 u0_a797 u0_a797  2762 2026-05-26 09:19 detection.py
+-rw-------  1 u0_a797 u0_a797  2971 2026-05-26 09:08 detection.pyc
+-rw-------  1 u0_a797 u0_a797  9336 2026-05-26 09:19 kivy-reloader.toml
+-rw-------  1 u0_a797 u0_a797  2729 2026-05-26 09:19 lang.py
+-rw-------  1 u0_a797 u0_a797  2874 2026-05-26 09:08 lang.pyc
+drwx------  3 u0_a797 u0_a797  4096 2026-05-26 09:19 p4a-recipes
+-rw-------  1 u0_a797 u0_a797 25813 2026-05-26 09:19 send_app_to_phone.py
+-rw-------  1 u0_a797 u0_a797 10137 2026-05-26 09:08 send_app_to_phone.pyc
+-rw-------  1 u0_a797 u0_a797  2126 2026-05-26 09:19 tree_formatter.py
+-rw-------  1 u0_a797 u0_a797  2300 2026-05-26 09:08 tree_formatter.pyc
+-rw-------  1 u0_a797 u0_a797 32759 2026-05-26 09:19 utils.py
+-rw-------  1 u0_a797 u0_a797 36814 2026-05-26 09:08 utils.pyc
+(kivyschool-hello) raidraptorultimatefalcon@MacBookAir kivyschool-hello % adb shell run-as org.example.kivy_reloader rm files/app/kivy-reloader/send_app_to_phone.pyc
+rm: files/app/kivy-reloader/send_app_to_phone.pyc: No such file or directory
+(kivyschool-hello) raidraptorultimatefalcon@MacBookAir kivyschool-hello % adb shell run-as org.example.kivy_reloader rm files/app/kivy-reloader/kivy_reloader/send_app_to_phone.pyc                  
+(kivyschool-hello) raidraptorultimatefalcon@MacBookAir kivyschool-hello % 
 
 =-=-== BELOW IS ASSUMED CLEARED END =-=-=-==
