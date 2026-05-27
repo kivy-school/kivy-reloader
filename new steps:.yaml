@@ -1,23 +1,21 @@
 =-=-== BELOW IS ASSUMED CLEARED END =-=-=-==
 
-STALE PYC IS A PROBLEM???
-(update the updater to remove pyc?)
+✔️ no lmao buildozer was not pointing to my local kivy reloader
+✔️✔️STALE PYC IS A PROBLEM???
+✔️✔️(update the updater to remove pyc?)
+    ✔️ghost pyc stuck on my mac?
+    ✔️If the problem persists even after a new package build on a clean environment, the "ghost" is definitely living on your Mac, specifically within the **Buildozer project directory** or your **Python environment**.
+
+    ✔️When you run `buildozer appclean`, it removes the build artifacts, but it **does not** touch your project's hidden cache folders or the site-packages of the Python environment you are currently using.
+
+(still thinking about this I think it works with update kivy reloader)
 deak with FAT APKs
 (delete the venv)
 
-rebuild app
-test if timeout on max app works
+✔️rebuild app
+✔️test if timeout on max app works
 delete venv
 
-ghost pyc stuck on my mac?
-If the problem persists even after a new package build on a clean environment, the "ghost" is definitely living on your Mac, specifically within the **Buildozer project directory** or your **Python environment**.
-
-When you run `buildozer appclean`, it removes the build artifacts, but it **does not** touch your project's hidden cache folders or the site-packages of the Python environment you are currently using.
-
-
-- [ ] rebuild app
-- [ ] test if timeout on max app works
-- [ ] delete venv
 - [ ] REdo the filepath message on android
 	- [ ] # Log transfer metadata
 	- [ ]         # self._log_transfer_metadata(zip_file_path, transfer_type)
