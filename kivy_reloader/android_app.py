@@ -896,6 +896,14 @@ class AndroidApp(BaseReloaderApp, KivyApp):
                         return None
                     zip_file.write(data)
                     received += len(data)
+
+                    # ADD THIS BLOCK
+                    received_mb = received / 1024 / 1024
+                    total_mb = zip_size / 1024 / 1024
+                    if received_mb - last_logged_mb >= 0.5:  # log every 0.5 MB
+                        percent = (received / zip_size) * 100
+                        Logger.info(f"Reloader: Received {received_mb:.1f} / {total_mb:.1f} MB ({percent:.0f}%)")
+                        last_logged_mb = received_mb
         except Exception as e:
             Logger.error(f"Reloader: File/Socket error during ZIP receive: {e}")
             return None
