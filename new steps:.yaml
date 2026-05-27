@@ -16,7 +16,7 @@ deak with FAT APKs
 ✔️test if timeout on max app works
 delete venv
 
-- [ ] REdo the filepath message on android
+- [ ] REdo the filepath message on android (should be setting tbh, on android just inherit the toml setting at the moment of building)
 	- [ ] # Log transfer metadata
 	- [ ]         # self._log_transfer_metadata(zip_file_path, transfer_type)
 	- [ ] # Logger.info(
