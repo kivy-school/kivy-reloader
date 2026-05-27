@@ -886,6 +886,7 @@ class AndroidApp(BaseReloaderApp, KivyApp):
 
         Logger.info(f"Reloader: expecting {zip_size} bytes")
         received = 0
+        last_logged_mb = 0
 
         try:
             with open(zip_file_path, "wb") as zip_file:
