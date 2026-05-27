@@ -314,6 +314,12 @@ async def send_app():
                 chunks_sent += 1
                 total_bytes += len(chunk)
 
+                # ADD THIS:
+                if chunks_sent % 10 == 0:
+                    mb_sent = total_bytes / (1024 * 1024)
+                    mb_total = zip_size / (1024 * 1024)
+                    print(f'\r{green}Sent {mb_sent:.1f} / {mb_total:.1f} MB ({chunks_sent} chunks)', end='', flush=True)
+
         print(green + f'Finished sending app! ({total_bytes} bytes in {chunks_sent} chunks)')
 
         # # 3. SAFE WRITE SHUTDOWN (USB + Wi‑Fi)
