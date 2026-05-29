@@ -669,6 +669,15 @@ class AndroidApp(BaseReloaderApp, KivyApp):
                         Logger.warning(f"Reloader: Invalid header: {header!r}")
                         return
 
+                    # Read file tree flag (1 byte)
+                    print_file_tree = False
+                    with trio.move_on_after(5):
+                        flag_byte = await data_stream.receive_some(1)
+                        if flag_byte:
+                            print_file_tree = flag_byte == b'\x01'
+
+                    Logger.info(f'Reloader: print_file_tree={print_file_tree}')
+
                     # Calculate timeout: assume minimum 1 MB/s over USB, plus 30s buffer
                     min_speed_bytes_per_sec = 0.5 * 1024 * 1024
                     timeout = (zip_size / min_speed_bytes_per_sec) + 30
@@ -679,12 +688,12 @@ class AndroidApp(BaseReloaderApp, KivyApp):
                         zip_file_path = os.path.join(os.getcwd(), f'app_copy_{uuid4().hex}.zip')
                         success_path = await self._receive_zip_file(data_stream, zip_file_path, zip_size=zip_size)
                         
-                    # CRITICAL GUARD: Only update if the file actually exists
+                # CRITICAL GUARD: Only update if the file actually exists
                 if success_path and os.path.exists(success_path):
                     await data_stream.send_all(b'OK')
                     Logger.info(f"Reloader: Zip saved to {success_path}. Starting update...")
                     await trio.sleep(0.5)  # let ACK flush before reload kills the stream
-                    self.nursery.start_soon(self._process_app_update, success_path)
+                    self.nursery.start_soon(self._process_app_update, success_path, print_file_tree)
                 else:
                     Logger.warning("Reloader: No valid zip received. Ignoring update request.")
                     # If the file was partially created, clean it up
@@ -898,7 +907,6 @@ class AndroidApp(BaseReloaderApp, KivyApp):
                     zip_file.write(data)
                     received += len(data)
 
-                    # ADD THIS BLOCK
                     received_mb = received / 1024 / 1024
                     total_mb = zip_size / 1024 / 1024
                     if received_mb - last_logged_mb >= 0.5:  # log every 0.5 MB
@@ -1041,7 +1049,7 @@ class AndroidApp(BaseReloaderApp, KivyApp):
     #     return zip_file_path
     # THIS WORKED END
 
-    async def _process_app_update(self, zip_file_path):
+    async def _process_app_update(self, zip_file_path, print_file_tree):
         """
         Process the received app update (delta or full) and trigger reload.
 
@@ -1056,7 +1064,8 @@ class AndroidApp(BaseReloaderApp, KivyApp):
         transfer_type = self._detect_transfer_type(zip_file_path)
 
         # Log transfer metadata
-        # self._log_transfer_metadata(zip_file_path, transfer_type)
+        if print_file_tree: 
+            self._log_transfer_metadata(zip_file_path, transfer_type)
 
         if transfer_type == 'delta':
             self._process_delta_update(zip_file_path)

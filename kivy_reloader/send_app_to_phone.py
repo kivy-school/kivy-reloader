@@ -299,6 +299,11 @@ async def send_app():
         await client_socket.send_all(header)
         print(f'DEBUG: Sent header with size {zip_size}')
 
+        # 1b. Send file tree flag (1 byte: b'\x01' = print, b'\x00' = skip)
+        print_tree = getattr(config, 'PRINT_FILE_TREE', False)
+        await client_socket.send_all(b'\x01' if print_tree else b'\x00')
+        print(f'DEBUG: Sent file tree flag: {print_tree}')
+
         # 2. Send ZIP contents
         CHUNK_SIZE = 256 * 1024
         total_bytes = 0

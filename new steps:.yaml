@@ -8,9 +8,10 @@
 
     ✔️When you run `buildozer appclean`, it removes the build artifacts, but it **does not** touch your project's hidden cache folders or the site-packages of the Python environment you are currently using.
 
-(still thinking about this I think it works with update kivy reloader)
+✔️(just delete the reloader state)i need to figure out how to reset the reloader state easily (helper)
+✔️(still thinking about this I think it works with update kivy reloader)
 deak with FAT APKs
-(delete the venv)
+✔️(delete the venv)
 
 ✔️rebuild app
 ✔️test if timeout on max app works
