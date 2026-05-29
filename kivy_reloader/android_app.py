@@ -1071,7 +1071,7 @@ class AndroidApp(BaseReloaderApp, KivyApp):
             self._process_delta_update(zip_file_path)
         else:
             # Full transfer - extract everything and handle deletions
-            self._process_full_update(zip_file_path)
+            self._process_full_update(zip_file_path, print_file_tree)
 
         # Best-effort cleanup of temp file
         try:
@@ -1218,7 +1218,7 @@ class AndroidApp(BaseReloaderApp, KivyApp):
                     os.remove(full_path)
                     Logger.debug(f'Deleted: {file_path}')
 
-    def _process_full_update(self, zip_file_path):
+    def _process_full_update(self, zip_file_path,print_file_tree):
         """
         Process a full update by synchronizing Android file system with desktop state.
 
@@ -1233,11 +1233,13 @@ class AndroidApp(BaseReloaderApp, KivyApp):
         # Step 1: Snapshot current Android file system
         files_on_android_before = self._get_current_project_files()
         Logger.info('Full update: Scanning current Android file system')
-        # Logger.info(
-        #     tree_formatter.format_file_tree(
-        #         files_on_android_before, 'Android: Files currently on device'
-        #     )
-        # )
+        
+        if print_file_tree:
+            Logger.info(
+                tree_formatter.format_file_tree(
+                    files_on_android_before, 'Android: Files currently on device'
+                )
+            )
 
         # Step 2: Extract new desktop state
         with zipfile.ZipFile(zip_file_path, 'r') as zip_file:
