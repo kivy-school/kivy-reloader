@@ -220,7 +220,9 @@ async def send_app():
     print('*' * 50)
     print(green + 'Connecting to smartphone...')
 
-    devices = get_connected_devices()
+    fetch_wifi = config.STREAM_USING == "WIFI"
+    devices = get_connected_devices(fetch_wifi_ip=fetch_wifi)
+    
     if not devices:
         print(f'{yellow}No connected devices found.')
         return 1

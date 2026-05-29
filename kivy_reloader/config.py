@@ -462,6 +462,11 @@ class Config:  # noqa: PLR0904
         return self.get('PRINT_FPS', False)
 
     @property
+    def PRINT_FILE_TREE(self) -> bool:
+        """Print file tree when deploying to phone."""
+        return self.get('PRINT_FILE_TREE', False)
+
+    @property
     def RENDER_DRIVER(self) -> str:
         """SDL render driver. Use 'software' for VMs, or 'opengl'/'direct3d'/'metal'."""
         return self.get('RENDER_DRIVER', '')
