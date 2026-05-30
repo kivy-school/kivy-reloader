@@ -76,10 +76,33 @@ check on win11 (mirrored networking lmao)
     ??? still need to check if it works
 check on mac 
 ✔️ USB WORKS
-=-=-== CLEARED =-=-=-==
- CHECK WIFI
- (compile first, main.py)
- (main.py first, then compile)
+ ✔️CHECK WIFI
+ ✔️(compile first, main.py)
+ ✔️(main.py first, then compile)
+=-=-==************ CLEARED ************=-=-=-==
+win 10 again: 
+problems: 
+plan: 
+GET APP TO BUILD ONTO PHONE AND TEST IF REGULAR FLOW WORKS, THEN I DONT NEED TO CHECK IF ADB LISTENING BECAUSE I ONLY USE WINDOWS ADB ANYWAYS
+make new toml config thing: wsl_adb_port that is not adb port (win 10 compatibility)
+remove the extra powershell thing WSL ADB 5037
+get the app onto phone
+test if i can still ping nc 8055
+
+if so then I can just use adb start-server test, Idk why it needs to be specifically adb is listening test if that makes sense
+get some food bruh
+
+
+3. port forward rule needs to: check for PORT IN TOML when it MAKES (A) and when it CHECKS (B) (easy fix just do it NOW so that I can fix listening test)
+2. listening test is failing wtf (what is the right answer? add firewall rule?)
+1. adb port is diff from adb port on wsl (I set it to 5037 and never chagned it back) (ez fix make a config for it)
+
+adb being messy
+New-NetFirewallRule -DisplayName "WSL ADB 5037" -Direction Inbound -Action Allow -Protocol TCP -LocalPort 5037 -RemoteAddress 172.28.0.0/20
+
+
+port is not correct, this is a new proj and i got 8055 and 8050 conflict (firewall rule is for wrong port wtf)
+
 on the win 11 script add to wslconfig mirrorednetworking = true
 
 fix filipe doing that weird fork fix

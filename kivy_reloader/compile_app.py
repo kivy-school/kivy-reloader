@@ -603,8 +603,6 @@ def select_option(option: str, app_name: str) -> None:
     """
 
     if in_wsl() and config.STREAM_USING == "USB":
-    #     #run adb nodaemon
-        kill_adb_server(disconnect = False)
         start_nodaemon_adb_server()
     #     # fix wsl
     #     trio.run(fix_wsl)
@@ -1012,7 +1010,7 @@ def start_nodaemon_adb_server():
         wait_for_authorization()
         return True
     
-    logging.info('Starting adb server')
+    logging.info('Starting fresh adb server')
     kill_adb_server(disconnect=False)
     
     try:

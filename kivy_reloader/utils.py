@@ -565,6 +565,7 @@ def is_adb_listening(host="127.0.0.1", timeout=10.0):
         adb_port = getattr(config, "ADB_PORT", 5037)
 
         try:
+            logging.info(f'testing {host}:{adb_port}')
             s.connect((host, adb_port))
             s.close()
             return True
