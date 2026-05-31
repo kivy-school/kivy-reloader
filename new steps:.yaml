@@ -81,8 +81,19 @@ check on mac
  ✔️(main.py first, then compile)
 =-=-==************ CLEARED ************=-=-=-==
 
+NEW PLAN:
+start from scratch:
+verify it works with this setup
+turn off networking thing
+get naked kivy reloader toml
+push current kivy reloader to online
+reset from scratch, make sure buildozer also uses editable install + uv uses editable install
+
+REMINDER THAT THE BUILDOZER TOML FORGOT TO GIT POINT TO MY LOCAL REPO AINT NO WAY
 MY TOML IS THE KEY TO THIS
-I think i know the problem, it's that main ALSO does some network checks and on a diff port
+a. I think i know the problem, it's that main ALSO does some network checks and on a diff port (so I gotta reset and do the uv run kivy reloader run and uv run main.py alternate with them being first)
+b. the toml also works so need code to become more generic 
+(aka remove my firewall rule and actually do it with any kind of port number, wsl_ad_port, etc)
 
 
 # ADB TCP/IP port for wireless debugging (default: 5555)
