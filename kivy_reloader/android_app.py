@@ -617,6 +617,7 @@ class AndroidApp(BaseReloaderApp, KivyApp):
             'Another possible cause is that the port is already in use '
             'by another app. Check if the port is free and try again'
         )
+        Logger.info(f'Error details: {type(error)}')
         Logger.info(f'Error details: {error}')
         # Logger.error(f"Reloader: Full Traceback:\n{traceback_error}")
         # Split traceback into lines — Logger handles single lines much better on Android
