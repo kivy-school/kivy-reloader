@@ -618,7 +618,10 @@ class AndroidApp(BaseReloaderApp, KivyApp):
             'by another app. Check if the port is free and try again'
         )
         Logger.info(f'Error details: {error}')
-        Logger.error(f"Reloader: Full Traceback:\n{traceback_error}")
+        # Logger.error(f"Reloader: Full Traceback:\n{traceback_error}")
+        # Split traceback into lines — Logger handles single lines much better on Android
+        for line in traceback_error.splitlines():
+            Logger.error(f'Reloader: Full Traceback: {line}')
 
     async def data_receiver(self, data_stream):
         """

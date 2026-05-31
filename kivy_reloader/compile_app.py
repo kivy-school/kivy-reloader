@@ -1894,7 +1894,7 @@ def render_option_menu(current_selection: str) -> None:
     Args:
         current_selection: Currently selected option string
     """
-    typer.clear()
+    #typer.clear()
     typer.echo('\nSelect one of the 4 options below:\n')
 
     development_options = compiler_options[:2]
@@ -1956,10 +1956,10 @@ def execute_selected_option(option: str) -> None:
     Args:
         option: The selected option string
     """
-    typer.clear()
+    #typer.clear()
     print(f'{yellow} Selected option: {green}{option}')
     option_index = str(compiler_options.index(option) + 1)
-    typer.clear()
+    #typer.clear()
     select_option(option_index, app_name)
 
 

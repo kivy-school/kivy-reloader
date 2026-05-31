@@ -80,6 +80,57 @@ check on mac
  ✔️(compile first, main.py)
  ✔️(main.py first, then compile)
 =-=-==************ CLEARED ************=-=-=-==
+
+MY TOML IS THE KEY TO THIS
+I think i know the problem, it's that main ALSO does some network checks and on a diff port
+
+
+# ADB TCP/IP port for wireless debugging (default: 5555)
+# ADB_PORT = 5555
+ADB_PORT = 5037
+
+# Port for the trio server that receives files on the device
+RELOADER_PORT = 8055
+# PHONE_IPS = ["127.0.0.1"]
+PHONE_IPS = ["172.28.0.1", "192.168.1.131"]
+HOT_RELOAD_ON_PHONE = true
+
+FULL_RELOAD_FILES = ["main.py", "hello_world/app.py"]
+WATCHED_FOLDERS_RECURSIVELY = ["hello_world"]
+STREAM_USING = "USB"
+# STREAM_USING = "WIFI"
+
+
+typer error is back
+sh                 2.2.2
+shellingham        1.5.4
+sniffio            1.3.1
+sortedcontainers   2.4.0
+toml               0.10.2
+tomlkit            0.15.0
+trio               0.33.0
+typer              0.26.4
+urllib3            2.7.0
+virtualenv         21.4.1
+watchdog           6.0.0
+wheel              0.43.0
+(kivyschool-hello) pengin@KamenRiderGaimKiwamiArms:~/kivyschool-hello$ uv run kivy-reloader run
+[KIVY RELOADER] Kivy Reloader v0.8.5
+Traceback (most recent call last):
+  File "/home/pengin/kivyschool-hello/.venv/bin/kivy-reloader", line 10, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/home/pengin/kivyschool-hello/kivy-reloader/kivy_reloader/bootstrap.py", line 186, in main
+    start()
+  File "/home/pengin/kivyschool-hello/kivy-reloader/kivy_reloader/compile_app.py", line 1980, in start
+    render_option_menu(selected_option)
+  File "/home/pengin/kivyschool-hello/kivy-reloader/kivy_reloader/compile_app.py", line 1897, in render_option_menu
+    typer.clear()
+    ^^^^^^^^^^^
+AttributeError: module 'typer' has no attribute 'clear'
+(kivyschool-hello) pengin@KamenRiderGaimKiwamiArms:~/kivyschool-hello$ 
+
+
 win 10 again: 
 problems: 
 plan: 
