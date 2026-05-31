@@ -83,7 +83,7 @@ check on mac
 
 NEW PLAN:
 start from scratch:
-verify it works with this setup
+verify it works with this setup | VERIFIED
 turn off networking thing
 get naked kivy reloader toml
 push current kivy reloader to online
