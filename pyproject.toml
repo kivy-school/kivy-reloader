@@ -16,7 +16,7 @@ dependencies = [
     "readchar>=4.2.1",
     "tomlkit>=0.13.3",
     "trio>=0.30.0",
-    "typer[all]>=0.16.0",
+    "typer>=0.16.0",
     "setuptools>=82.0.1",
     "kaki>=0.1.9"
 ]
