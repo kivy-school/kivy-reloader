@@ -66,6 +66,9 @@ PHONE_IPS = []
 # ADB TCP/IP port for wireless debugging (default: 5555)
 ADB_PORT = 5555
 
+# ADB port on windows (win 10 compatibility) (default: 5037)
+WIN_ADB_PORT = 5037
+
 # Port for the trio server that receives files on the device
 RELOADER_PORT = 8050
 

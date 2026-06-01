@@ -1016,8 +1016,7 @@ def start_nodaemon_adb_server():
     try:
         adb_path = get_adb_windows_path()
         win_path = subprocess.check_output(["wslpath", "-w", adb_path]).decode().strip()
-        # ALWAYS use 5037 for the server port, never config.ADB_PORT
-        cmd = ["cmd.exe", "/c", f"{win_path} -a -P 5037 nodaemon server"]
+        cmd = ["cmd.exe", "/c", f"{win_path} -a -P {config.WIN_ADB_PORT} nodaemon server"]
         subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         logging.info(f'started new adb server {" ".join(cmd)}')
 

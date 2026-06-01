@@ -88,16 +88,19 @@ check on mac
 ✔️ push current kivy reloader to online 
 ✔️ reset from scratch, make sure buildozer also uses editable install + uv uses editable install 
 
-I can't fucking believe it
-so this is kivy reloader 1
-and the other app (that works) is also kivy reloader 1
-so buildozer thinks they're the same app
-so this 2nd fresh app was not actually made wtf
+✔️I can't fucking believe it
+✔️so this is kivy reloader 1
+✔️and the other app (that works) is also kivy reloader 1
+✔️so buildozer thinks they're the same app
+✔️so this 2nd fresh app was not actually made wtf
 
-i just deactvated the venv > checked uv pip list if im on the right venv and started
+✔️i just deactvated the venv > checked uv pip list if im on the right venv and started
 so basically: 
-=-=-==************ CLEARED ************=-=-=-==
+=-=-==************ UNCLEARED ************=-=-=-==
 need a plan for maintaining my brand
+keep kivy reloader separate and have buildozer working + ksproject working
+(use ksproject/buildozer as backend)
+
 
 new plan:
 finish kivy reloader
@@ -105,28 +108,23 @@ finish kivy flightdeck (reloader helper)
 use acer to run kivy reloader in ksproject (I can reset the acer but not gaim)
 once u can runkivy relaoder inksproject, u win
 use ks project as a dependency
+=-=-==************ UNCLEARED ************=-=-=-==
+=-=-==************ CLEARED ************=-=-=-==
 
-fix the network thing failing (it actually worked just the pingwas failing)
-the rest works
-keep going
+✔️ fix the network thing failing (it actually worked just the pingwas failing + was using an old build)
+✔️ the rest works
+✔️ keep going
 
--0--0-0-0-
-kivyschool-hello) pengin@KamenRiderGaimKiwamiArms:~/kivyschool-hello$ uv run buildozer appclean
-warning: `VIRTUAL_ENV=/home/pengin/kivyschool-hello/.venv` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead
-# Check configuration tokens
-# /home/pengin/kivyschool-helloWORKED/.buildozer already deleted, skipping.
-(kivyschool-hello) pengin@KamenRiderGaimKiwamiArms:~/kivyschool-hello$ 
--0--0-0-0-
-
-fix all the broken stuff now:
-in default setting: 
+✔️ fix all the broken stuff now:
+in default setting (it actually works): 
 buildozer first doesn't work, stuck at testing 172.28.0.1:5037
 
 3. port forward rule needs to: check for PORT IN TOML when it MAKES (A) and when it CHECKS (B) (easy fix just do it NOW so that I can fix listening test)
 2. listening test is failing wtf (what is the right answer? add firewall rule?)
 1. adb port is diff from adb port on wsl (I set it to 5037 and never chagned it back) (ez fix make a config for it)
 
-
+FIX THE DEFAULT TOML TO ONLY LOOK AT HELLO hello_world
+FIX BUILDOZER WITH FIXED PYTHON VER
 
 REMINDER THAT THE BUILDOZER TOML FORGOT TO GIT POINT TO MY LOCAL REPO AINT NO WAY
 MY TOML IS THE KEY TO THIS
@@ -263,6 +261,17 @@ WSL SETUP (partials as well):
 - Set-NetFirewallProfile -Profile Public -DisabledInterfaceAliases @()
 
 =-=-=-===-=-=-===-=-=-===-=-=-===-=-=-===-=-=-===-=-== BELOW IS ASSUMED CLEARED START =-=-=-===-=-=-===-=-=-===-=-=-===-=-=-===-=-=-===-=-=-===-=-=-===-=-=-==
+
+
+-0--0-0-0-
+kivyschool-hello) pengin@KamenRiderGaimKiwamiArms:~/kivyschool-hello$ uv run buildozer appclean
+warning: `VIRTUAL_ENV=/home/pengin/kivyschool-hello/.venv` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead
+# Check configuration tokens
+# /home/pengin/kivyschool-helloWORKED/.buildozer already deleted, skipping.
+(kivyschool-hello) pengin@KamenRiderGaimKiwamiArms:~/kivyschool-hello$ 
+-0--0-0-0-
+
+
 ✔️ then if uv kivy reloader run is first or uv main.py is first
 
 then test on windows itself (most likely will work)

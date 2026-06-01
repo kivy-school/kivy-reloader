@@ -162,7 +162,7 @@ class Config:  # noqa: PLR0904
             self.config['STREAM_USING'] = 'USB'
 
         # Validate port numbers
-        for port_key in ('ADB_PORT', 'RELOADER_PORT'):
+        for port_key in ('ADB_PORT', 'RELOADER_PORT', 'WIN_ADB_PORT'):
             port = self.config.get(port_key)
             if port is not None and not (
                 self.MIN_PORT_NUMBER <= port <= self.MAX_PORT_NUMBER
@@ -357,6 +357,11 @@ class Config:  # noqa: PLR0904
     def ADB_PORT(self) -> int:
         """ADB TCP/IP port number."""
         return self.get('ADB_PORT', 5555)
+    
+    @property
+    def WIN_ADB_PORT(self) -> int:
+        """ADB port on Windows (Win 10 compatibility)."""
+        return self.get('WIN_ADB_PORT', 5037)
 
     @property
     def RELOADER_PORT(self) -> int:
