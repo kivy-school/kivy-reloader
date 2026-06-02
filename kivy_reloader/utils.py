@@ -555,25 +555,62 @@ def _validate_wifi_ip_ifconfig(ip: str, interface: str, serial: str) -> Optional
 
     return None
 
-def is_adb_listening(host="127.0.0.1", timeout=10.0):
-    end_time = time.time() + timeout
+# def is_adb_listening(host="127.0.0.1", timeout=10.0):
+#     end_time = time.time() + timeout
 
+#     while time.time() < end_time:
+#         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+#         s.settimeout(0.5)
+
+#         adb_port = getattr(config, "ADB_PORT", 5037)
+
+#         try:
+#             logging.info(f'testing {host}:{adb_port}')
+#             s.connect((host, adb_port))
+#             s.close()
+#             return True
+#         except (ConnectionRefusedError, socket.timeout, OSError):
+#             time.sleep(0.1)
+#         finally:
+#             s.close()
+
+#     return False
+
+def is_adb_listening(host="127.0.0.1", timeout=10.0) -> bool:
+    """
+    Check if ADB server is reachable (the port doesn't really work in wsl anymore).
+    In WSL, runs adb.exe start-server (idempotent) instead of a raw socket test,
+    because the server lives on the Windows host at a dynamic IP.
+    assumes that kivy reloader sh install from kivyschool was ran and your windows adb is aliased in wsl.
+
+    you can check with `type adb` in wsl
+    """
+    if in_wsl():
+        try:
+            adb_path = get_adb_windows_path()  # your existing helper
+            result = subprocess.run(
+                ["cmd.exe", "/c", "adb.exe", "start-server"],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            return result.returncode == 0
+        except (subprocess.TimeoutExpired, FileNotFoundError):
+            return False
+
+    # Non-WSL: socket check is fine, host is always 127.0.0.1
+    end_time = time.time() + timeout
+    adb_port = getattr(config, "ADB_PORT", 5037)
     while time.time() < end_time:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.settimeout(0.5)
-
-        adb_port = getattr(config, "ADB_PORT", 5037)
-
         try:
-            logging.info(f'testing {host}:{adb_port}')
             s.connect((host, adb_port))
-            s.close()
             return True
         except (ConnectionRefusedError, socket.timeout, OSError):
             time.sleep(0.1)
         finally:
             s.close()
-
     return False
 
 def extract_ip(line):
@@ -648,6 +685,29 @@ def get_adb_host_ip() -> str:
         except Exception:
             pass
     return "127.0.0.1"
+
+def get_adb_windows_path():
+    """Extract the adb.exe path from the bash alias in .bashrc"""
+    bashrc = os.path.expanduser("~/.bashrc")
+    try:
+        with open(bashrc) as f:
+            for line in f:
+                # matches: alias adb='/mnt/c/.../adb.exe'
+                match = re.search(r"alias adb=['\"](.+?)['\"]", line)
+                if match:
+                    return match.group(1)
+    except FileNotFoundError:
+        pass
+    
+    # Fallback: which adb (catches symlinks/wrappers too)
+    try:
+        path = subprocess.check_output(["which", "adb"]).decode().strip()
+        if path:
+            return path
+    except Exception:
+        pass
+    
+    return "adb"  # last resort
 
 
 def in_wsl():

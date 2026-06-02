@@ -19,7 +19,7 @@ import typer
 from colorama import Fore, Style, init
 
 from .config import config
-from .utils import get_connected_devices, get_wifi_ip, in_wsl, is_adb_listening, extract_ip, get_wsl_nameservers
+from .utils import get_connected_devices, get_wifi_ip, in_wsl, is_adb_listening, extract_ip, get_wsl_nameservers, get_adb_windows_path
 
 
 def is_ci_environment() -> bool:
@@ -1102,29 +1102,6 @@ def start_nodaemon_adb_server():
 #     # logging.info('adb server is up and listening')
 #     wait_for_authorization()
 #     return True
-
-def get_adb_windows_path():
-    """Extract the adb.exe path from the bash alias in .bashrc"""
-    bashrc = os.path.expanduser("~/.bashrc")
-    try:
-        with open(bashrc) as f:
-            for line in f:
-                # matches: alias adb='/mnt/c/.../adb.exe'
-                match = re.search(r"alias adb=['\"](.+?)['\"]", line)
-                if match:
-                    return match.group(1)
-    except FileNotFoundError:
-        pass
-    
-    # Fallback: which adb (catches symlinks/wrappers too)
-    try:
-        path = subprocess.check_output(["which", "adb"]).decode().strip()
-        if path:
-            return path
-    except Exception:
-        pass
-    
-    return "adb"  # last resort
 
 def clear_device_logcat(device: dict) -> None:
     """
