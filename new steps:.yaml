@@ -8,6 +8,36 @@ to slow merge
 long standing bugs... https://stackoverflow.com/q/79378334
 
 
+REMINDER THAT CAPS NOT ALLOWED FOR PACKAGE NAME:
+# (str) Package name
+package.name = kivy_reloader_fresh
+
+=-=-==************ FINAL TEST ************=-=-=-==
+FINAL TEST:
+2 rounds
+win10
+win11
+mac
+
+FOR USB/WIFI
+
+do uninstall sh
+do install sh
+do compile > main
+then reset
+main > compile
+
+
+(test up top)
+final test:
+win 10 uninstall > win 10 reinstall > win 11 uninstall > win 11 reinstall > mac uninstall > ,mac reinstall
+2. if usb works
+3. if wifi works
+3a. if wifi then disconnect usb cable works
+3b. wifi works without any usb connection at all
+
+3. merge slow from filipe's update
+
 =-=-==************ UNCLEARED ************=-=-=-==
 need a plan for maintaining my brand
 keep kivy reloader separate and have buildozer working + ksproject working
@@ -16,6 +46,7 @@ keep kivy reloader separate and have buildozer working + ksproject working
 
 new plan:
 finish kivy reloader
+use ks project backend (how to get kivyreloader as a proj in ksproject)
 finish kivy flightdeck (reloader helper)
 use acer to run kivy reloader in ksproject (I can reset the acer but not gaim)
 once u can runkivy relaoder inksproject, u win
@@ -25,7 +56,28 @@ AKA CANT HAVE CAPS IN ANDROID PACKAGE NAME?
 # (str) Package name
 package.name = kivy_reloader_FRESH
 
-
+fix filipe doing that weird fork fix
+p4a.commit = ab5c8a7bbed77b71d4ed7237843518252d9ac357
++# Temporary pin to a p4a fork with the Android pyproject wheel-build fix.
++# Remove these overrides once the fix lands upstream.
+ # (str) python-for-android URL to use for checkout
+-#p4a.url =
++p4a.url = https://github.com/kivy-school/python-for-android.git
+ 
+ # (str) python-for-android fork to use in case if p4a.url is not specified, defaults to upstream (kivy)
+ #p4a.fork = kivy
+ 
+ # (str) python-for-android branch to use, defaults to master
+-p4a.branch = develop
++p4a.branch = kr3301-minimal-fix
+ 
+ # (str) python-for-android specific commit to use, defaults to HEAD, must be within p4a.branch
+-#p4a.commit = HEAD
++p4a.commit = ab5c8a7bbed77b71d4ed7237843518252d9ac357
+ 
+ # (str) python-for-android git clone directory (if empty, it will be automatically cloned from github)
+ #p4a.source_dir =
+(2/2) Apply this hunk to index and worktree [y,n,q,a,d,K,g,/,s,e,?]? 
 =-=-==************ UNCLEARED ************=-=-=-==
 
 
@@ -140,13 +192,9 @@ fix is to do adb start server check for code 0 which says server is up)
 ✔️ one in proj root is a dupe, one that matters is in subfolder
 
 ✔️ 1. adb port is diff from adb port on wsl (I set it to 5037 and never changed it back) (ez fix make a config for it + WIN_ADB_PORT) (works buildozer was not pointing to local editable install)
-=-=-==************ CLEARED ************=-=-=-==
 
 ✔️ FIX THE DEFAULT TOML TO (to ignore kivy-reloader subfolder so editable install does not conflict) ONLY LOOK AT HELLO hello_world or keep . but remove venv,etc
 basically I need it to ignore kivy-reloader subfolder when installed as an editable install
-
-
-TESTING RIGHT NOW FIX DEFAULT BUILDOZER WITH FIXED PYTHON VER
 
 ✔️ REMINDER THAT THE BUILDOZER TOML FORGOT TO GIT POINT TO MY LOCAL REPO AINT NO WAY
 ✔️ MY TOML IS THE KEY TO THIS (buildozer spec, the rest were not the right solution)
@@ -212,63 +260,52 @@ plan:
 
 ✔️ if so then I can just use adb start-server test, Idk why it needs to be specifically adb is listening test if that makes sense
 
-3. port forward rule needs to: check for PORT IN TOML when it MAKES (A) and when it CHECKS (B) (easy fix just do it NOW so that I can fix listening test)
-2. listening test is failing wtf (what is the right answer? add firewall rule?)
-1. adb port is diff from adb port on wsl (I set it to 5037 and never chagned it back) (ez fix make a config for it)
-
-adb being messy
-New-NetFirewallRule -DisplayName "WSL ADB 5037" -Direction Inbound -Action Allow -Protocol TCP -LocalPort 5037 -RemoteAddress 172.28.0.0/20
 
 
-port is not correct, this is a new proj and i got 8055 and 8050 conflict (firewall rule is for wrong port wtf)
 
-on the win 11 script add to wslconfig mirrorednetworking = true
+✔️ TESTING RIGHT NOW FIX DEFAULT BUILDOZER WITH FIXED PYTHON VER (WORKS) 
+update install so that there is kivy-reloader init hw
 
-fix filipe doing that weird fork fix
-+# Temporary pin to a p4a fork with the Android pyproject wheel-build fix.
-+# Remove these overrides once the fix lands upstream.
- # (str) python-for-android URL to use for checkout
--#p4a.url =
-+p4a.url = https://github.com/kivy-school/python-for-android.git
- 
- # (str) python-for-android fork to use in case if p4a.url is not specified, defaults to upstream (kivy)
- #p4a.fork = kivy
- 
- # (str) python-for-android branch to use, defaults to master
--p4a.branch = develop
-+p4a.branch = kr3301-minimal-fix
- 
- # (str) python-for-android specific commit to use, defaults to HEAD, must be within p4a.branch
--#p4a.commit = HEAD
-+p4a.commit = ab5c8a7bbed77b71d4ed7237843518252d9ac357
- 
- # (str) python-for-android git clone directory (if empty, it will be automatically cloned from github)
- #p4a.source_dir =
-(2/2) Apply this hunk to index and worktree [y,n,q,a,d,K,g,/,s,e,?]? 
+✔️3. port forward rule needs to: check for PORT IN TOML when it MAKES (A) and when it CHECKS (B) (easy fix just do it NOW so that I can fix listening test)
+✔️2. listening test is failing wtf (what is the right answer? add firewall rule?)
+✔️1. adb port is diff from adb port on wsl (I set it to 5037 and never chagned it back) (ez fix make a config for it)
 
-final test:
-win 10 uninstall > win 10 reinstall > win 11 uninstall > win 11 reinstall > mac uninstall > ,mac reinstall
-2. if usb works
-3. if wifi works
-3a. if wifi then disconnect usb cable works
-3b. wifi works without any usb connection at all
+✔️adb being messy
+✔️New-NetFirewallRule -DisplayName "WSL ADB 5037" -Direction Inbound -Action Allow -Protocol TCP -LocalPort 5037 -RemoteAddress 172.28.0.0/20
+
+=-=-==************ CLEARED ************=-=-=-==
+
+✔️port is not correct, this is a new proj and i got 8055 and 8050 conflict (firewall rule is for wrong port wtf)
+
+✔️on the win 11 script add to wslconfig mirrorednetworking = true
+
+✔️how to update console instead of spamming ? (skip not worth)
+
+(test up top)
+✔️final test:
+✔️win 10 uninstall > win 10 reinstall > win 11 uninstall > win 11 reinstall > mac uninstall > ,mac reinstall
+✔️2. if usb works
+✔️3. if wifi works
+✔️3a. if wifi then disconnect usb cable works
+✔️3b. wifi works without any usb connection at all
 
 3. merge slow from filipe's update
-5. make sure it works on USB mac now
-4. check if they all work on USB/WIFI
-4. VERY QUICKly make the kivy-reloader helper
-helper says:
-which phone is connected
-type of connection (usb/wifi)
-healthy/alive
-and buttons/commands to double check it
-buildozer android clean (local remove that doesnt force redownloads) not appclean
+✔️5. make sure it works on USB mac now
+✔️4. check if they all work on USB/WIFI
+✔️(sent to trello)
+✔️4. VERY QUICKly make the kivy-reloader helper
+✔️helper says:
+✔️which phone is connected
+✔️type of connection (usb/wifi)
+✔️healthy/alive
+✔️and buttons/commands to double check it
+✔️buildozer android clean (local remove that doesnt force redownloads) not appclean
 
 then clear this + trello and continue
-uninstall the windows firewallsettings+check if im on win10 actually?
-i need to check if networking is good on win11
-mirrored networking means vcxsrv and localhost for wslg fails, see "
-Your `.bashrc` is setting `DISPLAY` to the nameserver IP (a WSL2 networking workaround), but with **mirrored networking mode**, that's wrong — mirrored networking makes `localhost` work directly, so you don't need to hunt for the host IP."
+✔️uninstall the windows firewallsettings+check if im on win10 actually?
+✔️i need to check if networking is good on win11
+✔️mirrored networking means vcxsrv and localhost for wslg fails, see "
+✔️Your `.bashrc` is setting `DISPLAY` to the nameserver IP (a WSL2 networking workaround), but with **mirrored networking mode**, that's wrong — mirrored networking makes `localhost` work directly, so you don't need to hunt for the host IP."
 =-=-==
 ✔️ to claude (search this at the bottom):
 ✔️ "it works but now when I reset there are ghost adbs in my windows task manager what do"
