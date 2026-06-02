@@ -243,8 +243,10 @@ def wait_for_authorization(timeout=30):
                     return True
 
         elapsed = time.time() - start
-        serial_list = [parts[0] for parts in devices if len(parts) >= 2 and ":" not in parts[0]]
-        print(f"[+{elapsed:0.2f}s] waiting for authorization on {','.join(serial_list)}...")
+        # serial_list = [parts[0] for parts in devices if len(parts) >= 2 and ":" not in parts[0]]
+        # print(f"[+{elapsed:0.2f}s] waiting for authorization on {','.join(serial_list)}...")
+        state_list = [f"{parts[0]}({parts[1]})" for parts in devices if len(parts) >= 2 and ":" not in parts[0]]
+        print(f"[+{elapsed:0.2f}s] waiting for authorization on {','.join(state_list)}...")
         time.sleep(1)
     
     return False

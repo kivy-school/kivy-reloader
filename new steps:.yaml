@@ -1,4 +1,4 @@
-INSANELY GOOD COMMAND BTW
+INSANELY GOOD COMMAND BTW #
  grep -rnw . -e "ADB_PORT"
 
 
@@ -6,6 +6,28 @@ THIS WAS THE COMMAND I WAS LOOKING FOR THE ENTIRE TIME (this is bugged as hell)
 git checkout -p origin/main 
 to slow merge
 long standing bugs... https://stackoverflow.com/q/79378334
+
+
+=-=-==************ UNCLEARED ************=-=-=-==
+need a plan for maintaining my brand
+keep kivy reloader separate and have buildozer working + ksproject working
+(use ksproject/buildozer as backend)
+
+
+new plan:
+finish kivy reloader
+finish kivy flightdeck (reloader helper)
+use acer to run kivy reloader in ksproject (I can reset the acer but not gaim)
+once u can runkivy relaoder inksproject, u win
+use ks project as a dependency
+
+AKA CANT HAVE CAPS IN ANDROID PACKAGE NAME?
+# (str) Package name
+package.name = kivy_reloader_FRESH
+
+
+=-=-==************ UNCLEARED ************=-=-=-==
+
 
 ✔️ no lmao buildozer was not pointing to my local kivy reloader
 ✔️✔️STALE PYC IS A PROBLEM???
@@ -100,26 +122,7 @@ check on mac
 
 ✔️i just deactvated the venv > checked uv pip list if im on the right venv and started
 so basically: 
-=-=-==************ UNCLEARED ************=-=-=-==
-need a plan for maintaining my brand
-keep kivy reloader separate and have buildozer working + ksproject working
-(use ksproject/buildozer as backend)
 
-
-new plan:
-finish kivy reloader
-finish kivy flightdeck (reloader helper)
-use acer to run kivy reloader in ksproject (I can reset the acer but not gaim)
-once u can runkivy relaoder inksproject, u win
-use ks project as a dependency
-
-AKA CANT HAVE CAPS IN ANDROID PACKAGE NAME?
-# (str) Package name
-package.name = kivy_reloader_FRESH
-
-
-=-=-==************ UNCLEARED ************=-=-=-==
-=-=-==************ CLEARED ************=-=-=-==
 
 ✔️ fix the network thing failing (it actually worked just the pingwas failing + was using an old build)
 ✔️ the rest works
@@ -133,79 +136,81 @@ buildozer first doesn't work, stuck at testing 172.28.0.1:5037
 fix is to do adb start server check for code 0 which says server is up)
 ✔️ 2. listening test is failing wtf (what is the right answer? add firewall rule?) (works buildozer was not pointing to local editable install) (solutuion: just check adb start server and check for errorcode 0, I just need adb to be up)
 
-THREE ARE TWO KIVY RELOADER TOMLS WTF ONE IN PROJ ROOT ONE IN KIVY=RELOADER FOLDER
+✔️ THREE ARE TWO KIVY RELOADER TOMLS WTF ONE IN PROJ ROOT ONE IN KIVY=RELOADER FOLDER
+✔️ one in proj root is a dupe, one that matters is in subfolder
 
-1. adb port is diff from adb port on wsl (I set it to 5037 and never changed it back) (ez fix make a config for it ) (works buildozer was not pointing to local editable install)
+✔️ 1. adb port is diff from adb port on wsl (I set it to 5037 and never changed it back) (ez fix make a config for it + WIN_ADB_PORT) (works buildozer was not pointing to local editable install)
+=-=-==************ CLEARED ************=-=-=-==
 
-FIX THE DEFAULT TOML TO ONLY LOOK AT HELLO hello_world or keep . but remove venv,etc
+✔️ FIX THE DEFAULT TOML TO (to ignore kivy-reloader subfolder so editable install does not conflict) ONLY LOOK AT HELLO hello_world or keep . but remove venv,etc
 basically I need it to ignore kivy-reloader subfolder when installed as an editable install
-FIX BUILDOZER WITH FIXED PYTHON VER
 
-REMINDER THAT THE BUILDOZER TOML FORGOT TO GIT POINT TO MY LOCAL REPO AINT NO WAY
-MY TOML IS THE KEY TO THIS
-a. I think i know the problem, it's that main ALSO does some network checks and on a diff port (so I gotta reset and do the uv run kivy reloader run and uv run main.py alternate with them being first)
-b. the toml also works so need code to become more generic 
+
+TESTING RIGHT NOW FIX DEFAULT BUILDOZER WITH FIXED PYTHON VER
+
+✔️ REMINDER THAT THE BUILDOZER TOML FORGOT TO GIT POINT TO MY LOCAL REPO AINT NO WAY
+✔️ MY TOML IS THE KEY TO THIS (buildozer spec, the rest were not the right solution)
+✔️ a. I think i know the problem, it's that main ALSO does some network checks and on a diff port (so I gotta reset and do the uv run kivy reloader run and uv run main.py alternate with them being first)
+✔️ b. the toml also works so need code to become more generic 
 (aka remove my firewall rule and actually do it with any kind of port number, wsl_ad_port, etc)
 
 
-# ADB TCP/IP port for wireless debugging (default: 5555)
-# ADB_PORT = 5555
-ADB_PORT = 5037
+✔️ # ADB TCP/IP port for wireless debugging (default: 5555)
+✔️ # ADB_PORT = 5555
+✔️ ADB_PORT = 5037
+✔️ 
+✔️ # Port for the trio server that receives files on the device
+✔️ RELOADER_PORT = 8055
+✔️ # PHONE_IPS = ["127.0.0.1"]
+✔️ PHONE_IPS = ["172.28.0.1", "192.168.1.131"]
+✔️ HOT_RELOAD_ON_PHONE = true
+✔️ 
+✔️ FULL_RELOAD_FILES = ["main.py", "hello_world/app.py"]
+✔️ WATCHED_FOLDERS_RECURSIVELY = ["hello_world"]
+✔️ STREAM_USING = "USB"
+✔️ # STREAM_USING = "WIFI"
 
-# Port for the trio server that receives files on the device
-RELOADER_PORT = 8055
-# PHONE_IPS = ["127.0.0.1"]
-PHONE_IPS = ["172.28.0.1", "192.168.1.131"]
-HOT_RELOAD_ON_PHONE = true
 
-FULL_RELOAD_FILES = ["main.py", "hello_world/app.py"]
-WATCHED_FOLDERS_RECURSIVELY = ["hello_world"]
-STREAM_USING = "USB"
-# STREAM_USING = "WIFI"
-
-
-typer error is back
-sh                 2.2.2
-shellingham        1.5.4
-sniffio            1.3.1
-sortedcontainers   2.4.0
-toml               0.10.2
-tomlkit            0.15.0
-trio               0.33.0
-typer              0.26.4
-urllib3            2.7.0
-virtualenv         21.4.1
-watchdog           6.0.0
-wheel              0.43.0
-(kivyschool-hello) pengin@KamenRiderGaimKiwamiArms:~/kivyschool-hello$ uv run kivy-reloader run
-[KIVY RELOADER] Kivy Reloader v0.8.5
-Traceback (most recent call last):
-  File "/home/pengin/kivyschool-hello/.venv/bin/kivy-reloader", line 10, in <module>
-    sys.exit(main())
-             ^^^^^^
-  File "/home/pengin/kivyschool-hello/kivy-reloader/kivy_reloader/bootstrap.py", line 186, in main
-    start()
-  File "/home/pengin/kivyschool-hello/kivy-reloader/kivy_reloader/compile_app.py", line 1980, in start
-    render_option_menu(selected_option)
-  File "/home/pengin/kivyschool-hello/kivy-reloader/kivy_reloader/compile_app.py", line 1897, in render_option_menu
-    typer.clear()
-    ^^^^^^^^^^^
-AttributeError: module 'typer' has no attribute 'clear'
-(kivyschool-hello) pengin@KamenRiderGaimKiwamiArms:~/kivyschool-hello$ 
+✔️ typer error is back (got lucky and deleting typer line works because it always ✔️ resets in the while loop)
+✔️ sh                 2.2.2
+✔️ shellingham        1.5.4
+✔️ sniffio            1.3.1
+✔️ sortedcontainers   2.4.0
+✔️ toml               0.10.2
+✔️ tomlkit            0.15.0
+✔️ trio               0.33.0
+✔️ typer              0.26.4
+✔️ urllib3            2.7.0
+✔️ virtualenv         21.4.1
+✔️ watchdog           6.0.0
+✔️ wheel              0.43.0
+✔️ (kivyschool-hello) pengin@KamenRiderGaimKiwamiArms:~/kivyschool-hello$ uv run ✔️ kivy-reloader run
+✔️ [KIVY RELOADER] Kivy Reloader v0.8.5
+✔️ Traceback (most recent call last):
+✔️   File "/home/pengin/kivyschool-hello/.venv/bin/kivy-reloader", line 10, in <module>
+✔️     sys.exit(main())
+✔️              ^^^^^^
+✔️   File "/home/pengin/kivyschool-hello/kivy-reloader/kivy_reloader/bootstrap.py", ✔️ line 186, in main
+✔️     start()
+✔️   File "/home/pengin/kivyschool-hello/kivy-reloader/kivy_reloader/compile_app.py", ✔️ line 1980, in start
+✔️     render_option_menu(selected_option)
+✔️   File "/home/pengin/kivyschool-hello/kivy-reloader/kivy_reloader/compile_app.py", ✔️ line 1897, in render_option_menu
+✔️     typer.clear()
+✔️     ^^^^^^^^^^^
+✔️ AttributeError: module 'typer' has no attribute 'clear'
+✔️ (kivyschool-hello) pengin@KamenRiderGaimKiwamiArms:~/kivyschool-hello$ 
 
 
 win 10 again: 
 problems: 
 plan: 
-GET APP TO BUILD ONTO PHONE AND TEST IF REGULAR FLOW WORKS, THEN I DONT NEED TO CHECK IF ADB LISTENING BECAUSE I ONLY USE WINDOWS ADB ANYWAYS
-make new toml config thing: wsl_win_adb_port that is not adb port (win 10 compatibility)
-remove the extra powershell thing WSL ADB 5037
-get the app onto phone
-test if i can still ping nc 8055
+✔️ GET APP TO BUILD ONTO PHONE AND TEST IF REGULAR FLOW WORKS, THEN I DONT NEED TO ✔️ CHECK IF ADB LISTENING BECAUSE I ONLY USE WINDOWS ADB ANYWAYS
+✔️ make new toml config thing: wsl_win_adb_port that is not adb port (win 10 compatibility)
+✔️ remove the extra powershell thing WSL ADB 5037
+✔️ get the app onto phone
+✔️ test if i can still ping nc 8055
 
-if so then I can just use adb start-server test, Idk why it needs to be specifically adb is listening test if that makes sense
-get some food bruh
-
+✔️ if so then I can just use adb start-server test, Idk why it needs to be specifically adb is listening test if that makes sense
 
 3. port forward rule needs to: check for PORT IN TOML when it MAKES (A) and when it CHECKS (B) (easy fix just do it NOW so that I can fix listening test)
 2. listening test is failing wtf (what is the right answer? add firewall rule?)
