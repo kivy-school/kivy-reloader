@@ -166,6 +166,10 @@ STREAM_USING = "WIFI"
         path.parent.mkdir(parents=True, exist_ok=True)
         if path.exists():
             klprint(f"Already exists, skipping: {path.relative_to(project_root)}")
+            if path.name == "main.py":
+                klprint("⚠️  Replace main.py contents with:")
+                klprint("")
+                print(content)
         else:
             path.write_text(content)
             klprint(f"Created: {path.relative_to(project_root)}")
