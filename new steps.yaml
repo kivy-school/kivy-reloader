@@ -48,6 +48,12 @@ win 10 usb compile > main
 changed flow, make sure that I check if adb is in nodaemon mode and on the right port
 nc -v 127.0.0.1 8055
 Test-NetConnection -ComputerName 127.0.0.1 -Port 8055
+(it worked after I reset the computer wtf???)
+(test again on an reloader rebuild)
+NOW im blocked
+so basically the adb nodaemon + port forward is not going through/not setup right (the original problem + then scrcpy wasnt working)
+is there a way to test if adb is in nodaemon mode?
+is_adb_listening > check if adb in nodaemon mode + adb port forwarded
 
 win 10 usb main > compile
 win 10 wifi compile > main

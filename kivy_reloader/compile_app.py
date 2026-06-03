@@ -1016,14 +1016,14 @@ def start_nodaemon_adb_server():
     host_ip = get_wsl_host_ip()
     print("host ip resolved to:", host_ip)
     
-    # if is_adb_listening(host=host_ip):
-    #     logging.info('adb server already running, skipping restart')
-    #     wait_for_authorization()
-    #     return True
+    if is_adb_listening(host=host_ip):
+        logging.info('adb server already running, skipping restart')
+        wait_for_authorization()
+        return True
 
-    logging.info('Starting fresh adb server')
-    kill_adb_server(disconnect=False)
-    wait_for_authorization()
+    # logging.info('Starting fresh adb server')
+    # kill_adb_server(disconnect=False)
+    # wait_for_authorization()
     
     try:
         adb_path = get_adb_windows_path()
