@@ -34,6 +34,20 @@ do compile > main
 then reset
 main > compile
 
+win 10 usb compile > main
+win 10 usb main > compile
+win 10 wifi compile > main
+win 10 wifi main > compile
+
+win 11 usb compile > main
+win 11 usb main > compile
+win 11 wifi compile > main
+win 11 wifi main > compile
+
+mac usb compile > main
+mac usb main > compile
+mac wifi compile > main
+mac wifi main > compile
 
 (test up top)
 final test:
