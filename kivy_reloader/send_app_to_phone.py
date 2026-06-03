@@ -8,7 +8,7 @@ import subprocess
 import socket
 
 from kivy_reloader.config import config
-from kivy_reloader.utils import get_connected_devices, in_wsl, fix_wsl, get_adb_host_ip
+from kivy_reloader.utils import get_connected_devices, in_wsl, fix_wsl, get_adb_host_ip, adb_forward
 
 red = Fore.RED
 green = Fore.GREEN
@@ -239,10 +239,11 @@ async def send_app():
     # Set up ADB port forwarding if USB mode
     if config.STREAM_USING == "USB":
         PORT = config.RELOADER_PORT
+        adb_forward(PORT)
+        # adb_cmd = f"adb forward tcp:{PORT} tcp:{PORT}"
+        # logging.info(adb_cmd)
+        # os.system(adb_cmd)
         
-        adb_cmd = f"adb forward tcp:{PORT} tcp:{PORT}"
-        logging.info(adb_cmd)
-        os.system(adb_cmd)
         # unique_physical = set(zip(config.PHONE_IPS, (d["model"] for d in devices)))
         host_ip = get_adb_host_ip()
         unique_physical = {(host_ip, d["model"]) for d in devices}

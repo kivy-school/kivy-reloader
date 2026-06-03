@@ -576,6 +576,40 @@ def _validate_wifi_ip_ifconfig(ip: str, interface: str, serial: str) -> Optional
 
 #     return False
 
+# def adb_forward(port: int):
+#     adb_cmd = f"adb forward tcp:{port} tcp:{port}"
+#     logging.info(adb_cmd)
+#     return os.system(adb_cmd)
+
+def adb_forward(port: int) -> int:
+    cmd = ["adb", "forward", f"tcp:{port}", f"tcp:{port}"]
+    logging.info(" ".join(cmd))
+
+    result = subprocess.run(cmd)
+    return result.returncode
+
+
+def adb_has_forward(port: int) -> bool:
+    pattern = re.compile(rf"tcp:{port}\s+tcp:{port}\b")
+
+    try:
+        result = subprocess.run(
+            ["cmd.exe", "/c", "adb.exe", "forward", "--list"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+
+        for line in result.stdout.lower().splitlines():
+            if pattern.search(line):
+                return True
+
+        return False
+
+    except Exception:
+        return False
+
+
 def is_adb_listening(host="127.0.0.1", timeout=10.0) -> bool:
     """
     Check if ADB server is reachable (the port doesn't really work in wsl anymore).
@@ -659,8 +693,6 @@ def get_wsl_nameservers():
         return ["127.0.0.1"] # Absolute fallback
     except:
         return "NAMESERVERS FAILED"
-
-import re
 
 def get_adb_host_ip() -> str:
     """In WSL2 mirrored networking mode, localhost works directly."""

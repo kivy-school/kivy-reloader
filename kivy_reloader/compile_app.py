@@ -19,7 +19,7 @@ import typer
 from colorama import Fore, Style, init
 
 from .config import config
-from .utils import get_connected_devices, get_wifi_ip, in_wsl, is_adb_listening, extract_ip, get_wsl_nameservers, get_adb_windows_path
+from .utils import get_connected_devices, get_wifi_ip, in_wsl, is_adb_listening, extract_ip, get_wsl_nameservers, get_adb_windows_path, adb_has_forward, adb_forward
 
 
 def is_ci_environment() -> bool:
@@ -1013,18 +1013,51 @@ def get_wsl_host_ip() -> str:
     return extract_ip(nameservers[0]) if nameservers else "127.0.0.1"
 
 def start_nodaemon_adb_server():
+    # this should only run in wsl tbh, so assume in wsb
     host_ip = get_wsl_host_ip()
     print("host ip resolved to:", host_ip)
-    
-    if is_adb_listening(host=host_ip):
-        logging.info('adb server already running, skipping restart')
-        wait_for_authorization()
-        return True
+    part1 = False
+    part2 = False
+    part3 = False
+
+    # part 1: check if adb is in nodaemon mode:
+    # Query Windows processes from WSL
+    result = subprocess.run(
+        ["cmd.exe", "/c", "wmic process where \"name='adb.exe'\" get CommandLine"],
+        capture_output=True,
+        text=True,
+        timeout=5,
+    )
+
+    cmdlines = result.stdout.lower()
+
+    # Look for the special flags
+    if "-a" in cmdlines and "nodaemon" in cmdlines and "server" in cmdlines:
+        part1 = True
+
+    logging.info(f'adb in nodaemon server mode: {part1}')
+
+    part2 = is_adb_listening(host=host_ip)
+    logging.info(f'adb alive/listening: {part2}')
+
+    # 1 -> and no 2 what does that mean (adb is in nodaemon mode but also not on SOMEHOW?)? restart server
+    # 2 -> but not in nodaemon mode, immediately > restart server
+    # 1 and 2 > do nothing
+    if part1 and part2:
+        wait_for_authorization() #wait for auth at the most
+        pass
+
+
+    # if is_adb_listening(host=host_ip):
+    #     logging.info('adb server already running, skipping restart')
+    #     wait_for_authorization()
+    #     return True
 
     # logging.info('Starting fresh adb server')
     # kill_adb_server(disconnect=False)
     # wait_for_authorization()
     
+    # now we're NOT in nodaemon and server is off, restart server
     try:
         adb_path = get_adb_windows_path()
         win_path = subprocess.check_output(["wslpath", "-w", adb_path]).decode().strip()
@@ -1037,6 +1070,14 @@ def start_nodaemon_adb_server():
                 logging.info('adb server is up')
                 return True
             time.sleep(0.5)
+        # now also forward if usb mode
+        if config.STREAM_USING.lower().replace(" ", "") == "usb":
+            if not adb_has_forward(config.ADB_PORT):
+                #no port forward means we forward now:
+                adb_forward(config.ADB_PORT)
+            else:
+                logging.info(f'adb forwarded: {part3} config.ADB_PORT: {config.ADB_PORT}')
+
     except FileNotFoundError:
         logging.error('adb not found')
 
