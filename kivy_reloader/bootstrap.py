@@ -4,6 +4,7 @@ import shutil
 from pathlib import Path
 
 from colorama import Fore, init
+import re
 
 from . import __version__ as _kl_version
 from .detection import is_apple_m_series
@@ -161,18 +162,38 @@ app = HelloWorldApp()
 trio.run(app.async_run, "trio")
 """,
     }
+
+
+    UV_INIT_MAIN_PATTERN = re.compile(
+        r'^\s*def main\(\):\s*\n\s*print\("Hello from .+?!"\)\s*\n'
+        r'if __name__ == "__main__":\s*\n\s*main\(\)\s*$'
+    )
  
     for path, content in files.items():
         path.parent.mkdir(parents=True, exist_ok=True)
+
         if path.exists():
-            klprint(f"Already exists, skipping: {path.relative_to(project_root)}")
-            if path.name == "main.py":
-                klprint(f"{red}⚠️  To start using Kivy-Reloader, replace main.py contents with:")
-                klprint(f"")
-                print(f"{red}{content}{Fore.RESET}")
-        else:
-            path.write_text(content)
-            klprint(f"Created: {path.relative_to(project_root)}")
+            if path.name == "main.py" and UV_INIT_MAIN_PATTERN.match(path.read_text()):
+                answer = input(f"{yellow}[KIVY RELOADER] Detected uv placeholder main.py. Replace it? [y/N]: {Fore.RESET}")
+                if answer.strip().lower() == 'y':
+                    path.write_text(content)
+                    klprint(f"Replaced uv placeholder: main.py")
+                else:
+                    klprint(f"Skipped main.py")
+            else:
+                klprint(f"Already exists, skipping: {path.relative_to(project_root)}")
+                if path.name == "main.py":
+                    klprint(f"{red}⚠️ To start using Kivy-Reloader, replace main.py contents with:")
+                    print(f"{red}{content}{Fore.RESET}")
+        # if path.exists():
+        #     klprint(f"Already exists, skipping: {path.relative_to(project_root)}")
+        #     if path.name == "main.py":
+        #         klprint(f"{red}⚠️  To start using Kivy-Reloader, replace main.py contents with:")
+        #         klprint(f"")
+        #         print(f"{red}{content}{Fore.RESET}")
+        # else:
+        #     path.write_text(content)
+        #     klprint(f"Created: {path.relative_to(project_root)}")
 
 
 def main():
