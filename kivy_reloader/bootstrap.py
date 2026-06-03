@@ -174,10 +174,10 @@ trio.run(app.async_run, "trio")
 
         if path.exists():
             if path.name == "main.py" and UV_INIT_MAIN_PATTERN.match(path.read_text()):
-                answer = input(f"{yellow}[KIVY RELOADER] Detected uv placeholder main.py. Replace it? [y/N]: {Fore.RESET}")
+                answer = input(f"{yellow}[KIVY RELOADER] Detected uv placeholder main.py. Replace it? [y/n]: {Fore.RESET}")
                 if answer.strip().lower() == 'y':
                     path.write_text(content)
-                    klprint(f"Replaced uv placeholder: main.py")
+                    klprint(f"{red} Replaced uv placeholder: main.py")
                 else:
                     klprint(f"Skipped main.py")
             else:
