@@ -119,12 +119,6 @@ def scaffold_hello_world():
     project_root = Path.cwd()
  
     files = {
-        project_root / "main.py": """\
-import trio
-from hello_world.app import HelloWorldApp
-app = HelloWorldApp()
-trio.run(app.async_run, "trio")
-""",
         project_root / "hello_world" / "__init__.py": "",
         project_root / "hello_world" / "app.py": """\
 from kivy_reloader.app import App
@@ -160,6 +154,12 @@ FULL_RELOAD_FILES = ["main.py", "hello_world/app.py"]
 WATCHED_FOLDERS_RECURSIVELY = ["."]
 STREAM_USING = "WIFI"
 """,
+        project_root / "main.py": """\
+import trio
+from hello_world.app import HelloWorldApp
+app = HelloWorldApp()
+trio.run(app.async_run, "trio")
+""",
     }
  
     for path, content in files.items():
@@ -167,9 +167,9 @@ STREAM_USING = "WIFI"
         if path.exists():
             klprint(f"Already exists, skipping: {path.relative_to(project_root)}")
             if path.name == "main.py":
-                klprint("⚠️  Replace main.py contents with:")
-                klprint("")
-                print(content)
+                klprint(f"{red}⚠️  Replace main.py contents with:")
+                klprint(f"")
+                print(f"{red}{content}{Fore.RESET}")
         else:
             path.write_text(content)
             klprint(f"Created: {path.relative_to(project_root)}")
