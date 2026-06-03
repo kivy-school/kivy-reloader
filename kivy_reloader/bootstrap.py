@@ -165,9 +165,9 @@ trio.run(app.async_run, "trio")
     for path, content in files.items():
         path.parent.mkdir(parents=True, exist_ok=True)
         if path.exists():
-            klprint(f"Already exists, skipping: {path.relative_to(project_root)}")
+            klprint(f"{red} Main.py already exists, skipping: {path.relative_to(project_root)}")
             if path.name == "main.py":
-                klprint(f"{red}⚠️  Replace main.py contents with:")
+                klprint(f"{red}⚠️  To start using Kivy-Reloader, replace main.py contents with:")
                 klprint(f"")
                 print(f"{red}{content}{Fore.RESET}")
         else:
