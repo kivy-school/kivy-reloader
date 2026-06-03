@@ -13,10 +13,8 @@ REMINDER THAT CAPS NOT ALLOWED FOR PACKAGE NAME:
 package.name = kivy_reloader_fresh
 
 =-=-==************ FINAL TEST ************=-=-=-==
-command to init basic project
-update kivyschool command to use basic project instead of using install to do it
-weekly autobuild
-merge with ksproject
+✔️ command to init basic project (uv run kivy-reloader init project)
+✔️ update kivyschool command to use basic project instead of using install to do it
    
 FINAL TEST:
 SETUPS:
@@ -50,6 +48,8 @@ win 10 uninstall > win 10 reinstall > win 11 uninstall > win 11 reinstall > mac 
 update kivy reloader
 update kivyschool with updated install scripts
 make kivy flightdeck
+weekly autobuild now 
+merge with ksproject
 AMAZING DANCE STAR
 
 =-=-==************ FINISHED LIST ************=-=-=-==
