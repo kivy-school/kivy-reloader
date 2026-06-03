@@ -21,15 +21,21 @@ async def connect_to_server(IP):
     timeout = 60  # Total time we are willing to wait for a success
     start_time = trio.current_time()
     UAC_count = 0
+    attempt_count = 0
+
+    print(f'Connecting to {green}{IP}{white}:{green}{PORT}{white}...', end='', flush=True)
 
     while (trio.current_time() - start_time) < timeout:
         try:
-            print(f'Connecting to IP: {green}{IP}{white} and PORT: {green}{PORT}')
+            # print(f'Connecting to IP: {green}{IP}{white} and PORT: {green}{PORT}')
             # Attempt the connection with a 5s window
             with trio.move_on_after(5) as cancel_scope:
                 client_socket = await trio.open_tcp_stream(IP, PORT)
+                print(f' {green}connected!')
                 return client_socket # SUCCESS: Return the socket
             
+            attempt_count += 1
+            print(f'\r{yellow}Connecting to {IP}:{PORT}... attempt {attempt_count}', end='', flush=True)
             # If we reached here, the connection timed out
             print(f"{yellow}Connection timed out. Checking Firewall/ADB...")
 
@@ -38,11 +44,14 @@ async def connect_to_server(IP):
                 UAC_count += 1
 
         except Exception as e:
-            print(f'{red}Attempt failed: {e}. Retrying in 2s...')
+            attempt_count += 1
+            # print(f'{red}Attempt failed: {e}. Retrying in 2s...')
+            print(f'\r{yellow}Connecting to {IP}:{PORT}... attempt {attempt_count}', end='', flush=True)
         
         await trio.sleep(2) # Wait before the next full attempt
 
-    print(f"{red}Global timeout reached in {timeout}s. Could not connect to {IP}")
+    # print(f"{red}Global timeout reached in {timeout}s. Could not connect to {IP}")
+    print(f'\n{red}Could not connect to {IP} after {attempt_count} attempts in  ({timeout}s)')
     return None
 
 

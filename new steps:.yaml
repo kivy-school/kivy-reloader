@@ -37,6 +37,21 @@ win 10 uninstall > win 10 reinstall > win 11 uninstall > win 11 reinstall > mac 
 3b. wifi works without any usb connection at all
 
 3. merge slow from filipe's update
+command to init basic project
+update kivyschool command to use basic project instead of using install to do it
+weekly autobuild
+
+update kivyschool with updated install scripts
+update kivy reloader
+merge with ksproject
+make kivy flightdeck
+AMAZING DANCE STAR
+
+=-=-==************ FINISHED LIST ************=-=-=-==
+fixed network flow between desktop and android phone client on mac/win10/win11
+works with win 11 wsl2 mirrored networking and updated kivyschool to do mirred networking if no wslconfig found
+fixed typer.clear() failing on newest typer
+fixed kivy reloader crash (trying to compile watchdog/kaki for android which is unnecessary)
 
 =-=-==************ UNCLEARED ************=-=-=-==
 need a plan for maintaining my brand
@@ -310,12 +325,12 @@ then clear this + trello and continue
 ✔️ to claude (search this at the bottom):
 ✔️ "it works but now when I reset there are ghost adbs in my windows task manager what do"
 =-=-==
-so much setup to test:
-WSL SETUP (partials as well):
-- Remove-NetFirewallRule -DisplayName "WSL Kivy Surgical 8055" -ErrorAction SilentlyContinue
-- Get-NetFirewallRule | Where-Object { $_.DisplayName -like "*WSL*" }
-- Get-NetFirewallRule | Where-Object {$_.DisplayName -like "*8055*"} | Select-Object DisplayName, Enabled, Profile, Action
-- Set-NetFirewallProfile -Profile Public -DisabledInterfaceAliases @()
+✔️so much setup to test:
+✔️WSL SETUP (partials as well):
+✔️- Remove-NetFirewallRule -DisplayName "WSL Kivy Surgical 8055" -ErrorAction SilentlyContinue
+✔️- Get-NetFirewallRule | Where-Object { $_.DisplayName -like "*WSL*" }
+✔️- Get-NetFirewallRule | Where-Object {$_.DisplayName -like "*8055*"} | Select-Object DisplayName, Enabled, Profile, Action
+✔️- Set-NetFirewallProfile -Profile Public -DisabledInterfaceAliases @()
 
 =-=-=-===-=-=-===-=-=-===-=-=-===-=-=-===-=-=-===-=-== BELOW IS ASSUMED CLEARED START =-=-=-===-=-=-===-=-=-===-=-=-===-=-=-===-=-=-===-=-=-===-=-=-===-=-=-==
 
