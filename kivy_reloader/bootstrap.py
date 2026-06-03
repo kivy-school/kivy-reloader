@@ -216,6 +216,12 @@ def main():
         action='store_true',
         help='Enable verbose debug output for the configurator.',
     )
+    init_parser.add_argument(
+        'subcommand',
+        nargs='?',
+        choices=['project'],
+        help="Pass 'project' to scaffold a hello-world app in the current directory.",
+    )
     args = parser.parse_args()
     klprint(f'Kivy Reloader v{_kl_version}')
 
