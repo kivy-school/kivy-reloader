@@ -1025,7 +1025,6 @@ def start_nodaemon_adb_server():
     print("host ip resolved to:", host_ip)
     part1 = False
     part2 = False
-    part3 = False
 
     # part 1: check if adb is in nodaemon mode:
     part1 = adb_nodaemon_check()
@@ -1063,15 +1062,19 @@ def start_nodaemon_adb_server():
         for _ in range(10):
             if is_adb_listening(host=host_ip):
                 logging.info('adb server is up')
-                return True
+                # return True
+                break
             time.sleep(0.5)
         # now also forward if usb mode
+        logging.info(f'if check {config.STREAM_USING.lower().replace(" ", "")}, {config.STREAM_USING.lower().replace(" ", "") == "usb"}')
+        PORT = config.RELOADER_PORT
         if config.STREAM_USING.lower().replace(" ", "") == "usb":
-            if not adb_has_forward(config.ADB_PORT):
+            if not adb_has_forward(PORT):
                 #no port forward means we forward now:
-                adb_forward(config.ADB_PORT)
+                adb_forward(PORT)
             else:
-                logging.info(f'adb forwarded: {part3} config.ADB_PORT: {config.ADB_PORT}')
+                logging.info(f'adb forwarded: {adb_has_forward(PORT)} config.RELOADER_PORT: {PORT}')
+        return True
 
     except FileNotFoundError:
         logging.error('adb not found')

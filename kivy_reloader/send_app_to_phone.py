@@ -243,7 +243,7 @@ async def send_app():
         # adb_cmd = f"adb forward tcp:{PORT} tcp:{PORT}"
         # logging.info(adb_cmd)
         # os.system(adb_cmd)
-        
+
         # unique_physical = set(zip(config.PHONE_IPS, (d["model"] for d in devices)))
         host_ip = get_adb_host_ip()
         unique_physical = {(host_ip, d["model"]) for d in devices}

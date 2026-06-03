@@ -44,18 +44,20 @@ then reset
 main > compile
 
 win 10 usb compile > main
-(wtf cant connect now)
-changed flow, make sure that I check if adb is in nodaemon mode and on the right port
-nc -v 127.0.0.1 8055
-Test-NetConnection -ComputerName 127.0.0.1 -Port 8055
-(it worked after I reset the computer wtf???)
-(test again on an reloader rebuild)
-NOW im blocked
-so basically the adb nodaemon + port forward is not going through/not setup right (the original problem + then scrcpy wasnt working)
-is there a way to test if adb is in nodaemon mode?
-is_adb_listening > check if adb in nodaemon mode + adb port forwarded
+✔️ (wtf cant connect now, the flow was bad and wasn't making sure: adb nodaemon and port forwarded, FIXED NOW)
+✔️ changed flow, make sure that I check if adb is in nodaemon mode and on the right port
+✔️ nc -v 127.0.0.1 8055
+✔️ Test-NetConnection -ComputerName 127.0.0.1 -Port 8055
+✔️ (it worked after I reset the computer wtf???)
+✔️ (test again on an reloader rebuild)
+✔️ NOW im blocked
+✔️ so basically the adb nodaemon + port forward is not going through/not setup right (the original problem + then scrcpy wasnt working)
+✔️ is there a way to test if adb is in nodaemon mode?
+✔️ is_adb_listening > check if adb in nodaemon mode + adb port forwarded
 
-win 10 usb main > compile
+✔️ win 10 usb main > compile
+(fails but makes sense, phone isn't on yet AND reload on phone is true)
+confirmed HOT_RELOAD_ON_PHONE = false works and skips reload (you have to rebuild app if you change the toml though since it's only read during startup)
 win 10 wifi compile > main
 win 10 wifi main > compile
 
@@ -91,6 +93,7 @@ fixed network flow between desktop and android phone client on mac/win10/win11
 works with win 11 wsl2 mirrored networking and updated kivyschool to do mirred networking if no wslconfig found
 fixed typer.clear() failing on newest typer
 fixed kivy reloader crash (trying to compile watchdog/kaki for android which is unnecessary)
+
 
 =-=-==************ UNCLEARED ************=-=-=-==
 need a plan for maintaining my brand
