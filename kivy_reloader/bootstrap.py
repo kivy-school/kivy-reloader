@@ -180,7 +180,7 @@ def main():
         help='Create the `kivy-reloader.toml` Create the `kivy-reloader.toml` and `buildozer.spec` config files. Pass `project` to also scaffold a hello-world app in the current directory.', 
     )
 
-    init_parser = subparsers.add_parser(  # noqa: F841
+    initbare_parser = subparsers.add_parser(  # noqa: F841
         'initbare',
         help='Create the `kivy-reloader.toml` configuration file without adding a watchdog local dummy recipe (so Mac M series chips build for Android properly)',
     )
