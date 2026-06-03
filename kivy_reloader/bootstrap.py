@@ -185,16 +185,9 @@ trio.run(app.async_run, "trio")
                 if path.name == "main.py":
                     klprint(f"{red}⚠️ To start using Kivy-Reloader, replace main.py contents with:")
                     print(f"{red}{content}{Fore.RESET}")
-        # if path.exists():
-        #     klprint(f"Already exists, skipping: {path.relative_to(project_root)}")
-        #     if path.name == "main.py":
-        #         klprint(f"{red}⚠️  To start using Kivy-Reloader, replace main.py contents with:")
-        #         klprint(f"")
-        #         print(f"{red}{content}{Fore.RESET}")
-        # else:
-        #     path.write_text(content)
-        #     klprint(f"Created: {path.relative_to(project_root)}")
-
+        else:
+            path.write_text(content)                  
+            klprint(f"Created: {path.relative_to(project_root)}")
 
 def main():
     parser = argparse.ArgumentParser(description='Kivy Reloader CLI')
