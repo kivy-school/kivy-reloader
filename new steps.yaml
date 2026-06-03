@@ -11,6 +11,15 @@ long standing bugs... https://stackoverflow.com/q/79378334
 REMINDER THAT CAPS NOT ALLOWED FOR PACKAGE NAME:
 # (str) Package name
 package.name = kivy_reloader_fresh
+-0--0-0- REMINDER -0-0-0-0-0-
+STEPS FOR WIN 10 WSL TO PHONE:
+on win adb:
+adb -a -P 5037 nodaemon server 
+adb forward tcp:8055 tcp:8055 (should this be 5037? no right)
+make wsl firewall rule 
+
+???
+-0--0-0- REMINDER -0-0-0-0-0-
 
 =-=-==************ FINAL TEST ************=-=-=-==
 ✔️ command to init basic project (uv run kivy-reloader init project)
@@ -35,6 +44,11 @@ then reset
 main > compile
 
 win 10 usb compile > main
+(wtf cant connect now)
+changed flow, make sure that I check if adb is in nodaemon mode and on the right port
+nc -v 127.0.0.1 8055
+Test-NetConnection -ComputerName 127.0.0.1 -Port 8055
+
 win 10 usb main > compile
 win 10 wifi compile > main
 win 10 wifi main > compile

@@ -35,7 +35,7 @@ async def connect_to_server(IP):
                 return client_socket # SUCCESS: Return the socket
             
             attempt_count += 1
-            print(f'\r{yellow}Connecting to {IP}:{PORT}... attempt {attempt_count}', end='', flush=True)
+            print(f'\r{yellow}Connecting to {IP}:{PORT}... attempt {attempt_count}. ', end='', flush=True)
             # If we reached here, the connection timed out
             print(f"{yellow}Connection timed out. Checking Firewall/ADB...")
 

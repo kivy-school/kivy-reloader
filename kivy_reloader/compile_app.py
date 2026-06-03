@@ -216,6 +216,14 @@ def wait_for_authorization(timeout=30):
         
         authorized_hardware_serials = set()
         for parts in devices:
+            # # In wait_for_authorization(), change the final check to:
+            # for parts in devices:
+            #     if len(parts) < 2:
+            #         continue
+            #     serial, state = parts[0], parts[1]
+            #     if ":" not in serial and state == 'device':  # USB AND authorized state
+            #         print(f"Device {serial} is authorized. Proceeding...")
+            #         return True
             if len(parts) < 2:
                 continue
             serial, state = parts[0], parts[1]
@@ -246,7 +254,7 @@ def wait_for_authorization(timeout=30):
         # serial_list = [parts[0] for parts in devices if len(parts) >= 2 and ":" not in parts[0]]
         # print(f"[+{elapsed:0.2f}s] waiting for authorization on {','.join(serial_list)}...")
         state_list = [f"{parts[0]}({parts[1]})" for parts in devices if len(parts) >= 2 and ":" not in parts[0]]
-        print(f"[+{elapsed:0.2f}s] waiting for authorization on {','.join(state_list)}...")
+        print(f"[+{elapsed:0.2f}s] waiting for authorization (or unplug and plug in your phone) on {','.join(state_list)}...")
         time.sleep(1)
     
     return False
@@ -918,17 +926,18 @@ def debug(adb_logcat_ready: Event = None):
     if config.STREAM_USING == 'USB':
         # if is_adb_listening():
         # Don't restart if server already reachable
-        if in_wsl():
-            # host_ip = extract_ip(get_wsl_nameservers()[0])
-            host_ip = get_wsl_host_ip()
-            print("what is host ip", host_ip)
-            listen_state = is_adb_listening(host=host_ip)
-        else:
-            listen_state = is_adb_listening()
-        if listen_state:
-            pass
-        else:
-            start_adb_server()
+        # if in_wsl():
+        #     # host_ip = extract_ip(get_wsl_nameservers()[0])
+        #     host_ip = get_wsl_host_ip()
+        #     print("what is host ip", host_ip)
+        #     listen_state = is_adb_listening(host=host_ip)
+        # else:
+        #     listen_state = is_adb_listening()
+        # if listen_state:
+        #     pass
+        # else:
+        #     start_adb_server()
+        start_adb_server()
         clear_logcat()
         run_logcat(adb_logcat_ready = adb_logcat_ready)
     elif config.STREAM_USING == 'WIFI':
@@ -1007,13 +1016,14 @@ def start_nodaemon_adb_server():
     host_ip = get_wsl_host_ip()
     print("host ip resolved to:", host_ip)
     
-    if is_adb_listening(host=host_ip):
-        logging.info('adb server already running, skipping restart')
-        wait_for_authorization()
-        return True
-    
+    # if is_adb_listening(host=host_ip):
+    #     logging.info('adb server already running, skipping restart')
+    #     wait_for_authorization()
+    #     return True
+
     logging.info('Starting fresh adb server')
     kill_adb_server(disconnect=False)
+    wait_for_authorization()
     
     try:
         adb_path = get_adb_windows_path()
