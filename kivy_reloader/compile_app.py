@@ -825,17 +825,6 @@ def deploy_app_to_devices(target_devices, apk_file_path, package_name):
 #             check=True,
 #         )
 
-def start_adb_claude():
-    subprocess.run(['adb', 'kill-server'], check=False)
-    subprocess.Popen(
-        ['adb', '-a', '-P', '5037', 'nodaemon', 'server'],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL
-    )
-    time.sleep(0.8)
-    # wait_for_adb_online()
-    # wait_for_authorization()
-
 def compile_app(buildozer_compiled: Event = None):
     """
     Orchestrates the complete app compilation and deployment process.
@@ -1012,15 +1001,8 @@ def get_wsl_host_ip() -> str:
     nameservers = get_wsl_nameservers()
     return extract_ip(nameservers[0]) if nameservers else "127.0.0.1"
 
-def start_nodaemon_adb_server():
-    # this should only run in wsl tbh, so assume in wsb
-    host_ip = get_wsl_host_ip()
-    print("host ip resolved to:", host_ip)
-    part1 = False
-    part2 = False
-    part3 = False
-
-    # part 1: check if adb is in nodaemon mode:
+def adb_nodaemon_check():
+    answer = False
     # Query Windows processes from WSL
     result = subprocess.run(
         ["cmd.exe", "/c", "wmic process where \"name='adb.exe'\" get CommandLine"],
@@ -1030,10 +1012,23 @@ def start_nodaemon_adb_server():
     )
 
     cmdlines = result.stdout.lower()
+    # logging.info(f"logginf for now{cmdlines}")
 
     # Look for the special flags
     if "-a" in cmdlines and "nodaemon" in cmdlines and "server" in cmdlines:
-        part1 = True
+        answer = True
+    return answer
+
+def start_nodaemon_adb_server():
+    # this should only run in wsl tbh, so assume in wsb
+    host_ip = get_wsl_host_ip()
+    print("host ip resolved to:", host_ip)
+    part1 = False
+    part2 = False
+    part3 = False
+
+    # part 1: check if adb is in nodaemon mode:
+    part1 = adb_nodaemon_check()
 
     logging.info(f'adb in nodaemon server mode: {part1}')
 
