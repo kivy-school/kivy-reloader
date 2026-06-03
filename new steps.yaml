@@ -55,21 +55,26 @@ win 10 usb compile > main
 ✔️ is there a way to test if adb is in nodaemon mode?
 ✔️ is_adb_listening > check if adb in nodaemon mode + adb port forwarded
 
-✔️ win 10 usb main > compile
+✔️✔️✔️ win 10 usb uv run main.py > uv run kivy-reloader run
 (fails but makes sense, phone isn't on yet AND reload on phone is true)
 confirmed HOT_RELOAD_ON_PHONE = false works and skips reload (you have to rebuild app if you change the toml though since it's only read during startup)
-win 10 wifi compile > main
-win 10 wifi main > compile
+✔️✔️✔️win 10 usb uv run main.py > uv run kivy-reloader run
+"fails" but is a proper fail as app isnt on phone yet
 
-win 11 usb compile > main
-win 11 usb main > compile
-win 11 wifi compile > main
-win 11 wifi main > compile
+✔️✔️✔️win 10 wifi uv run kivy-reloader run > uv run main.py
 
-mac usb compile > main
-mac usb main > compile
-mac wifi compile > main
-mac wifi main > compile
+✔️✔️✔️win 10 wifi uv run main.py > uv run kivy-reloader run
+"fails" but is a proper fail as app isnt on phone yet
+
+win 11 usb uv run kivy-reloader run > uv run main.py
+win 11 usb uv run main.py > uv run kivy-reloader run
+win 11 wifi uv run kivy-reloader run > uv run main.py
+win 11 wifi uv run main.py > uv run kivy-reloader run
+
+mac usb uv run kivy-reloader run > uv run main.py
+mac usb uv run main.py > uv run kivy-reloader run
+mac wifi uv run kivy-reloader run > uv run main.py
+mac wifi uv run main.py > uv run kivy-reloader run
 
 (test up top)
 final test:
