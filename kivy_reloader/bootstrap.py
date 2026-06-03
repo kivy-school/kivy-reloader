@@ -229,7 +229,6 @@ def main():
         if getattr(args, 'subcommand', None) == 'project':
             scaffold_hello_world()
 
-
     if args.command == 'initbare':
         # make sure there is an init flag that says 'naked' or smth
         # just in case the mac m1 fix breaks for some reason
