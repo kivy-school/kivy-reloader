@@ -37,7 +37,7 @@ WATCHED_FOLDERS = []
 # Built-in exclusions are automatically applied (.git, .buildozer, .venv, *.pyc, __pycache__, etc.)
 # Add your own patterns here for additional files/folders to ignore
 # Example: ["*.tmp", "cache", "logs/*.log"]
-DO_NOT_WATCH_PATTERNS = ["kivy_reloader"]
+DO_NOT_WATCH_PATTERNS = ["kivy_reloader", ""kivy-reloader"]
 
 # ════════════════════════════════════════════════════════════════
 # 🛠️ SERVICES & BACKGROUND PROCESSES
