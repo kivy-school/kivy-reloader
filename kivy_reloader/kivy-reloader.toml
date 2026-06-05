@@ -170,3 +170,7 @@ FOLDERS_AND_FILES_TO_EXCLUDE_FROM_PHONE = []
 # Show desktop notifications during compilation and deployment
 # Set to false to disable notifications completely
 SHOW_NOTIFICATIONS = true
+
+# Print file tree of changed/deleted files during hot reload
+# Set to true to see a visual tree of files being transferred
+PRINT_FILE_TREE = false

@@ -68,7 +68,18 @@ confirmed HOT_RELOAD_ON_PHONE = false works and skips reload (you have to rebuil
 
 now check wsl11
 win 11 usb uv run kivy-reloader run > uv run main.py
+new problem: if every device is unauthorized u have to reset adb (nontrivial fix)
+so how do I fix it?
+this is because it could be in adb forward + adb -a -P nodaemon mode
+nope phone is just not taking it
+cable might be the issue
+(just had to restart phone)
+(accidentally on wifi, did I send the app twice???)
+I saw this error, basically buildozer did not point to latest kivy reloader that is in editable install
+✔️✔️✔️WORKS, just have to update buildozer to point to locally editable kivy reloader
+
 win 11 usb uv run main.py > uv run kivy-reloader run
+✔️✔️✔️ WORKS (device isn't on)
 win 11 wifi uv run kivy-reloader run > uv run main.py
 win 11 wifi uv run main.py > uv run kivy-reloader run
 
