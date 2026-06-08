@@ -4,6 +4,7 @@ import logging
 import trio
 from colorama import Fore, init
 import subprocess
+import datetime
 
 import socket
 
@@ -361,26 +362,26 @@ async def send_app():
         print(f'{yellow}Waiting ({timeout} seconds) for ACK from smartphone {IP}...')
         ack_ok = False
 
+        start_wait = trio.current_time()
         try:
-            import datetime
             with trio.move_on_after(timeout):
                 while True:
                     data = await client_socket.receive_some(16)
                     now = datetime.datetime.now()
-                    print(f'RECEIVED: {data!r} at {now}')
+                    remaining = max(0, timeout - (trio.current_time() - start_wait))
+                    print(f'RECEIVED: {data!r} at {now} (timeout in {remaining:.0f}s)')
 
                     if data == b'OK':
                         ack_ok = True
                         break
 
                     if data == b'':
-                        await trio.sleep(0.1)
+                        await trio.sleep(10)
                         continue
 
         except Exception as e:
             print(f'{red}Error while waiting for ACK: {e}')
 
-        import datetime
         formatted_time = datetime.datetime.now().strftime("%m-%d %H:%M:%S.%f")[:-3]
 
         if ack_ok:

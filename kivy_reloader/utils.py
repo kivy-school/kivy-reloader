@@ -239,10 +239,13 @@ def get_connected_devices(fetch_wifi_ip: bool = False) -> list[dict[str, str]]:
     print("get connected devices output", lines)
     devices = []
     for line in lines:
-        if not line.strip() or 'device' not in line:
+        if not line.strip():
             continue
         parts = line.strip().split()
         serial = parts[0]
+        status = parts[1] if len(parts) > 1 else ''
+        if status != 'device':
+            continue
         transport = 'tcpip' if ':' in serial else 'usb'
         model = next(
             (p.split(':')[1] for p in parts if p.startswith('model:')),
@@ -581,13 +584,25 @@ def _validate_wifi_ip_ifconfig(ip: str, interface: str, serial: str) -> Optional
 #     logging.info(adb_cmd)
 #     return os.system(adb_cmd)
 
-def adb_forward(port: int) -> int:
-    cmd = ["adb", "forward", f"tcp:{port}", f"tcp:{port}"]
+# def adb_forward(port: int) -> int:
+#     cmd = ["adb", "forward", f"tcp:{port}", f"tcp:{port}"]
+#     logging.info(" ".join(cmd))
+
+#     result = subprocess.run(cmd)
+#     return result.returncode
+
+def adb_forward(port: int, serial: str = None) -> int:
+    if serial:
+        cmd = ["adb", "-s", serial, "forward", f"tcp:{port}", f"tcp:{port}"]
+    else:
+        cmd = ["adb", "forward", f"tcp:{port}", f"tcp:{port}"]
     logging.info(" ".join(cmd))
-
-    result = subprocess.run(cmd)
-    return result.returncode
-
+    try:
+        result = subprocess.run(cmd, timeout=10)
+        return result.returncode
+    except subprocess.TimeoutExpired:
+        logging.warning(f"adb forward timed out after 10s")
+        return 1
 
 def adb_has_forward(port: int) -> bool:
     pattern = re.compile(rf"tcp:{port}\s+tcp:{port}\b")

@@ -254,7 +254,11 @@ def wait_for_authorization(timeout=30):
         # serial_list = [parts[0] for parts in devices if len(parts) >= 2 and ":" not in parts[0]]
         # print(f"[+{elapsed:0.2f}s] waiting for authorization on {','.join(serial_list)}...")
         state_list = [f"{parts[0]}({parts[1]})" for parts in devices if len(parts) >= 2 and ":" not in parts[0]]
-        print(f"[+{elapsed:0.2f}s] waiting for authorization (or unplug and plug in your phone) on {','.join(state_list)}...")
+        print(f"[+{elapsed:0.2f}s] waiting for authorization on {','.join(state_list)}...")
+        if elapsed > 10:
+            print("  No prompt on your phone? Unplug and replug the USB cable.")
+        if elapsed > 20:
+            print("  Still no prompt? Settings → Developer Options → Revoke USB debugging authorizations, then replug.")
         time.sleep(1)
     
     return False
@@ -1069,6 +1073,7 @@ def start_nodaemon_adb_server():
         logging.info(f'if check {config.STREAM_USING.lower().replace(" ", "")}, {config.STREAM_USING.lower().replace(" ", "") == "usb"}')
         PORT = config.RELOADER_PORT
         if config.STREAM_USING.lower().replace(" ", "") == "usb":
+            wait_for_authorization()
             if not adb_has_forward(PORT):
                 #no port forward means we forward now:
                 adb_forward(PORT)
