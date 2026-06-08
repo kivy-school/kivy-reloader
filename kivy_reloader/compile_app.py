@@ -19,7 +19,7 @@ import typer
 from colorama import Fore, Style, init
 
 from .config import config
-from .utils import get_connected_devices, get_wifi_ip, in_wsl, is_adb_listening, extract_ip, get_wsl_nameservers
+from .utils import get_connected_devices, get_wifi_ip, in_wsl, is_adb_listening, extract_ip, get_wsl_nameservers, get_adb_windows_path, adb_has_forward, adb_forward
 
 
 def is_ci_environment() -> bool:
@@ -216,6 +216,14 @@ def wait_for_authorization(timeout=30):
         
         authorized_hardware_serials = set()
         for parts in devices:
+            # # In wait_for_authorization(), change the final check to:
+            # for parts in devices:
+            #     if len(parts) < 2:
+            #         continue
+            #     serial, state = parts[0], parts[1]
+            #     if ":" not in serial and state == 'device':  # USB AND authorized state
+            #         print(f"Device {serial} is authorized. Proceeding...")
+            #         return True
             if len(parts) < 2:
                 continue
             serial, state = parts[0], parts[1]
@@ -243,8 +251,10 @@ def wait_for_authorization(timeout=30):
                     return True
 
         elapsed = time.time() - start
-        serial_list = [parts[0] for parts in devices if len(parts) >= 2 and ":" not in parts[0]]
-        print(f"[+{elapsed:0.2f}s] waiting for authorization on {','.join(serial_list)}...")
+        # serial_list = [parts[0] for parts in devices if len(parts) >= 2 and ":" not in parts[0]]
+        # print(f"[+{elapsed:0.2f}s] waiting for authorization on {','.join(serial_list)}...")
+        state_list = [f"{parts[0]}({parts[1]})" for parts in devices if len(parts) >= 2 and ":" not in parts[0]]
+        print(f"[+{elapsed:0.2f}s] waiting for authorization (or unplug and plug in your phone) on {','.join(state_list)}...")
         time.sleep(1)
     
     return False
@@ -603,8 +613,6 @@ def select_option(option: str, app_name: str) -> None:
     """
 
     if in_wsl() and config.STREAM_USING == "USB":
-    #     #run adb nodaemon
-        kill_adb_server(disconnect = False)
         start_nodaemon_adb_server()
     #     # fix wsl
     #     trio.run(fix_wsl)
@@ -817,17 +825,6 @@ def deploy_app_to_devices(target_devices, apk_file_path, package_name):
 #             check=True,
 #         )
 
-def start_adb_claude():
-    subprocess.run(['adb', 'kill-server'], check=False)
-    subprocess.Popen(
-        ['adb', '-a', '-P', '5037', 'nodaemon', 'server'],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL
-    )
-    time.sleep(0.8)
-    # wait_for_adb_online()
-    # wait_for_authorization()
-
 def compile_app(buildozer_compiled: Event = None):
     """
     Orchestrates the complete app compilation and deployment process.
@@ -918,17 +915,18 @@ def debug(adb_logcat_ready: Event = None):
     if config.STREAM_USING == 'USB':
         # if is_adb_listening():
         # Don't restart if server already reachable
-        if in_wsl():
-            # host_ip = extract_ip(get_wsl_nameservers()[0])
-            host_ip = get_wsl_host_ip()
-            print("what is host ip", host_ip)
-            listen_state = is_adb_listening(host=host_ip)
-        else:
-            listen_state = is_adb_listening()
-        if listen_state:
-            pass
-        else:
-            start_adb_server()
+        # if in_wsl():
+        #     # host_ip = extract_ip(get_wsl_nameservers()[0])
+        #     host_ip = get_wsl_host_ip()
+        #     print("what is host ip", host_ip)
+        #     listen_state = is_adb_listening(host=host_ip)
+        # else:
+        #     listen_state = is_adb_listening()
+        # if listen_state:
+        #     pass
+        # else:
+        #     start_adb_server()
+        start_adb_server()
         clear_logcat()
         run_logcat(adb_logcat_ready = adb_logcat_ready)
     elif config.STREAM_USING == 'WIFI':
@@ -1003,31 +1001,81 @@ def get_wsl_host_ip() -> str:
     nameservers = get_wsl_nameservers()
     return extract_ip(nameservers[0]) if nameservers else "127.0.0.1"
 
+def adb_nodaemon_check():
+    answer = False
+    # Query Windows processes from WSL
+    result = subprocess.run(
+        ["cmd.exe", "/c", "wmic process where \"name='adb.exe'\" get CommandLine"],
+        capture_output=True,
+        text=True,
+        timeout=5,
+    )
+
+    cmdlines = result.stdout.lower()
+    # logging.info(f"logginf for now{cmdlines}")
+
+    # Look for the special flags
+    if "-a" in cmdlines and "nodaemon" in cmdlines and "server" in cmdlines:
+        answer = True
+    return answer
+
 def start_nodaemon_adb_server():
+    # this should only run in wsl tbh, so assume in wsb
     host_ip = get_wsl_host_ip()
     print("host ip resolved to:", host_ip)
+    part1 = False
+    part2 = False
+
+    # part 1: check if adb is in nodaemon mode:
+    part1 = adb_nodaemon_check()
+
+    logging.info(f'adb in nodaemon server mode: {part1}')
+
+    part2 = is_adb_listening(host=host_ip)
+    logging.info(f'adb alive/listening: {part2}')
+
+    # 1 -> and no 2 what does that mean (adb is in nodaemon mode but also not on SOMEHOW?)? restart server
+    # 2 -> but not in nodaemon mode, immediately > restart server
+    # 1 and 2 > do nothing
+    if part1 and part2:
+        wait_for_authorization() #wait for auth at the most
+        pass
+
+
+    # if is_adb_listening(host=host_ip):
+    #     logging.info('adb server already running, skipping restart')
+    #     wait_for_authorization()
+    #     return True
+
+    # logging.info('Starting fresh adb server')
+    # kill_adb_server(disconnect=False)
+    # wait_for_authorization()
     
-    if is_adb_listening(host=host_ip):
-        logging.info('adb server already running, skipping restart')
-        wait_for_authorization()
-        return True
-    
-    logging.info('Starting adb server')
-    kill_adb_server(disconnect=False)
-    
+    # now we're NOT in nodaemon and server is off, restart server
     try:
         adb_path = get_adb_windows_path()
         win_path = subprocess.check_output(["wslpath", "-w", adb_path]).decode().strip()
-        # ALWAYS use 5037 for the server port, never config.ADB_PORT
-        cmd = ["cmd.exe", "/c", f"{win_path} -a -P 5037 nodaemon server"]
+        cmd = ["cmd.exe", "/c", f"{win_path} -a -P {config.WIN_ADB_PORT} nodaemon server"]
         subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         logging.info(f'started new adb server {" ".join(cmd)}')
 
         for _ in range(10):
             if is_adb_listening(host=host_ip):
                 logging.info('adb server is up')
-                return True
+                # return True
+                break
             time.sleep(0.5)
+        # now also forward if usb mode
+        logging.info(f'if check {config.STREAM_USING.lower().replace(" ", "")}, {config.STREAM_USING.lower().replace(" ", "") == "usb"}')
+        PORT = config.RELOADER_PORT
+        if config.STREAM_USING.lower().replace(" ", "") == "usb":
+            if not adb_has_forward(PORT):
+                #no port forward means we forward now:
+                adb_forward(PORT)
+            else:
+                logging.info(f'adb forwarded: {adb_has_forward(PORT)} config.RELOADER_PORT: {PORT}')
+        return True
+
     except FileNotFoundError:
         logging.error('adb not found')
 
@@ -1105,29 +1153,6 @@ def start_nodaemon_adb_server():
 #     # logging.info('adb server is up and listening')
 #     wait_for_authorization()
 #     return True
-
-def get_adb_windows_path():
-    """Extract the adb.exe path from the bash alias in .bashrc"""
-    bashrc = os.path.expanduser("~/.bashrc")
-    try:
-        with open(bashrc) as f:
-            for line in f:
-                # matches: alias adb='/mnt/c/.../adb.exe'
-                match = re.search(r"alias adb=['\"](.+?)['\"]", line)
-                if match:
-                    return match.group(1)
-    except FileNotFoundError:
-        pass
-    
-    # Fallback: which adb (catches symlinks/wrappers too)
-    try:
-        path = subprocess.check_output(["which", "adb"]).decode().strip()
-        if path:
-            return path
-    except Exception:
-        pass
-    
-    return "adb"  # last resort
 
 def clear_device_logcat(device: dict) -> None:
     """
@@ -1896,7 +1921,7 @@ def render_option_menu(current_selection: str) -> None:
     Args:
         current_selection: Currently selected option string
     """
-    typer.clear()
+    #typer.clear()
     typer.echo('\nSelect one of the 4 options below:\n')
 
     development_options = compiler_options[:2]
@@ -1958,10 +1983,10 @@ def execute_selected_option(option: str) -> None:
     Args:
         option: The selected option string
     """
-    typer.clear()
+    #typer.clear()
     print(f'{yellow} Selected option: {green}{option}')
     option_index = str(compiler_options.index(option) + 1)
-    typer.clear()
+    #typer.clear()
     select_option(option_index, app_name)
 
 

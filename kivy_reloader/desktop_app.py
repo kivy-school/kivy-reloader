@@ -426,14 +426,6 @@ class DesktopApp(BaseReloaderApp, KakiApp):
         if not self.HOT_RELOAD_ON_PHONE:
             return
         
-        # # Only check devices if adb server is already running - don't auto-start one
-        # if in_wsl():
-        #     from .utils import extract_ip, get_wsl_nameservers, is_adb_listening
-        #     host_ip = extract_ip(get_wsl_nameservers()[0])
-        #     if not is_adb_listening(host=host_ip):
-        #         Logger.warning('Reloader: ADB server not running, skipping device check')
-        #         return
-
         # Check if any devices are connected before processing
         connected_devices = get_connected_devices()
         if not connected_devices:

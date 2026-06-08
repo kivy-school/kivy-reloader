@@ -617,8 +617,12 @@ class AndroidApp(BaseReloaderApp, KivyApp):
             'Another possible cause is that the port is already in use '
             'by another app. Check if the port is free and try again'
         )
+        Logger.info(f'Error details: {type(error)}')
         Logger.info(f'Error details: {error}')
-        Logger.error(f"Reloader: Full Traceback:\n{traceback_error}")
+        # Logger.error(f"Reloader: Full Traceback:\n{traceback_error}")
+        # Split traceback into lines — Logger handles single lines much better on Android
+        for line in traceback_error.splitlines():
+            Logger.error(f'Reloader: Full Traceback: {line}')
 
     async def data_receiver(self, data_stream):
         """
@@ -630,7 +634,7 @@ class AndroidApp(BaseReloaderApp, KivyApp):
         Args:
             data_stream: The incoming TCP data stream
         """
-        Logger.info('Reloader: CHANGE IS LIVE')
+        Logger.info('Reloader: CHANGE IS LIVE FOR TESTING USB CONNECTION')
         Logger.info('Reloader: ************** SERVER **************')
         Logger.info('Reloader: Server started: receiving data from computer...')
         try:

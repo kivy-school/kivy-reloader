@@ -4,6 +4,7 @@ import shutil
 from pathlib import Path
 
 from colorama import Fore, init
+import re
 
 from . import __version__ as _kl_version
 from .detection import is_apple_m_series
@@ -101,6 +102,92 @@ def create_buildozer_spec_file():
             os.path.join(base_dir, 'buildozer.spec'),
         )
 
+def scaffold_hello_world():
+    """
+    Scaffolds a hello-world Kivy Reloader project in the current directory.
+ 
+    Creates:
+      main.py
+      hello_world/__init__.py  (empty)
+      hello_world/app.py
+      hello_world/screens/__init__.py  (empty)
+      hello_world/screens/main_screen.py
+      hello_world/screens/main_screen.kv
+      kivy-reloader.toml  (project-specific, overwrites any generic one)
+ 
+    Skips any file that already exists so re-running is safe.
+    """
+    project_root = Path.cwd()
+ 
+    files = {
+        project_root / "hello_world" / "__init__.py": "",
+        project_root / "hello_world" / "app.py": """\
+from kivy_reloader.app import App
+from hello_world.screens.main_screen import MainScreen
+ 
+ 
+class HelloWorldApp(App):
+    def build(self):
+        return MainScreen()
+""",
+        project_root / "hello_world" / "screens" / "__init__.py": "",
+        project_root / "hello_world" / "screens" / "main_screen.py": """\
+from kivy.uix.screenmanager import Screen
+from kivy_reloader.lang import Builder
+ 
+Builder.load_file(__file__)
+ 
+ 
+class MainScreen(Screen):
+    pass
+""",
+        project_root / "hello_world" / "screens" / "main_screen.kv": """\
+<MainScreen>:
+    BoxLayout:
+        orientation: 'vertical'
+        Button:
+            text: 'Welcome to Kivy Reloader!'
+""",
+        project_root / "kivy-reloader.toml": """\
+[kivy_reloader]
+HOT_RELOAD_ON_PHONE = true
+FULL_RELOAD_FILES = ["main.py", "hello_world/app.py"]
+WATCHED_FOLDERS_RECURSIVELY = ["."]
+STREAM_USING = "WIFI"
+""",
+        project_root / "main.py": """\
+import trio
+from hello_world.app import HelloWorldApp
+app = HelloWorldApp()
+trio.run(app.async_run, "trio")
+""",
+    }
+
+
+    UV_INIT_MAIN_PATTERN = re.compile(
+        r'^\s*def main\(\):\s*\n\s*print\("Hello from .+?!"\)\s*\n'
+        r'if __name__ == "__main__":\s*\n\s*main\(\)\s*$'
+    )
+ 
+    for path, content in files.items():
+        path.parent.mkdir(parents=True, exist_ok=True)
+
+        if path.exists():
+            if path.name == "main.py" and UV_INIT_MAIN_PATTERN.match(path.read_text()):
+                answer = input(f"{yellow}[KIVY RELOADER] Detected uv placeholder main.py. Replace it? [y/n]: {Fore.RESET}")
+                if answer.strip().lower() == 'y':
+                    path.write_text(content)
+                    klprint(f"{red} Replaced uv placeholder: main.py")
+                else:
+                    klprint(f"Skipped main.py")
+            else:
+                klprint(f"Already exists, skipping: {path.relative_to(project_root)}")
+                if path.name == "main.py":
+                    klprint(f"{red}⚠️ To start using Kivy-Reloader, replace main.py contents with:")
+                    print(f"{red}{content}{Fore.RESET}")
+        else:
+            path.write_text(content)                  
+            klprint(f"Created: {path.relative_to(project_root)}")
 
 def main():
     parser = argparse.ArgumentParser(description='Kivy Reloader CLI')
@@ -108,10 +195,10 @@ def main():
 
     init_parser = subparsers.add_parser(  # noqa: F841
         'init',
-        help='Create the `kivy-reloader.toml` configuration file.',
+        help='Create the `kivy-reloader.toml` Create the `kivy-reloader.toml` and `buildozer.spec` config files. Pass `project` to also scaffold a hello-world app in the current directory.', 
     )
 
-    init_parser = subparsers.add_parser(  # noqa: F841
+    initbare_parser = subparsers.add_parser(  # noqa: F841
         'initbare',
         help='Create the `kivy-reloader.toml` configuration file without adding a watchdog local dummy recipe (so Mac M series chips build for Android properly)',
     )
@@ -147,6 +234,12 @@ def main():
         action='store_true',
         help='Enable verbose debug output for the configurator.',
     )
+    init_parser.add_argument(
+        'subcommand',
+        nargs='?',
+        choices=['project'],
+        help="Pass 'project' to scaffold a hello-world app in the current directory.",
+    )
     args = parser.parse_args()
     klprint(f'Kivy Reloader v{_kl_version}')
 
@@ -156,6 +249,9 @@ def main():
         # if mac m1 chip: , add p4a watchdog recipe
         if is_apple_m_series():
             copy_watchdog_recipe()
+        # scaffold hello-world project if requested
+        if getattr(args, 'subcommand', None) == 'project':
+            scaffold_hello_world()
 
     if args.command == 'initbare':
         # make sure there is an init flag that says 'naked' or smth

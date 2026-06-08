@@ -304,6 +304,15 @@ FIELD_DEFS: list[FieldDef] = [
         max_value=65535,
     ),
     FieldDef(
+        'WIN_ADB_PORT',
+        FieldType.INT,
+        5037,
+        'Device',
+        help_short='ADB port on Windows (Win 10 compatibility)',
+        min_value=1,
+        max_value=65535,
+    ),
+    FieldDef(
         'RELOADER_PORT',
         FieldType.INT,
         8050,
@@ -481,6 +490,14 @@ FIELD_DEFS: list[FieldDef] = [
         False,
         'Performance',
         help_short='Print FPS to console',
+        advanced=True,
+    ),
+    FieldDef(
+        'PRINT_FILE_TREE',
+        FieldType.BOOL,
+        False,
+        'Performance',
+        help_short='Print file tree when deploying to phone',
         advanced=True,
     ),
     FieldDef(
