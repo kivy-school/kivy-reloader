@@ -70,8 +70,9 @@ confirmed HOT_RELOAD_ON_PHONE = false works and skips reload (you have to rebuil
 now check wsl11
 (make sure phone wifi is off)
 ✔️✔️✔️ win 11 usb uv run kivy-reloader run > uv run main.py
-works + made a prompt when ppl need to unplug/plug in phone
+works normally
 win 11 usb uv run main.py > uv run kivy-reloader run
+works + made a prompt when ppl need to unplug/plug in phone
 
 win 11 wifi uv run kivy-reloader run > uv run main.py
 ✔️✔️✔️ WORKS NOW
