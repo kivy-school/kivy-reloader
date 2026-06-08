@@ -1,3 +1,16 @@
+
+testlist 
+make sure uninstall works
+then try uv run kivy-reloader run
+then do the ps installs
+for each os:
+✔️ (compile first, main.py)
+✔️ (main.py first, then compile)
+✔️on the win 11 script add to wslconfig mirrorednetworking = true
+✔️ (manually test this by deleting wslconfig)
+
+=-=-=-=-
+
 THIS WAS THE COMMAND I WAS LOOKING FOR THE ENTIRE TIME (this is bugged as hell)
 git checkout -p origin/main 
 to slow merge
@@ -67,12 +80,13 @@ so I need to make it work with mirrored networking as well
 ✔️- deal with mirrored networking
 check on mac 
 ✔️ USB WORKS
-=-=-== CLEARED =-=-=-==
  CHECK WIFI
- (compile first, main.py)
- (main.py first, then compile)
-on the win 11 script add to wslconfig mirrorednetworking = true
+✔️ (compile first, main.py)
+✔️ (main.py first, then compile)
+✔️on the win 11 script add to wslconfig mirrorednetworking = true
+✔️ (manually test this by deleting wslconfig)
 
+(DO THIS LATER)
 fix filipe doing that weird fork fix
 +# Temporary pin to a p4a fork with the Android pyproject wheel-build fix.
 +# Remove these overrides once the fix lands upstream.
@@ -95,23 +109,28 @@ fix filipe doing that weird fork fix
  #p4a.source_dir =
 (2/2) Apply this hunk to index and worktree [y,n,q,a,d,K,g,/,s,e,?]? 
 
-final test:
-win 10 uninstall > win 10 reinstall > win 11 uninstall > win 11 reinstall > mac uninstall > ,mac reinstall
-2. if usb works
-3. if wifi works
-3a. if wifi then disconnect usb cable works
-3b. wifi works without any usb connection at all
-
-3. merge slow from filipe's update
-5. make sure it works on USB mac now
-4. check if they all work on USB/WIFI
-4. VERY QUICKly make the kivy-reloader helper
+(sent to trello)
 helper says:
 which phone is connected
 type of connection (usb/wifi)
 healthy/alive
 and buttons/commands to double check it
 buildozer android clean (local remove that doesnt force redownloads) not appclean
+
+=-=-== CLEARED =-=-=-==
+final test:
+win 10 uninstall > win 10 reinstall > win 11 uninstall > win 11 reinstall > mac uninstall > ,mac reinstall
+2. if usb works (desktop first test, then buildozer build first test)
+3. if wifi works (desktop first test, then buildozer build first test)
+3a. if wifi then disconnect usb cable works
+3b. wifi works without any usb connection at all
+
+3. merge slow from filipe's update
+5. make sure it works on USB mac now ✔️ 
+4. check if they all work on USB/WIFI ✔️ 
+4. VERY QUICKly make the kivy-reloader helper
+
+
 
 then clear this + trello and continue
 uninstall the windows firewallsettings+check if im on win10 actually?

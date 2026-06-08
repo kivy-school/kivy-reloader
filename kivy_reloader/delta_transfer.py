@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Dict, List, Set, Tuple
 
 from kivy.logger import Logger
+from kivy_reloader.config import config
 
 from .tree_formatter import format_file_tree
 
@@ -43,7 +44,9 @@ class DeltaTransferManager:
                     set(self.last_state.keys()),
                     f'Current app state has {len(self.last_state)} files',
                 )
-                Logger.info(loaded_files_tree)
+                print_tree = getattr(config, 'PRINT_FILE_TREE', False)
+                if print_tree:  
+                    Logger.info(loaded_files_tree)
 
             except (json.JSONDecodeError, OSError) as e:
                 Logger.warning(f'Delta: Failed to load state file: {e}')
