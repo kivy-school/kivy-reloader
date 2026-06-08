@@ -112,12 +112,15 @@ u will get a "port already used bug"
 figure out how to fix that on mac
 
 (make sure phone wifi is off)
-mac usb uv run kivy-reloader run > uv run main.py
+✔️✔️✔️ mac usb uv run kivy-reloader run > uv run main.py
 mac usb uv run main.py > uv run kivy-reloader run
 
 
-mac wifi uv run kivy-reloader run > uv run main.py
-mac wifi uv run main.py > uv run kivy-reloader run
+✔️✔️✔️ mac wifi uv run kivy-reloader run > uv run main.py
+
+✔️✔️✔️ mac wifi uv run main.py > uv run kivy-reloader run
+works and hit usual connect attempts
+
 
 (test up top)
 final test:
