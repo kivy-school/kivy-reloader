@@ -78,6 +78,7 @@ class Config:  # noqa: PLR0904
         'uv.lock',
         'venv',
         'venv.bak',
+        'kivy-reloader', #for development and used as editable install
     ]
 
     def __init__(self, config_path: Union[str, Path] = None):

@@ -4,6 +4,7 @@ import logging
 import trio
 from colorama import Fore, init
 import subprocess
+import datetime
 
 import socket
 
@@ -236,17 +237,25 @@ async def send_app():
         print(f'{yellow}No connected devices found.')
         return 1
 
-    # Set up ADB port forwarding if USB mode
+    # worked but fails when multiple connected devices
+    # # Set up ADB port forwarding if USB mode
+    # if config.STREAM_USING == "USB":
+    #     PORT = config.RELOADER_PORT
+    #     adb_forward(PORT)
+    #     # adb_cmd = f"adb forward tcp:{PORT} tcp:{PORT}"
+    #     # logging.info(adb_cmd)
+    #     # os.system(adb_cmd)
+
+    #     # unique_physical = set(zip(config.PHONE_IPS, (d["model"] for d in devices)))
+    #     host_ip = get_adb_host_ip()
+    #     unique_physical = {(host_ip, d["model"]) for d in devices}
     if config.STREAM_USING == "USB":
         PORT = config.RELOADER_PORT
-        adb_forward(PORT)
-        # adb_cmd = f"adb forward tcp:{PORT} tcp:{PORT}"
-        # logging.info(adb_cmd)
-        # os.system(adb_cmd)
-
-        # unique_physical = set(zip(config.PHONE_IPS, (d["model"] for d in devices)))
+        usb_devices = [d for d in devices if d['transport'] == 'usb']
+        for d in usb_devices:
+            adb_forward(PORT, serial=d['serial'])
         host_ip = get_adb_host_ip()
-        unique_physical = {(host_ip, d["model"]) for d in devices}
+        unique_physical = {(host_ip, d["model"]) for d in usb_devices}
     else:
         unique_physical = {
             (d['wifi_ip'], d['model']) for d in devices if d['wifi_ip'] is not None
@@ -353,26 +362,26 @@ async def send_app():
         print(f'{yellow}Waiting ({timeout} seconds) for ACK from smartphone {IP}...')
         ack_ok = False
 
+        start_wait = trio.current_time()
         try:
-            import datetime
             with trio.move_on_after(timeout):
                 while True:
                     data = await client_socket.receive_some(16)
                     now = datetime.datetime.now()
-                    print(f'RECEIVED: {data!r} at {now}')
+                    remaining = max(0, timeout - (trio.current_time() - start_wait))
+                    print(f'RECEIVED: {data!r} at {now} (timeout in {remaining:.0f}s)')
 
                     if data == b'OK':
                         ack_ok = True
                         break
 
                     if data == b'':
-                        await trio.sleep(0.1)
+                        await trio.sleep(10)
                         continue
 
         except Exception as e:
             print(f'{red}Error while waiting for ACK: {e}')
 
-        import datetime
         formatted_time = datetime.datetime.now().strftime("%m-%d %H:%M:%S.%f")[:-3]
 
         if ack_ok:

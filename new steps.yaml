@@ -12,6 +12,7 @@ for each os:
 ✔️ (main.py first, then compile)
 ✔️on the win 11 script add to wslconfig mirrorednetworking = true
 ✔️ (manually test this by deleting wslconfig)
+=-=-=-=-
 
 
 
@@ -68,6 +69,7 @@ win 10 usb compile > main
 ✔️ is there a way to test if adb is in nodaemon mode?
 ✔️ is_adb_listening > check if adb in nodaemon mode + adb port forwarded
 
+(make sure phone wifi is off)
 ✔️✔️✔️ win 10 usb uv run main.py > uv run kivy-reloader run
 (fails but makes sense, phone isn't on yet AND reload on phone is true)
 confirmed HOT_RELOAD_ON_PHONE = false works and skips reload (you have to rebuild app if you change the toml though since it's only read during startup)
@@ -80,10 +82,14 @@ confirmed HOT_RELOAD_ON_PHONE = false works and skips reload (you have to rebuil
 "fails" but is a proper fail as app isnt on phone yet
 
 now check wsl11
-win 11 usb uv run kivy-reloader run > uv run main.py
+(make sure phone wifi is off)
+✔️✔️✔️ win 11 usb uv run kivy-reloader run > uv run main.py
+works normally
 win 11 usb uv run main.py > uv run kivy-reloader run
+works + made a prompt when ppl need to unplug/plug in phone
 
 win 11 wifi uv run kivy-reloader run > uv run main.py
+✔️✔️✔️ WORKS NOW
 new problem: if every device is unauthorized u have to reset adb (nontrivial fix)
 so how do I fix it?
 this is because it could be in adb forward + adb -a -P nodaemon mode
@@ -98,10 +104,13 @@ win 11 wifi uv run main.py > uv run kivy-reloader run
 ✔️✔️✔️ WORKS (device isn't on)
 ✔️✔️✔️ WORKS (reload on phone false)
 I think kivy reloader is looking at .buildozer? very weird
+✔️✔️✔️THIS IS ANOTHER PROBLEM, PROJECT FAILS ON WATCHING "." BUT WORKED WHEN WATCHING "HELLO-WORLD" (so totally diff from testing if reloading itself works) (FIXED)
 
-
+(make sure phone wifi is off)
 mac usb uv run kivy-reloader run > uv run main.py
 mac usb uv run main.py > uv run kivy-reloader run
+
+
 mac wifi uv run kivy-reloader run > uv run main.py
 mac wifi uv run main.py > uv run kivy-reloader run
 
@@ -127,7 +136,38 @@ fixed network flow between desktop and android phone client on mac/win10/win11
 works with win 11 wsl2 mirrored networking and updated kivyschool to do mirred networking if no wslconfig found
 fixed typer.clear() failing on newest typer
 fixed kivy reloader crash (trying to compile watchdog/kaki for android which is unnecessary)
+added uv run kivy-reloader init project to give you a fresh hello world project
+fixed bug in kivy-reloader init where the default toml was beautifulapp
+PROJECT FAILS ON WATCHING "." BUT WORKED WHEN WATCHING "HELLO-WORLD" (so totally diff from testing if reloading itself works)
 
+
+
+=-=-=-=-=
+- fixed network flow between desktop and android phone client on mac/win10/win11
+- works with win 11 wsl2 mirrored networking and updated kivyschool to do mirred networking if no wslconfig found
+- fixed typer.clear() failing on newest typer
+- fixed kivy reloader crash (trying to compile watchdog/kaki for android which is unnecessary)
+
+mainly i fixed wsl2 networking and usb only
+so now u dont even need wifi
+it felt weird to have usb option and u still needed wifi
+
+i fixed flow
+i added kivy reloader init > makes the tomls
+i added kivy relaoder init project > makes the hello world for u, also have to fix kivyschool website installs
+
+also fixed a bunch of random stuff, like default toml is supposed to exclude kivy-reloader, kivy_reloader for local editable install
+also there was like an extra toml in the project somewhere
+and like general fixes 
+also updated the delta so the flow is now
+send #MB > update app
+before it was just attempt to update app
+
+rn win 10 wsl2 is finished
+checking win 11 wsl2 
+then moving onto mac
+
+and then gonna do a quick helper, integrate into ksproject, udpate website then finish the damn udemy course lol
 
 =-=-==************ UNCLEARED ************=-=-=-==
 need a plan for maintaining my brand
