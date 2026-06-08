@@ -139,7 +139,7 @@ fixed kivy reloader crash (trying to compile watchdog/kaki for android which is 
 added uv run kivy-reloader init project to give you a fresh hello world project
 fixed bug in kivy-reloader init where the default toml was beautifulapp
 PROJECT FAILS ON WATCHING "." BUT WORKED WHEN WATCHING "HELLO-WORLD" (so totally diff from testing if reloading itself works)
-
+fixed notifications failing on mac (no pyojbius)
 
 
 =-=-=-=-=
@@ -166,6 +166,8 @@ before it was just attempt to update app
 rn win 10 wsl2 is finished
 checking win 11 wsl2 
 then moving onto mac
+OSError Address already in use when building app in one environment, then going to another pc and the server was still using the address ()
+06-08 01:34:22.715 32280 32558 I python  : [ERROR  ] [Reloader    ] Full Traceback: OSError: [Errno 98] Address already in use
 
 and then gonna do a quick helper, integrate into ksproject, udpate website then finish the damn udemy course lol
 

@@ -570,6 +570,7 @@ class AndroidApp(BaseReloaderApp, KivyApp):
         The server listens on the configured port and automatically
         discovers the device's IP address for network communication.
         """
+        import errno as _errno
         PORT = int(config.RELOADER_PORT)
 
         # if config.STREAM_USING == "USB":
@@ -578,23 +579,51 @@ class AndroidApp(BaseReloaderApp, KivyApp):
         #     host = "0.0.0.0"
         host = "0.0.0.0"
 
-        try:
-            # Discover device IP address
-            # device_ip = self._get_device_ip()
-            # Logger.info(f'Smartphone IP: {device_ip}')
-            Logger.info(f'starting server on: host:{host},port:{PORT}')
+        # try:
+        #     # Discover device IP address
+        #     # device_ip = self._get_device_ip()
+        #     # Logger.info(f'Smartphone IP: {device_ip}')
+        #     Logger.info(f'starting server on: host:{host},port:{PORT}')
 
-            # Start TCP server
-            await trio.serve_tcp(self.data_receiver, PORT, host=host)
+        #     # Start TCP server
+        #     await trio.serve_tcp(self.data_receiver, PORT, host=host)
 
-        except Exception as e:
-            import traceback
-            full_trace = traceback.format_exc()
-            # If it's a Trio MultiError, we want to see the sub-exceptions
-            error_detail = repr(e)
-            Logger.info(f"I python full trace, {full_trace}")
-            Logger.info(f"I python error detail, {error_detail}")
-            self._log_server_startup_error(error_detail, full_trace)
+        # except Exception as e:
+        #     import traceback
+        #     full_trace = traceback.format_exc()
+        #     # If it's a Trio MultiError, we want to see the sub-exceptions
+        #     error_detail = repr(e)
+        #     Logger.info(f"I python full trace, {full_trace}")
+        #     Logger.info(f"I python error detail, {error_detail}")
+        #     self._log_server_startup_error(error_detail, full_trace)
+        max_attempts = 10
+        for attempt in range(max_attempts):
+            try:
+                Logger.info(f'[starting server on] host:{host},port:{PORT}')
+                await trio.serve_tcp(self.data_receiver, PORT, host=host)
+                return
+            except OSError as e:
+                if e.errno == _errno.EADDRINUSE and attempt < max_attempts - 1:
+                    Logger.info(
+                        f'Port {PORT} still in use (old process not dead yet), '
+                        f'retrying in 1s... ({attempt + 1}/{max_attempts})'
+                    )
+                    await trio.sleep(1)
+                else:
+                    import traceback
+                    full_trace = traceback.format_exc()
+                    Logger.info(f"I python full trace, {full_trace}")
+                    Logger.info(f"I python error detail, {repr(e)}")
+                    self._log_server_startup_error(repr(e), full_trace)
+                    return
+            except Exception as e:
+                import traceback
+                full_trace = traceback.format_exc()
+                error_detail = repr(e)
+                Logger.info(f"I python full trace, {full_trace}")
+                Logger.info(f"I python error detail, {error_detail}")
+                self._log_server_startup_error(error_detail, full_trace)
+                return
 
     def _get_device_ip(self):
         """

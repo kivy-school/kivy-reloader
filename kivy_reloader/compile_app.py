@@ -780,6 +780,13 @@ def deploy_app_to_devices(target_devices, apk_file_path, package_name):
             logging.error(f'adb install FAILED: {e.stderr}')
             return
 
+        # Force-stop old process so it releases port 8050 before new APK installs
+        logging.info(f'Force-stopping old app on {device["model"]} | ({device["serial"]})')
+        subprocess.run(
+            ['adb', '-s', device['serial'], 'shell', 'am', 'force-stop', package_name],
+            timeout=10
+        )
+
         logging.info(f'Starting app on {device["model"]} | ({device["serial"]})')
         # subprocess.run([
         #     'adb', '-s', device['serial'], 'shell', 'am', 'start',
