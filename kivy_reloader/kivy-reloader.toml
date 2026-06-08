@@ -18,7 +18,7 @@ STREAM_USING = "WIFI"
 
 # Files that trigger a complete app restart when changed
 # Example: ["main.py", "settings.py"] - main app files
-FULL_RELOAD_FILES = ["main.py", "beautifulapp/__init__.py"]
+FULL_RELOAD_FILES = ["main.py"]
 
 # Folders to watch recursively (any file change triggers reload)
 # Example: ["screens/", "components/"] - your main app folders
@@ -37,7 +37,7 @@ WATCHED_FOLDERS = []
 # Built-in exclusions are automatically applied (.git, .buildozer, .venv, *.pyc, __pycache__, etc.)
 # Add your own patterns here for additional files/folders to ignore
 # Example: ["*.tmp", "cache", "logs/*.log"]
-DO_NOT_WATCH_PATTERNS = ["kivy_reloader", ""kivy-reloader"]
+DO_NOT_WATCH_PATTERNS = ["kivy_reloader", "kivy-reloader"]
 
 # ════════════════════════════════════════════════════════════════
 # 🛠️ SERVICES & BACKGROUND PROCESSES

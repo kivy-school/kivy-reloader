@@ -1,5 +1,5 @@
 INSANELY GOOD COMMAND BTW #
- grep -rnw . -e "ADB_PORT"
+grep -rnw . -e "ADB_PORT"
 
 
 THIS WAS THE COMMAND I WAS LOOKING FOR THE ENTIRE TIME (this is bugged as hell)
@@ -71,6 +71,7 @@ win 11 usb uv run kivy-reloader run > uv run main.py
 win 11 usb uv run main.py > uv run kivy-reloader run
 
 win 11 wifi uv run kivy-reloader run > uv run main.py
+✔️✔️✔️ WORKS NOW
 new problem: if every device is unauthorized u have to reset adb (nontrivial fix)
 so how do I fix it?
 this is because it could be in adb forward + adb -a -P nodaemon mode
@@ -85,6 +86,7 @@ win 11 wifi uv run main.py > uv run kivy-reloader run
 ✔️✔️✔️ WORKS (device isn't on)
 ✔️✔️✔️ WORKS (reload on phone false)
 I think kivy reloader is looking at .buildozer? very weird
+✔️✔️✔️THIS IS ANOTHER PROBLEM, PROJECT FAILS ON WATCHING "." BUT WORKED WHEN WATCHING "HELLO-WORLD" (so totally diff from testing if reloading itself works) (FIXED)
 
 
 mac usb uv run kivy-reloader run > uv run main.py
@@ -114,7 +116,38 @@ fixed network flow between desktop and android phone client on mac/win10/win11
 works with win 11 wsl2 mirrored networking and updated kivyschool to do mirred networking if no wslconfig found
 fixed typer.clear() failing on newest typer
 fixed kivy reloader crash (trying to compile watchdog/kaki for android which is unnecessary)
+added uv run kivy-reloader init project to give you a fresh hello world project
+fixed bug in kivy-reloader init where the default toml was beautifulapp
+PROJECT FAILS ON WATCHING "." BUT WORKED WHEN WATCHING "HELLO-WORLD" (so totally diff from testing if reloading itself works)
 
+
+
+=-=-=-=-=
+- fixed network flow between desktop and android phone client on mac/win10/win11
+- works with win 11 wsl2 mirrored networking and updated kivyschool to do mirred networking if no wslconfig found
+- fixed typer.clear() failing on newest typer
+- fixed kivy reloader crash (trying to compile watchdog/kaki for android which is unnecessary)
+
+mainly i fixed wsl2 networking and usb only
+so now u dont even need wifi
+it felt weird to have usb option and u still needed wifi
+
+i fixed flow
+i added kivy reloader init > makes the tomls
+i added kivy relaoder init project > makes the hello world for u, also have to fix kivyschool website installs
+
+also fixed a bunch of random stuff, like default toml is supposed to exclude kivy-reloader, kivy_reloader for local editable install
+also there was like an extra toml in the project somewhere
+and like general fixes 
+also updated the delta so the flow is now
+send #MB > update app
+before it was just attempt to update app
+
+rn win 10 wsl2 is finished
+checking win 11 wsl2 
+then moving onto mac
+
+and then gonna do a quick helper, integrate into ksproject, udpate website then finish the damn udemy course lol
 
 =-=-==************ UNCLEARED ************=-=-=-==
 need a plan for maintaining my brand

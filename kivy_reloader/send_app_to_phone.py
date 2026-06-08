@@ -236,17 +236,25 @@ async def send_app():
         print(f'{yellow}No connected devices found.')
         return 1
 
-    # Set up ADB port forwarding if USB mode
+    # worked but fails when multiple connected devices
+    # # Set up ADB port forwarding if USB mode
+    # if config.STREAM_USING == "USB":
+    #     PORT = config.RELOADER_PORT
+    #     adb_forward(PORT)
+    #     # adb_cmd = f"adb forward tcp:{PORT} tcp:{PORT}"
+    #     # logging.info(adb_cmd)
+    #     # os.system(adb_cmd)
+
+    #     # unique_physical = set(zip(config.PHONE_IPS, (d["model"] for d in devices)))
+    #     host_ip = get_adb_host_ip()
+    #     unique_physical = {(host_ip, d["model"]) for d in devices}
     if config.STREAM_USING == "USB":
         PORT = config.RELOADER_PORT
-        adb_forward(PORT)
-        # adb_cmd = f"adb forward tcp:{PORT} tcp:{PORT}"
-        # logging.info(adb_cmd)
-        # os.system(adb_cmd)
-
-        # unique_physical = set(zip(config.PHONE_IPS, (d["model"] for d in devices)))
+        usb_devices = [d for d in devices if d['transport'] == 'usb']
+        for d in usb_devices:
+            adb_forward(PORT, serial=d['serial'])
         host_ip = get_adb_host_ip()
-        unique_physical = {(host_ip, d["model"]) for d in devices}
+        unique_physical = {(host_ip, d["model"]) for d in usb_devices}
     else:
         unique_physical = {
             (d['wifi_ip'], d['model']) for d in devices if d['wifi_ip'] is not None

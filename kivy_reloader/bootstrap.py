@@ -37,7 +37,9 @@ def create_settings_file():
     kivy-reloader-template.toml file instead.
     """
 
-    if 'kivy-reloader.toml' in files_in_base_dir:
+    # if 'kivy-reloader.toml' in files_in_base_dir:
+    if (Path(base_dir) / 'kivy-reloader.toml').exists():
+    # if 'kivy-reloader.toml' in files_in_base_dir:
         klprint(
             'kivy-reloader.toml already exists, creating kivy-reloader-template.toml'
         )
@@ -244,7 +246,6 @@ def main():
     klprint(f'Kivy Reloader v{_kl_version}')
 
     if args.command == 'init':
-        create_settings_file()
         create_buildozer_spec_file()
         # if mac m1 chip: , add p4a watchdog recipe
         if is_apple_m_series():
@@ -252,6 +253,7 @@ def main():
         # scaffold hello-world project if requested
         if getattr(args, 'subcommand', None) == 'project':
             scaffold_hello_world()
+        create_settings_file() # hello world project takes precedence over the default settings file
 
     if args.command == 'initbare':
         # make sure there is an init flag that says 'naked' or smth
