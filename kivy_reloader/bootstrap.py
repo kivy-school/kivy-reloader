@@ -104,6 +104,147 @@ def create_buildozer_spec_file():
             os.path.join(base_dir, 'buildozer.spec'),
         )
 
+UV_INIT_MAIN_PATTERN = re.compile(
+    r'^\s*def main\(\):\s*\n\s*print\("Hello from .+?!"\)\s*\n'
+    r'if __name__ == "__main__":\s*\n\s*main\(\)\s*$'
+)
+
+
+def _to_class_name(module_name: str) -> str:
+    return ''.join(part.capitalize() for part in module_name.split('_'))
+
+
+def _detect_ksproject():
+    """
+    Returns (True, module_name) if pyproject.toml has [tool.kivy-school],
+    otherwise (False, None).
+    """
+    pyproject_path = Path.cwd() / 'pyproject.toml'
+    if not pyproject_path.exists():
+        return False, None
+    try:
+        import tomlkit
+        with open(pyproject_path, 'r', encoding='utf-8') as f:
+            data = tomlkit.load(f)
+        ks = data.get('tool', {}).get('kivy-school', {})
+        if not ks:
+            return False, None
+        app_name = ks.get('app_name', '')
+        if not app_name:
+            return False, None
+        module_name = app_name.lower().replace('-', '_').replace(' ', '_')
+        return True, module_name
+    except Exception:
+        return False, None
+
+
+def _scaffold_hello_world_ksproject(module_name: str):
+    """
+    Scaffold kivy-reloader hello world into an existing ksproject project.
+    Targets src/<module_name>/ instead of hello_world/.
+    """
+    project_root = Path.cwd()
+    src_app_dir = project_root / 'src' / module_name
+    class_name = _to_class_name(module_name)
+
+    if not src_app_dir.exists():
+        klprint(
+            f'{red}ksproject source dir not found: src/{module_name}/\n'
+            'Run `ksproject init` first, then `kivy-reloader init project`.'
+        )
+        return
+
+    screens_dir = src_app_dir / 'screens'
+    files = {
+        screens_dir / '__init__.py': '',
+        screens_dir / 'main_screen.py': '''\
+from kivy.uix.screenmanager import Screen
+from kivy_reloader.lang import Builder
+
+Builder.load_file(__file__)
+
+
+class MainScreen(Screen):
+    pass
+''',
+        screens_dir / 'main_screen.kv': '''\
+<MainScreen>:
+    BoxLayout:
+        orientation: 'vertical'
+        Button:
+            text: 'Welcome to Kivy Reloader!'
+''',
+    }
+
+    for path, content in files.items():
+        path.parent.mkdir(parents=True, exist_ok=True)
+        if path.exists():
+            klprint(f'Already exists, skipping: {path.relative_to(project_root)}')
+        else:
+            path.write_text(content)
+            klprint(f'Created: {path.relative_to(project_root)}')
+
+    # Rewrite app.py to use kivy_reloader base class
+    app_py = src_app_dir / 'app.py'
+    app_py_content = f'''\
+from kivy_reloader.app import App
+from {module_name}.screens.main_screen import MainScreen
+
+
+class {class_name}App(App):
+    def build(self):
+        return MainScreen()
+'''
+    if app_py.exists() and 'from kivy_reloader.app import App' in app_py.read_text():
+        klprint(f'Already patched, skipping: src/{module_name}/app.py')
+    else:
+        app_py.write_text(app_py_content)
+        action = 'Patched' if app_py.exists() else 'Created'
+        klprint(f'{action}: src/{module_name}/app.py')
+
+    # kivy-reloader.toml with ksproject-aware paths
+    toml_path = project_root / 'kivy-reloader.toml'
+    toml_content = f'''\
+[kivy_reloader]
+HOT_RELOAD_ON_PHONE = true
+FULL_RELOAD_FILES = ["main.py", "src/{module_name}/app.py"]
+WATCHED_FOLDERS_RECURSIVELY = ["."]
+STREAM_USING = "WIFI"
+'''
+    if not toml_path.exists():
+        toml_path.write_text(toml_content)
+        klprint('Created: kivy-reloader.toml')
+
+    # main.py
+    main_py = project_root / 'main.py'
+    main_content = f'''\
+import trio
+from {module_name}.app import {class_name}App
+
+app = {class_name}App()
+trio.run(app.async_run, "trio")
+'''
+    if main_py.exists():
+        existing = main_py.read_text()
+        if UV_INIT_MAIN_PATTERN.match(existing):
+            answer = input(
+                f'{yellow}[KIVY RELOADER] Detected uv placeholder main.py. Replace it? [y/n]: {Fore.RESET}'
+            )
+            if answer.strip().lower() == 'y':
+                main_py.write_text(main_content)
+                klprint(f'{red}Replaced uv placeholder: main.py')
+            else:
+                klprint('Skipped main.py')
+        elif f'from {module_name}.app import' in existing:
+            klprint('main.py already configured, skipping.')
+        else:
+            klprint(f'{red}⚠️  main.py exists. To use Kivy Reloader, replace its contents with:')
+            print(f'{red}{main_content}{Fore.RESET}')
+    else:
+        main_py.write_text(main_content)
+        klprint('Created: main.py')
+
+
 def scaffold_hello_world():
     """
     Scaffolds a hello-world Kivy Reloader project in the current directory.

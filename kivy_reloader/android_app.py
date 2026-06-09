@@ -599,7 +599,7 @@ class AndroidApp(BaseReloaderApp, KivyApp):
         max_attempts = 10
         for attempt in range(max_attempts):
             try:
-                Logger.info(f'[starting server on] host:{host},port:{PORT}')
+                Logger.info(f'Kivy-Reloader: starting server on host{host},port:{PORT}')
                 await trio.serve_tcp(self.data_receiver, PORT, host=host)
                 return
             except OSError as e:

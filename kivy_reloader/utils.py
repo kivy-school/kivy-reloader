@@ -261,11 +261,14 @@ def get_connected_devices(fetch_wifi_ip: bool = False) -> list[dict[str, str]]:
             'model': model,
             'wifi_ip': wifi_ip,
         })
-    logging.info(f'Total serials connected: {len(devices)}')
-    unique_physical = {
-        (d['wifi_ip'], d['model']) for d in devices if d['wifi_ip'] is not None
-    }
-    logging.info(f'Total devices connected: {len(unique_physical)}. WIFI: {fetch_wifi_ip}')
+    # logging.info(f'Total serials connected: {len(devices)}')
+    # unique_physical = {
+    #     (d['wifi_ip'], d['model']) for d in devices if d['wifi_ip'] is not None
+    # }
+    # logging.info(f'Total devices connected: {len(unique_physical)}. WIFI: {fetch_wifi_ip}')
+    usb_count = sum(1 for d in devices if d['transport'] == 'usb')
+    wifi_count = sum(1 for d in devices if d['transport'] == 'tcpip')
+    logging.info(f'Total devices: {len(devices)} (USB: {usb_count}, WIFI: {wifi_count})')
     return devices
 
 # def get_connected_devices() -> list[dict[str, str]]:
@@ -845,6 +848,14 @@ async def run_wsl_firewall_fix(port=8055):
         subnet_range = f"{parts[0]}.{parts[1]}.0.0/20"
         print(f"[*] Detected WSL IP: {raw_ip} -> Using Subnet: {subnet_range}")
 
+        # Get Windows host gateway (the IP WSL2 uses to reach Windows)
+        gateway = subprocess.check_output(
+            ["sh", "-c", "ip route show dev eth0 | grep default | awk '{print $3}'"],
+            text=True
+        ).strip()
+        print(f"[*] Windows host gateway: {gateway}")
+
+
         rule_name = f"WSL Kivy Surgical {port}"
 
         # 2. Read current state (no admin needed)
@@ -907,16 +918,27 @@ async def run_wsl_firewall_fix(port=8055):
         wsl_allowed = "vEthernet (WSL)" in output
         rule_enabled = "RULE:True" in output
 
+        proxy_result = subprocess.run(
+            ["netsh.exe", "interface", "portproxy", "show", "v4tov4"],
+            capture_output=True, text=True
+        )
+        portproxy_exists = any(
+            gateway in line and str(port) in line
+            for line in proxy_result.stdout.splitlines()
+        )
+
         # 3. Report each case clearly
         print()
         print(f"[Case 1] WSL interface allowed: {'✓ YES' if wsl_allowed else '✗ NO — will fix'}")
         print(f"[Case 2] Port {port} rule enabled: {'✓ YES' if rule_enabled else '✗ NO — will fix'}")
+        print(f"[Case 3] Port proxy {gateway}:{port} → 127.0.0.1:{port}: {'✓ YES' if portproxy_exists else '✗ NO — will fix'}")
         print()
 
         # 4. Nothing to do
-        if wsl_allowed and rule_enabled:
+        if wsl_allowed and rule_enabled and portproxy_exists:
             print("[✓] All good — nothing to fix!")
             return
+
 
         # 5. Build a single script covering only what needs fixing
         ps_parts = []
@@ -940,6 +962,15 @@ async def run_wsl_firewall_fix(port=8055):
                 f"-InterfaceAlias 'vEthernet (WSL)'; "
                 f"Write-Host '[+] Case 2 fixed: Inbound rule for port {port} created.'"
             )
+
+        # Case 3 fix: portproxy so WSL2 can reach ADB forward on Windows loopback
+        if not portproxy_exists:
+            ps_parts.append(
+                f"netsh interface portproxy delete v4tov4 listenaddress={gateway} listenport={port} 2>$null; "
+                f"netsh interface portproxy add v4tov4 listenaddress={gateway} listenport={port} connectaddress=127.0.0.1 connectport={port}; "
+                f"Write-Host '[+] Case 3 fixed: Port proxy {gateway}:{port} -> 127.0.0.1:{port} added.'"
+            )
+
 
         # 6. Fire single UAC prompt with combined script
         combined_script = " ".join(ps_parts)

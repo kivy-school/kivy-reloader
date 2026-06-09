@@ -76,6 +76,7 @@ confirmed HOT_RELOAD_ON_PHONE = false works and skips reload (you have to rebuil
 ✔️✔️✔️win 10 usb uv run main.py > uv run kivy-reloader run
 "fails" but is a proper fail as app isnt on phone yet
 
+
 ✔️✔️✔️win 10 wifi uv run kivy-reloader run > uv run main.py
 
 ✔️✔️✔️win 10 wifi uv run main.py > uv run kivy-reloader run
@@ -120,6 +121,27 @@ mac usb uv run main.py > uv run kivy-reloader run
 
 ✔️✔️✔️ mac wifi uv run main.py > uv run kivy-reloader run
 works and hit usual connect attempts
+
+
+LAST WIN 10 WSL CHECK
+so much setup to test:
+WSL SETUP (partials as well):
+- echo "test" | nc -v 127.0.0.1 8055
+- Test-NetConnection -ComputerName 192.168.1.131 -Port 8055 (through wifi)
+
+- Remove-NetFirewallRule -DisplayName "WSL Kivy Surgical 8055" -ErrorAction SilentlyContinue
+- Get-NetFirewallRule | Where-Object { $_.DisplayName -like "*WSL*" }
+- Get-NetFirewallRule | Where-Object {$_.DisplayName -like "*8055*"} | Select-Object DisplayName, Enabled, Profile, Action
+- Set-NetFirewallProfile -Profile Public -DisabledInterfaceAliases @()
+
+(wifi on phone off)
+✔️win 10 usb uv run kivy-reloader run > uv run main.py
+✔️win 10 usb uv run main.py > uv run kivy-reloader run
+
+✔️win 10 wifi uv run kivy-reloader run > uv run main.py
+(just straight up works)
+✔️win 10 wifi uv run main.py > uv run kivy-reloader run
+
 
 
 (test up top)
