@@ -170,8 +170,7 @@
 
     # Dark mode toggle (far right)
     Button:
-        text: f'[size=18][font={emoji_font}]{"☀️" if root.is_dark_mode else "🌙"}[/font][/size]'
-        markup: True
+        text: '☀' if root.is_dark_mode else '☾'
         size_hint: None, None
         size: [dp(40), dp(40)]
         background_color: transparent

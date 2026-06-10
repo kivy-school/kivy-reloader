@@ -5,10 +5,13 @@ import os
 import shutil
 from pathlib import Path
 import sys
-# so inspector works
-if '--inspect' in sys.argv:
-    sys.argv.remove('--inspect')
-    os.environ['KIVY_INSPECTOR'] = '1'
+_enable_inspector = False
+if '-m' in sys.argv:
+    _m_idx = sys.argv.index('-m')
+    if _m_idx + 1 < len(sys.argv) and sys.argv[_m_idx + 1] == 'inspector':
+        _enable_inspector = True
+        sys.argv.pop(_m_idx + 1)
+        sys.argv.pop(_m_idx)
 
 from colorama import Fore, init
 import re
@@ -442,6 +445,8 @@ def main():
         create_buildozer_spec_file()
 
     elif args.command == 'config':
+        if _enable_inspector:
+            sys.argv = [sys.argv[0], '-m', 'inspector']
         from .configurator.gui import run_gui  # noqa
 
         # Setup paths

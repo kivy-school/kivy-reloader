@@ -3,14 +3,12 @@
 This module provides the run_gui function that initializes the Kivy app
 with a ConfigModel and launches the configurator interface.
 """
-
 from __future__ import annotations
 
-import json 
+import json
 from pathlib import Path
 
 import trio
-import os
 
 from kivy.clock import Clock
 from kivy.core.window import Window 
@@ -49,9 +47,6 @@ def run_gui(
         config_path: Path to the config file (kivy-reloader.toml)
         debug: Enable debug mode
     """
-    if os.environ.get('KIVY_INSPECTOR'):
-        from kivy.config import Config
-        Config.set('modules', 'inspector', '')
     prefs = _load_prefs(base)
     dark_mode = prefs.get('dark_mode', False)
     # Load theme colors/fonts into global_idmap
@@ -106,3 +101,8 @@ def run_gui(
 
     app = ConfiguratorGUI()
     trio.run(app.async_run, 'trio')
+
+
+if __name__ == '__main__':
+    from pathlib import Path
+    run_gui(base=Path.cwd(), config_path=Path.cwd() / 'kivy-reloader.toml')
