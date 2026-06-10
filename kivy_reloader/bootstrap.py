@@ -7,7 +7,6 @@ from colorama import Fore, init
 import re
 
 from . import __version__ as _kl_version
-from .detection import is_apple_m_series
 
 yellow = Fore.YELLOW
 green = Fore.GREEN
@@ -55,32 +54,6 @@ def create_settings_file():
             os.path.join(current_file_dir, 'kivy-reloader.toml'),
             os.path.join(base_dir, 'kivy-reloader.toml'),
         )
-
-
-def copy_watchdog_recipe():
-    project_root = Path.cwd()
-    if not (project_root / "buildozer.spec").exists():
-        raise RuntimeError(
-            "No buildozer.spec found in current directory. "
-            "Run kivy-reloader init from your project root with buildozer.spec ."
-        )
-
-    watchdog_dst = Path.cwd() / "p4a-recipes" / "watchdog"
-
-    if watchdog_dst.exists() and any(watchdog_dst.iterdir()):
-        klprint(f"Already exists, skipping: {watchdog_dst}")
-        return
-
-    watchdog_src = Path(__file__).parent / "p4a-recipes" / "watchdog"
-
-    if not watchdog_src.exists():
-        klprint(f"watchdog recipe not found at: {watchdog_src}, skipping.")
-        return
-
-    shutil.copytree(watchdog_src, watchdog_dst)
-    klprint(f"Copied: {watchdog_src} → {watchdog_dst}")
-    klprint("(watchdog empty recipe to fix Mac M-series Android build crash)")
-
 
 def create_buildozer_spec_file():
     """
@@ -258,8 +231,15 @@ def scaffold_hello_world():
       hello_world/screens/main_screen.kv
       kivy-reloader.toml  (project-specific, overwrites any generic one)
  
+    If a ksproject pyproject.toml is detected, scaffolds into src/<module>/ instead. 
     Skips any file that already exists so re-running is safe.
     """
+
+    is_ksp, module_name = _detect_ksproject()
+    if is_ksp:
+        klprint(f'ksproject detected (module: {module_name}) — scaffolding into src/{module_name}/')
+        _scaffold_hello_world_ksproject(module_name)
+        return 
     project_root = Path.cwd()
  
     files = {
@@ -397,11 +377,9 @@ def main():
     klprint(f'Kivy Reloader v{_kl_version}')
 
     if args.command == 'init':
-        create_buildozer_spec_file()
-        # if mac m1 chip: , add p4a watchdog recipe
-        if is_apple_m_series():
-            copy_watchdog_recipe()
-        # scaffold hello-world project if requested
+        is_ksp, _ = _detect_ksproject() 
+        if not is_ksp:
+            create_buildozer_spec_file() 
         if getattr(args, 'subcommand', None) == 'project':
             scaffold_hello_world()
         create_settings_file() # hello world project takes precedence over the default settings file

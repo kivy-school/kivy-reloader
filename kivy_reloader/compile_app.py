@@ -51,6 +51,21 @@ green = Fore.GREEN
 yellow = Fore.YELLOW
 red = Fore.RED
 
+def _read_ksproject_config() -> dict:
+    """Read build config from pyproject.toml [tool.kivy-school] section."""
+    import tomlkit
+    with open('pyproject.toml', 'r', encoding='utf-8') as f:
+        data = tomlkit.load(f)
+    ks = data.get('tool', {}).get('kivy-school', {})
+    android = ks.get('android', {})
+    app_name_val = ks.get('app_name', 'App')
+    pkg_name = android.get('package_name', f'org.kivy.{app_name_val.lower()}')
+    return {
+        'app_name': app_name_val,
+        'package': pkg_name,
+        'apk_path': 'project_dist/gradle/app/build/outputs/apk/debug/app-debug.apk',
+    }
+
 
 def parse_buildozer_spec() -> dict:
     """
@@ -569,9 +584,21 @@ logcat_proc: subprocess.Popen | None = None
 filter_proc: subprocess.Popen | None = None
 
 app = typer.Typer()
-app_name = get_app_name()
-package = get_package_name()
-apk_path = get_apk_path()
+# replace with:
+try:
+    app_name = get_app_name()
+    package = get_package_name()
+    apk_path = get_apk_path()
+except FileNotFoundError:
+    try:
+        _ksp = _read_ksproject_config()
+        app_name = _ksp['app_name']
+        package = _ksp['package']
+        apk_path = _ksp['apk_path']
+    except Exception:
+        app_name = 'App'
+        package = ''
+        apk_path = ''
 
 compiler_options = [
     'Compile, debug and livestream',
@@ -836,6 +863,17 @@ def deploy_app_to_devices(target_devices, apk_file_path, package_name):
 #             check=True,
 #         )
 
+def run_ksproject_build() -> float:
+    """Run ksproject android build instead of buildozer."""
+    notify(f'Compiling {app_name}', f'Compilation started at {time.strftime("%H:%M:%S")}')
+    start_time = time.time()
+    subprocess.run(['ksproject', 'android', 'build', 'debug'], check=True)
+    end_time = time.time()
+    compilation_time = round(end_time - start_time, 2)
+    notify(f'Compiled {app_name} successfully', f'Compilation finished in {compilation_time} seconds')
+    return compilation_time
+
+
 def compile_app(buildozer_compiled: Event = None):
     """
     Orchestrates the complete app compilation and deployment process.
@@ -846,12 +884,20 @@ def compile_app(buildozer_compiled: Event = None):
     # Step 1: Validate environment
     validate_compilation_environment()
 
-    # #     # wait_for_adb_online()
-        # start_adb_claude()
-    #     # wait_for_authorization()
+    # detect ksproject and use it as the build backend if present
+    _is_ksp = False
+    try:
+        import tomlkit
+        with open('pyproject.toml', 'r', encoding='utf-8') as _f:
+            _is_ksp = bool(tomlkit.load(_f).get('tool', {}).get('kivy-school', {}))
+    except Exception:
+        pass
 
-    # Step 2: Compile using buildozer
-    run_buildozer_compilation()
+    if _is_ksp:
+        run_ksproject_build()
+    else:
+        # Step 2: Compile using buildozer
+        run_buildozer_compilation()
 
     # Step 3: Get and filter target devices
     logging.info("compile app wait for auth")
