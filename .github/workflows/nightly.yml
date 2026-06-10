@@ -21,7 +21,7 @@ jobs:
         with:
           enable-cache: true
 
-      - run: uv sync
+      - run: uv sync --extra desktop
 
       - name: Run headless smoke test
         run: xvfb-run -a uv run python tests/test_smoke.py
