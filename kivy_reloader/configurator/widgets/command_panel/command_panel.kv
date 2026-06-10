@@ -1,0 +1,106 @@
+<CommandPanel>:
+    orientation: 'vertical'
+    size_hint_y: None
+    height: dp(160) if self.is_expanded else dp(32)
+
+    canvas.before:
+        Color:
+            rgba: card_color
+        Rectangle:
+            pos: self.pos
+            size: self.size
+        Color:
+            rgba: border_color
+        Line:
+            points: [self.x, self.top, self.right, self.top]
+            width: dp(1)
+
+    # Header (always visible)
+    BoxLayout:
+        size_hint_y: None
+        height: dp(32)
+        padding: [dp(8), dp(4), dp(8), dp(4)]
+        spacing: dp(8)
+
+        canvas.before:
+            Color:
+                rgba: muted_color
+            Rectangle:
+                pos: self.pos
+                size: self.size
+
+        Label:
+            text: 'Terminal'
+            size_hint_x: None
+            width: self.texture_size[0] + dp(8)
+            font_size: font_size_sm
+            color: foreground_color
+            bold: True
+
+        Widget:
+
+        Button:
+            text: unicode['chevron-down'] if root.is_expanded else unicode['chevron-right']
+            font_name: icon_font
+            size_hint: None, None
+            size: dp(26), dp(26)
+            background_color: transparent
+            color: foreground_color
+            font_size: font_size_lg
+            on_release: root.toggle()
+
+            canvas.before:
+                Color:
+                    rgba: muted_active_color if self.state == 'down' else transparent
+                SmoothRoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [border_radius_sm]
+
+    # Content
+    BoxLayout:
+        orientation: 'vertical'
+        padding: [dp(8), dp(4), dp(8), dp(4)]
+        spacing: dp(4)
+
+        canvas.before:
+            Color:
+                rgba: background_color
+            Rectangle:
+                pos: self.pos
+                size: self.size
+
+        # Last command on top
+        Label:
+            text: ('$ ' + root.current_command) if root.current_command else '$ (no command yet)'
+            size_hint_y: None
+            height: dp(26)
+            font_size: font_size_xs
+            color: success_color if root.current_command else muted_foreground_color
+            halign: 'left'
+            valign: 'middle'
+            text_size: self.width, dp(26)
+            padding: [dp(4), 0]
+
+            canvas.before:
+                Color:
+                    rgba: muted_color
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [border_radius_sm]
+
+        # Output below
+        ScrollView:
+            do_scroll_x: False
+
+            Label:
+                text: root.output_log if root.output_log else 'Output will appear here...'
+                size_hint_y: None
+                height: self.texture_size[1]
+                font_size: dp(11)
+                color: foreground_color if root.output_log else muted_foreground_color
+                halign: 'left'
+                valign: 'top'
+                text_size: self.width, None
+                padding: [dp(4), dp(4)]
