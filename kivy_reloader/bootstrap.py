@@ -267,7 +267,12 @@ def main():
 
     # Fix __init__.py — ksproject default calls `from .app import main` which doesn't exist
     init_py = src_app_dir / '__init__.py'
-    init_content = 'from .app import main\n'
+    init_content = '''\
+def main(*args) -> None:
+    from .app import main
+    main()
+'''
+
     init_py.write_text(init_content)
     klprint(f'Updated: src/{module_name}/__init__.py')
 
