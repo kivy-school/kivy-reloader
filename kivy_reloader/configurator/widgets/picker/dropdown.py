@@ -609,7 +609,9 @@ class DropdownPicker(ButtonBehavior, BoxLayout):
             self.is_hovered = False
 
     def on_mouse_down(self, window, x, y, button, modifiers):
-        """Close dropdown if clicking outside"""
+        """Close dropdown if clicking outside. Scroll events are handled by touch dispatch."""
+        if button in ('scrolldown', 'scrollup', 'scrollleft', 'scrollright'):
+            return
         if self.is_open and self.container:
             # Adjust Window y coordinate for Kivy's coordinate system
             # In Kivy, (0,0) is bottom left, but Window gives (0,0) at top left

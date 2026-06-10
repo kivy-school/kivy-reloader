@@ -12,10 +12,27 @@ from kivy_reloader.configurator.widgets.cards import (  # noqa: F401
     CoreCard,
     ServicesCard,
 )
+from kivy_reloader.configurator.widgets.command_panel import CommandPanel # noqa: F401 
 from kivy_reloader.configurator.widgets.common import ConfirmPopup, HelpPopup
 from kivy_reloader.configurator.widgets.sidebar import SideBar  # noqa: F401
 from kivy_reloader.configurator.widgets.toolbar import Toolbar  # noqa: F401
 from kivy_reloader.lang import Builder
+import io
+
+class _LogCapture(io.StringIO):
+    def __init__(self, panel):
+        super().__init__()
+        self._panel = panel
+        self._real = sys.__stdout__
+
+    def write(self, text):
+        self._real.write(text)
+        if text.strip():
+            self._panel.output_log = (self._panel.output_log + '\n' + text.rstrip()).lstrip('\n')
+
+    def flush(self):
+        self._real.flush()
+
 
 Builder.load_file(__file__)
 
@@ -45,6 +62,7 @@ class CoreScreen(Screen):
     section_manager = ObjectProperty(None)
     core_card = ObjectProperty(None)
     services_card = ObjectProperty(None)
+    command_panel = ObjectProperty(None) 
 
     def __init__(self, **kwargs):
         self._section_cards = {}
@@ -68,6 +86,7 @@ class CoreScreen(Screen):
         toolbar.on_import = self.handle_import
         toolbar.on_help = self.handle_help
         toolbar.on_toggle_sidebar = self.toggle_sidebar
+        toolbar.on_toggle_dark_mode = self.handle_toggle_dark_mode 
 
         sidebar = self.sidebar
         self._sidebar_default_width = sidebar.width
@@ -81,6 +100,18 @@ class CoreScreen(Screen):
 
         # Setup keyboard shortcuts
         self._setup_keyboard_shortcuts()
+
+        if self.command_panel:
+            sys.stdout = _LogCapture(self.command_panel)
+    
+    def on_leave(self, *args):
+        if isinstance(sys.stdout, _LogCapture):
+            sys.stdout = sys.__stdout__
+
+
+    def _log(self, command, output=''):
+        if self.command_panel:
+            self.command_panel.log(command, output) 
 
     def update_unsaved_indicator(self):
         """Update the unsaved changes indicator based on model state."""
@@ -175,6 +206,11 @@ class CoreScreen(Screen):
         """Clear the current popup reference."""
         self._current_popup = None
 
+    def handle_toggle_dark_mode(self):
+        app = App.get_running_app()
+        if hasattr(app, 'toggle_dark_mode'):
+            app.toggle_dark_mode(self) 
+
     def handle_apply_reload(self):
         """Handle Apply & Reload action"""
         if self.config_model:
@@ -193,11 +229,18 @@ class CoreScreen(Screen):
 
     def handle_save(self):
         """Handle Save action"""
+        if self.command_panel:
+            self.command_panel.current_command = 'kivy-reloader config --save'
+
         if self.config_model:
             try:
                 self.config_model.save()
                 self.update_unsaved_indicator()
-                print(f'Configuration saved to {self.config_model.config_path}')
+                msg = f'Saved to {self.config_model.config_path}'
+                print(msg)
+                self._log(
+                f'kivy-reloader config --file {self.config_model.config_path}', msg
+                ) 
             except Exception as e:
                 print(f'Error saving configuration: {e}')
         else:

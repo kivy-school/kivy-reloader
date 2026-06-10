@@ -20,8 +20,10 @@ class Toolbar(BoxLayout):
     on_import = ObjectProperty(None)
     on_help = ObjectProperty(None)
     on_toggle_sidebar = ObjectProperty(None)
+    on_toggle_dark_mode = ObjectProperty(None) 
     is_sidebar_visible = BooleanProperty(True)
     has_unsaved_changes = BooleanProperty(False)
+    is_dark_mode = BooleanProperty(False) 
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -69,3 +71,7 @@ class Toolbar(BoxLayout):
         """Handle sidebar toggle"""
         if self.on_toggle_sidebar:
             self.on_toggle_sidebar()
+
+    def handle_toggle_dark_mode(self):
+        if self.on_toggle_dark_mode:
+            self.on_toggle_dark_mode() 

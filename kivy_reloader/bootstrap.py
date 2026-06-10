@@ -1,10 +1,20 @@
+
+
 import argparse
 import os
 import shutil
 from pathlib import Path
+import sys
+# so inspector works
+if '--inspect' in sys.argv:
+    sys.argv.remove('--inspect')
+    os.environ['KIVY_INSPECTOR'] = '1'
 
 from colorama import Fore, init
 import re
+
+import json
+from datetime import datetime
 
 from . import __version__ as _kl_version
 
@@ -24,6 +34,21 @@ current_file_dir = os.path.dirname(current_file_path)
 def klprint(string):
     # Kivy Logger
     print(f'{green}[KIVY RELOADER]{Fore.RESET} {string}')
+
+
+def _log_command_history(command: str) -> None:
+    """Log a CLI command invocation to the project-local history file."""
+    history_path = Path(base_dir) / '.kivy-reloader' / 'command_history.json'
+    history = []
+    if history_path.exists():
+        try:
+            history = json.loads(history_path.read_text())
+        except Exception:
+            pass
+    history.append({'command': command, 'timestamp': datetime.now().isoformat()})
+    history = history[-1000:]
+    history_path.parent.mkdir(parents=True, exist_ok=True)
+    history_path.write_text(json.dumps(history, indent=2))
 
 
 def create_settings_file():

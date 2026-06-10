@@ -167,3 +167,21 @@
                 pos: self.pos
                 size: self.size
                 radius: [border_radius_md]
+
+    # Dark mode toggle (far right)
+    Button:
+        text: f'[size=18][font={emoji_font}]{"☀️" if root.is_dark_mode else "🌙"}[/font][/size]'
+        markup: True
+        size_hint: None, None
+        size: [dp(40), dp(40)]
+        background_color: transparent
+        color: foreground_color
+        on_release: root.handle_toggle_dark_mode()
+
+        canvas.before:
+            Color:
+                rgba: muted_color if self.state == 'normal' else muted_active_color
+            SmoothRoundedRectangle:
+                pos: self.pos
+                size: self.size
+                radius: [border_radius_md]

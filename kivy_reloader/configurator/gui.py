@@ -6,17 +6,36 @@ with a ConfigModel and launches the configurator interface.
 
 from __future__ import annotations
 
+import json 
 from pathlib import Path
 
 import trio
+import os
 
-from kivy_reloader.app import App
+from kivy.clock import Clock
+from kivy.core.window import Window 
+from kivy.app import App
 from kivy_reloader.configurator.config_loader import merge_with_defaults
 from kivy_reloader.configurator.model import ConfigModel
 from kivy_reloader.configurator.schema import FIELD_DEFS
 from kivy_reloader.configurator.screens.core import CoreScreen
 from kivy_reloader.configurator.theme import load_theme
 
+def _prefs_path(base: Path) -> Path:
+    return base / '.kivy-reloader' / 'prefs.json'
+def _load_prefs(base: Path) -> dict:
+    path = _prefs_path(base)
+    if path.exists():
+        try:
+          return json.loads(path.read_text())
+        except Exception:
+            pass
+    return {}
+
+def _save_prefs(base: Path, prefs: dict) -> None:
+    path = _prefs_path(base)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(prefs, indent=2)) 
 
 def run_gui(
     base: Path,
@@ -30,8 +49,13 @@ def run_gui(
         config_path: Path to the config file (kivy-reloader.toml)
         debug: Enable debug mode
     """
+    if os.environ.get('KIVY_INSPECTOR'):
+        from kivy.config import Config
+        Config.set('modules', 'inspector', '')
+    prefs = _load_prefs(base)
+    dark_mode = prefs.get('dark_mode', False)
     # Load theme colors/fonts into global_idmap
-    load_theme()
+    load_theme(dark_mode=dark_mode) 
 
     # Create backup directory
     backup_dir = base / '.kivy-reloader' / 'backups'
@@ -46,12 +70,39 @@ def run_gui(
 
     # Create and run the Kivy app
     class ConfiguratorGUI(App):
+        DEBUG = False
+        RAISE_ERROR = True
+        def __init__(self, **kwargs):
+            super().__init__(**kwargs)
+            self._dark_mode = dark_mode
+            self._base = base 
         def build(self):
             config_model = create_config_model()
             self.core_screen = CoreScreen()
             self.core_screen.config_model = config_model
             self.title = "Kivy Flightdeck " # 🛩️ for dev, ✈️ for prod
             return self.core_screen
+
+        def on_start(self):
+            Clock.schedule_once(
+                lambda dt: setattr(self.core_screen.toolbar, 'is_dark_mode', self._dark_mode),
+                0,
+                )
+        def toggle_dark_mode(self, current_screen):
+            self._dark_mode = not self._dark_mode
+            _save_prefs(self._base, {**_load_prefs(self._base), 'dark_mode': self._dark_mode})
+            load_theme(dark_mode=self._dark_mode)
+            config_model = current_screen.config_model
+            Window.unbind(on_keyboard=current_screen._on_keyboard)
+            Window.remove_widget(current_screen)
+            new_screen = CoreScreen()
+            new_screen.config_model = config_model
+            self.core_screen = new_screen
+            Window.add_widget(new_screen)
+            Clock.schedule_once(
+                lambda dt: setattr(new_screen.toolbar, 'is_dark_mode', self._dark_mode),
+                0,
+            ) 
 
     app = ConfiguratorGUI()
     trio.run(app.async_run, 'trio')
