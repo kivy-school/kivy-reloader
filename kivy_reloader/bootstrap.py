@@ -110,6 +110,61 @@ UV_INIT_MAIN_PATTERN = re.compile(
     r'if __name__ == "__main__":\s*\n\s*main\(\)\s*$'
 )
 
+# ── Shared scaffold templates ──────────────────────────────────────────────────
+
+MAIN_SCREEN_PY = """\
+from kivy.uix.screenmanager import Screen
+from kivy_reloader.lang import Builder
+
+Builder.load_file(__file__)
+
+
+class MainScreen(Screen):
+    def on_nav(self, target):
+        print(f"NAV: {target}", flush=True)
+"""
+
+MAIN_SCREEN_KV = """\
+<MainScreen>:
+    BoxLayout:
+        orientation: 'vertical'
+        Button:
+            text: 'Welcome to Kivy Reloader!'
+            on_release: root.on_nav(self.text)
+"""
+
+
+def _app_py(module_name: str, class_name: str) -> str:
+    return f"""\
+from kivy_reloader.app import App
+from {module_name}.screens.main_screen import MainScreen
+
+
+class {class_name}App(App):
+    def build(self):
+        return MainScreen()
+"""
+
+
+def _main_py(module_name: str, class_name: str) -> str:
+    return f"""\
+import trio
+from {module_name}.app import {class_name}App
+
+app = {class_name}App()
+trio.run(app.async_run, "trio")
+"""
+
+
+def _toml(full_reload_app_path: str) -> str:
+    return f"""\
+[kivy_reloader]
+HOT_RELOAD_ON_PHONE = true
+FULL_RELOAD_FILES = ["main.py", "{full_reload_app_path}/app.py"]
+WATCHED_FOLDERS_RECURSIVELY = ["."]
+STREAM_USING = "WIFI"
+"""
+
 
 def _to_class_name(module_name: str) -> str:
     return ''.join(part.capitalize() for part in module_name.split('_'))
@@ -288,85 +343,28 @@ trio.run(app.async_run, "trio")
 def scaffold_hello_world():
     """
     Scaffolds a hello-world Kivy Reloader project in the current directory.
- 
-    Creates:
-      main.py
-      hello_world/__init__.py  (empty)
-      hello_world/app.py
-      hello_world/screens/__init__.py  (empty)
-      hello_world/screens/main_screen.py
-      hello_world/screens/main_screen.kv
-      kivy-reloader.toml  (project-specific, overwrites any generic one)
- 
-    If a ksproject pyproject.toml is detected, scaffolds into src/<module>/ instead. 
+    If a ksproject pyproject.toml is detected, scaffolds into src/<module>/ instead.
     Skips any file that already exists so re-running is safe.
     """
-
     is_ksp, module_name = _detect_ksproject()
     if is_ksp:
         klprint(f'ksproject detected (module: {module_name}) — scaffolding into src/{module_name}/')
         _scaffold_hello_world_ksproject(module_name)
-        return 
+        return
+
     project_root = Path.cwd()
- 
     files = {
         project_root / "hello_world" / "__init__.py": "",
-        project_root / "hello_world" / "app.py": """\
-import os
-from kivy_reloader.app import App
-from hello_world.screens.main_screen import MainScreen
- 
- 
-class HelloWorldApp(App):
-    def build(self):
-        return MainScreen()
-
-    def on_start(self):
-        print("HELLO_WORLD_STARTED", flush=True)
-        if os.environ.get("KIVY_SMOKE_TEST") == "1":
-            from kivy.clock import Clock
-            Clock.schedule_once(lambda dt: self.stop(), 1.0)
-""",
+        project_root / "hello_world" / "app.py": _app_py("hello_world", "HelloWorld"),
         project_root / "hello_world" / "screens" / "__init__.py": "",
-        project_root / "hello_world" / "screens" / "main_screen.py": """\
-from kivy.uix.screenmanager import Screen
-from kivy_reloader.lang import Builder
- 
-Builder.load_file(__file__)
- 
- 
-class MainScreen(Screen):
-    def on_nav(self, target):
-        print(f"NAV: {target}", flush=True)
-
-""",
-        project_root / "hello_world" / "screens" / "main_screen.kv": """\
-<MainScreen>:
-    BoxLayout:
-        orientation: 'vertical'
-        Button:
-            text: 'Welcome to Kivy Reloader!'
-            on_release: root.on_nav(self.text)
-
-""",
-        project_root / "kivy-reloader.toml": """\
-[kivy_reloader]
-HOT_RELOAD_ON_PHONE = true
-FULL_RELOAD_FILES = ["main.py", "hello_world/app.py"]
-WATCHED_FOLDERS_RECURSIVELY = ["."]
-STREAM_USING = "WIFI"
-""",
-        project_root / "main.py": """\
-import trio
-from hello_world.app import HelloWorldApp
-app = HelloWorldApp()
-trio.run(app.async_run, "trio")
-""",
+        project_root / "hello_world" / "screens" / "main_screen.py": MAIN_SCREEN_PY,
+        project_root / "hello_world" / "screens" / "main_screen.kv": MAIN_SCREEN_KV,
+        project_root / "kivy-reloader.toml": _toml("hello_world"),
+        project_root / "main.py": _main_py("hello_world", "HelloWorld"),
     }
 
     for path, content in files.items():
         path.parent.mkdir(parents=True, exist_ok=True)
-
         if path.exists():
             if path.name == "main.py" and UV_INIT_MAIN_PATTERN.match(path.read_text()):
                 answer = input(f"{yellow}[KIVY RELOADER] Detected uv placeholder main.py. Replace it? [y/n]: {Fore.RESET}")
@@ -381,8 +379,84 @@ trio.run(app.async_run, "trio")
                     klprint(f"{red}⚠️ To start using Kivy-Reloader, replace main.py contents with:")
                     print(f"{red}{content}{Fore.RESET}")
         else:
-            path.write_text(content)                  
+            path.write_text(content)
             klprint(f"Created: {path.relative_to(project_root)}")
+
+def smoke():
+    """Bootstrap a fresh hello world in a temp dir, run headlessly, verify it starts."""
+    import subprocess
+    import tempfile
+    import time
+    from pathlib import Path
+
+    TARGET = "HELLO_WORLD_STARTED"
+    TIMEOUT = 30
+
+    SMOKE_APP_PY = _app_py("hello_world", "HelloWorld") + """\
+
+    def on_start(self):
+        print("HELLO_WORLD_STARTED", flush=True)
+        from kivy.clock import Clock
+        Clock.schedule_once(lambda dt: self.stop(), 1.0)
+"""
+
+    with tempfile.TemporaryDirectory(prefix="kivy_smoke_") as tmpdir:
+        klprint(f"Bootstrapping hello world in {tmpdir}...")
+        original_dir = os.getcwd()
+        os.chdir(tmpdir)
+        try:
+            scaffold_hello_world()
+        finally:
+            os.chdir(original_dir)
+
+        (Path(tmpdir) / "hello_world" / "app.py").write_text(SMOKE_APP_PY)
+
+        if not (Path(tmpdir) / "main.py").exists():
+            klprint(f"{red}SMOKE FAILED: bootstrap did not create main.py")
+            return 1
+
+        klprint("Bootstrap OK, running app headlessly...")
+        env = {
+            **os.environ,
+            "RELOADER_STATUS": "PROD",
+            "KIVY_NO_ENV_CONFIG": "1",
+            "KIVY_LOG_MODE": "PYTHON",
+        }
+        proc = subprocess.Popen(
+            [sys.executable, "main.py"],
+            cwd=tmpdir,
+            env=env,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1,
+        )
+        found = False
+        deadline = time.monotonic() + TIMEOUT
+        try:
+            while time.monotonic() < deadline:
+                if proc.poll() is not None:
+                    break
+                line = proc.stdout.readline()
+                if line:
+                    print(line, end="", flush=True)
+                    if TARGET in line:
+                        found = True
+                        break
+        finally:
+            proc.terminate()
+            try:
+                proc.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+
+    if found:
+        klprint(f"{green}SMOKE TEST PASSED")
+        return 0
+    klprint(f"{red}SMOKE TEST FAILED: '{TARGET}' not found within {TIMEOUT}s")
+    return 1
+
+
 
 def main():
     parser = argparse.ArgumentParser(description='Kivy Reloader CLI')
@@ -402,6 +476,12 @@ def main():
         'run',
         help='Initializes Kivy Reloader',
     )
+
+    smoke_parser = subparsers.add_parser(  # noqa: F841
+        'smoke',
+        help='Bootstrap a fresh hello world in a temp dir and run a headless smoke test.',
+    )
+
     run_parser.add_argument(
         'action',
         nargs='?',
@@ -475,3 +555,6 @@ def main():
             debug_and_livestream()
         else:
             start()
+    elif args.command == 'smoke':
+        sys.exit(smoke())
+
