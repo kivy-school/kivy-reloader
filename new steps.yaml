@@ -222,6 +222,7 @@ uv run kivy-reloader run
 
 fixed version not reading from pyproject toml or environment
 updated pyproject toml to make sure CLI deps (colorama, typer, readchar, plyer) are in main install and desktop install is separate
+added inspector flag to configurator/kivy flightdeck
 
 also fixed a bunch of random stuff, like default toml is supposed to exclude kivy-reloader, kivy_reloader for local editable install
 also there was like an extra toml in the project somewhere

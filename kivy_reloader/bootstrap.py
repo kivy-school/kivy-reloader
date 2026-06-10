@@ -207,10 +207,14 @@ class {class_name}App(App):
     init_py = src_app_dir / '__init__.py'
     init_content = f'''\
 def main(*args) -> None:
-    import trio
+    from kivy.utils import platform
     from .app import {class_name}App
     app = {class_name}App()
-    trio.run(app.async_run, "trio")
+    if platform == 'android':
+        app.run()
+    else:
+        import trio
+        trio.run(app.async_run, "trio")
 '''
     init_py.write_text(init_content)
     klprint(f'Updated: src/{module_name}/__init__.py')
@@ -218,12 +222,16 @@ def main(*args) -> None:
     # Fix __main__.py entry point
     main_module_py = src_app_dir / '__main__.py'
     main_module_content = f'''\
-import trio
+from kivy.utils import platform
 from .app import {class_name}App
 
 if __name__ == "__main__":
     app = {class_name}App()
-    trio.run(app.async_run, "trio")
+    if platform == 'android':
+        app.run()
+    else:
+        import trio
+        trio.run(app.async_run, "trio")
 '''
     main_module_py.write_text(main_module_content)
     klprint(f'Updated: src/{module_name}/__main__.py')
