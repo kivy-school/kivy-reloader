@@ -584,7 +584,6 @@ logcat_proc: subprocess.Popen | None = None
 filter_proc: subprocess.Popen | None = None
 
 app = typer.Typer()
-# replace with:
 try:
     app_name = get_app_name()
     package = get_package_name()
@@ -865,14 +864,13 @@ def deploy_app_to_devices(target_devices, apk_file_path, package_name):
 
 def run_ksproject_build() -> float:
     """Run ksproject android build instead of buildozer."""
-    notify(f'Compiling {app_name}', f'Compilation started at {time.strftime("%H:%M:%S")}')
+    print(f'{yellow}Started compiling {app_name} with ksproject')
     start_time = time.time()
     subprocess.run(['ksproject', 'android', 'build', 'debug'], check=True)
-    end_time = time.time()
-    compilation_time = round(end_time - start_time, 2)
+    compilation_time = round(time.time() - start_time, 2)
+    print(f'{green}Compiled {app_name} successfully in {compilation_time}s')
     notify(f'Compiled {app_name} successfully', f'Compilation finished in {compilation_time} seconds')
     return compilation_time
-
 
 def compile_app(buildozer_compiled: Event = None):
     """

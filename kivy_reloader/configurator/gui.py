@@ -50,6 +50,7 @@ def run_gui(
             config_model = create_config_model()
             self.core_screen = CoreScreen()
             self.core_screen.config_model = config_model
+            self.title = "Kivy Flightdeck " # 🛩️ for dev, ✈️ for prod
             return self.core_screen
 
     app = ConfiguratorGUI()
