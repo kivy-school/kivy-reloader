@@ -744,7 +744,7 @@ def filter_target_devices(devices: list) -> dict:
 
     return physical_map
 
-def deploy_app_to_devices(target_devices, apk_file_path, package_name):
+def deploy_app_to_devices(target_devices, apk_file_path, package_name, activity_class='org.kivy.android.PythonActivity'):
     for device in target_devices.values():
         logging.info(f'Installing APK on {device["model"]} | ({device["serial"]})')
         try:
@@ -821,7 +821,7 @@ def deploy_app_to_devices(target_devices, apk_file_path, package_name):
         try:
             subprocess.run([
                 'adb', '-s', device['serial'], 'shell', 'am', 'start',
-                '-n', f'{package_name}/org.kivy.android.PythonActivity',
+                '-n', f'{package_name}/{activity_class}',
             ], timeout=60)  # longer timeout, no check=True
         except subprocess.TimeoutExpired:
             logging.warning('am start timed out - app may still have launched, continuing...')
@@ -913,7 +913,10 @@ def compile_app(buildozer_compiled: Event = None):
     target_devices = filter_target_devices(devices)
 
     # Step 4: Deploy to devices
-    deploy_app_to_devices(target_devices, apk_path, package)
+    deploy_app_to_devices(
+        target_devices, apk_path, package,
+        activity_class='.MainActivity' if _is_ksp else 'org.kivy.android.PythonActivity',
+    )
     buildozer_compiled.set()
 
 

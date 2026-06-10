@@ -184,6 +184,8 @@ it felt weird to have usb option and u still needed wifi
 i fixed flow
 i added kivy reloader init > makes the tomls
 i added kivy relaoder init project > makes the hello world for u, also have to fix kivyschool website installs
+also it works with ksproject
+flow is:
 
 also fixed a bunch of random stuff, like default toml is supposed to exclude kivy-reloader, kivy_reloader for local editable install
 also there was like an extra toml in the project somewhere
