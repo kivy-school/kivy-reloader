@@ -272,6 +272,12 @@ from hello_world.screens.main_screen import MainScreen
 class HelloWorldApp(App):
     def build(self):
         return MainScreen()
+
+    def on_start(self):
+        print("HELLO_WORLD_STARTED", flush=True)
+        if os.environ.get("KIVY_SMOKE_TEST") == "1":
+            from kivy.clock import Clock
+            Clock.schedule_once(lambda dt: self.stop(), 1.0)
 """,
         project_root / "hello_world" / "screens" / "__init__.py": "",
         project_root / "hello_world" / "screens" / "main_screen.py": """\

@@ -168,6 +168,7 @@ added uv run kivy-reloader init project to give you a fresh hello world project
 fixed bug in kivy-reloader init where the default toml was beautifulapp
 PROJECT FAILS ON WATCHING "." BUT WORKED WHEN WATCHING "HELLO-WORLD" (so totally diff from testing if reloading itself works)
 fixed notifications failing on mac (no pyojbius)
+setup nightly builds + alerts if tests fail
 
 
 =-=-=-=-=
