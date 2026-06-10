@@ -282,7 +282,9 @@ Builder.load_file(__file__)
  
  
 class MainScreen(Screen):
-    pass
+    def on_nav(self, target):
+        print(f"NAV: {target}", flush=True)
+
 """,
         project_root / "hello_world" / "screens" / "main_screen.kv": """\
 <MainScreen>:
@@ -290,6 +292,8 @@ class MainScreen(Screen):
         orientation: 'vertical'
         Button:
             text: 'Welcome to Kivy Reloader!'
+            on_release: root.on_nav(self.text)
+
 """,
         project_root / "kivy-reloader.toml": """\
 [kivy_reloader]

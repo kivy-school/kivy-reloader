@@ -14,8 +14,6 @@ for each os:
 ✔️ (manually test this by deleting wslconfig)
 =-=-=-=-
 
-
-
 THIS WAS THE COMMAND I WAS LOOKING FOR THE ENTIRE TIME (this is bugged as hell)
 git checkout -p origin/main 
 to slow merge

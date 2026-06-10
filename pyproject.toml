@@ -4,7 +4,7 @@ version = "0.8.5"
 description = "Hot reload your Kivy app on multiple Android phones and computer in real-time."
 readme = "README.md"
 requires-python = ">=3.10"
-authors = [{ name = "filipemarch", email = "filipe.marchesini@gmail.com" }]
+authors = [{ name = "filipemarch", email = "filipe.marchesini@gmail.com" }, {email = "138998466+AccelQuasarDragon@users.noreply.github.com"}]
 urls = { Homepage = "https://kivyschool.com/kivy-reloader/", Repository = "https://github.com/kivy-school/kivy-reloader" }
 dependencies = [
     "tomlkit>=0.13.3",
