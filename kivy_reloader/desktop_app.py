@@ -154,6 +154,9 @@ class DesktopApp(BaseReloaderApp, KakiApp):
         if self.IDLE_DETECTION:
             self.install_idle(timeout=self.IDLE_TIMEOUT)
 
+    def run(self):
+        trio.run(self.async_run, 'trio')
+
     async def async_run(self, async_lib='trio'):
         """Run the app asynchronously using trio"""
         async with trio.open_nursery() as nursery:

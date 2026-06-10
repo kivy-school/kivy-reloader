@@ -108,6 +108,9 @@ class AndroidApp(BaseReloaderApp, KivyApp):
 
     # ==================== APP LIFECYCLE ====================
 
+    def run(self):
+        trio.run(self.async_run, 'trio')
+    
     async def async_run(self, async_lib='trio'):
         """
         Run the Android app asynchronously with TCP server.
