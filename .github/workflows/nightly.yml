@@ -1,0 +1,32 @@
+name: Nightly Build
+
+on:
+  schedule:
+    - cron: "0 3 * * *"   # 3 AM UTC daily
+  workflow_dispatch:        # manual trigger
+
+jobs:
+  smoke-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y xvfb libgl1 libgles2
+
+      - uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+
+      - run: uv sync
+
+      - name: Run headless smoke test
+        run: xvfb-run -a uv run python tests/test_smoke.py
+        env:
+          RELOADER_STATUS: PROD
+          KIVY_SMOKE_TEST: "1"
+          KIVY_NO_ENV_CONFIG: "1"
+          KIVY_LOG_MODE: PYTHON
