@@ -187,6 +187,42 @@ i added kivy relaoder init project > makes the hello world for u, also have to f
 also it works with ksproject
 flow is:
 
+
+
+1. Create the project
+
+uv init myapp
+cd myapp
+
+2. Add ksproject (build tool, dev-only)
+
+uv add --dev "git+https://github.com/kivy-school/ksproject"
+uv run ksproject init
+
+This writes [tool.kivy-school] into pyproject.toml and creates src/myapp/.
+
+3. Add kivy-reloader
+
+uv add "kivy-reloader"
+uv run kivy-reloader init project
+
+to run:
+
+
+
+5. Run on desktop
+
+uv run myapp        # via pyproject.toml [project.scripts] entry
+# or
+uv run python main.py
+
+6. Build and deploy to phone
+
+uv run kivy-reloader run
+
+fixed version not reading from pyproject toml or environment
+updated pyproject toml to make sure CLI deps (colorama, typer, readchar, plyer) are in main install and desktop install is separate
+
 also fixed a bunch of random stuff, like default toml is supposed to exclude kivy-reloader, kivy_reloader for local editable install
 also there was like an extra toml in the project somewhere
 and like general fixes 

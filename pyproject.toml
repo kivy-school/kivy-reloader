@@ -12,6 +12,7 @@ dependencies = [
     "colorama>=0.4.6",
     "typer>=0.16.0",
     "readchar>=4.2.1",
+    "plyer>=2.1.0",
 ]
 
 [project.optional-dependencies]
@@ -21,7 +22,6 @@ desktop = [
     "kaki>=0.1.9",
     "kivy>=2.3.1",
     "pip>=25.1.1",
-    "plyer>=2.1.0",
     "pyobjus>=1.2.0; sys_platform == 'darwin'",
     "psutil>=7.0.0",
     "readchar>=4.2.1",

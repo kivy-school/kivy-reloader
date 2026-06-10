@@ -13,7 +13,6 @@ from sys import platform as _sys_platform
 from threading import Thread
 import trio
 
-import psutil
 import readchar
 import typer
 from colorama import Fore, Style, init
@@ -1718,13 +1717,17 @@ def livestream(adb_logcat_ready: Event = None):
         logging.error("Logcat did not become ready in time")
         return
 
-    for proc in psutil.process_iter():
-        try:
-            if proc.name() == 'scrcpy':
-                logging.info('scrcpy already running')
-                return
-        except psutil.NoSuchProcess:
-            logging.error('Error while trying to find scrcpy process')
+    try:
+        import psutil
+        for proc in psutil.process_iter():
+            try:
+                if proc.name() == 'scrcpy':
+                    logging.info('scrcpy already running')
+                    return
+            except psutil.NoSuchProcess:
+                logging.error('Error while trying to find scrcpy process')
+    except ImportError:
+        pass
 
     start_scrcpy()
 
