@@ -61,7 +61,7 @@ def get_auto_reloader_paths():
         Instead of watching '.' recursively, enumerate subdirectories
         and exclude unwanted ones
         """
-        directories_to_watch = []
+        directories_to_watch = [(base_dir, {'recursive': False})]  # watch root dir files
 
         # Get all subdirectories in the current directory
         try:
