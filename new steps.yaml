@@ -33,6 +33,210 @@ make wsl firewall rule
 ???
 -0--0-0- REMINDER -0-0-0-0-0-
 
+=-=-==************ KSPROJECT INTEGRATION ************=-=-=-==
+
+so reset:
+did you uv cache clean ?
+also try delete uv.lock
+and project_dist
+
+
+to rebuild:
+
+uv run ksproject android build
+
+REALLY FORCE A LEGIT REBUILD
+cd /home/pengin/kspt/helloworld
+uv run ksproject android build debug --clean
+
+adb -s 288d2830923f7ece uninstall org.example.helloworld
+adb -s 288d2830923f7ece install $(wslpath -w /home/pengin/kspt/helloworld/project_dist/gradle/app/build/outputs/apk/debug/app-debug.apk)
+adb -s 288d2830923f7ece shell am start -n org.example.helloworld/.MainActivity
+
+
+
+=-=-=-=-
+with a minor amt of struggle, I fixed it so desktop app works, it has to be in dev dep
+now to do:
+uv cache clean?
+ksproject rebuild
+=-=-=-=-
+uv init --package helloworld --python 3.13
+cd helloworld
+uv add --dev "git+https://github.com/kivy-school/ksproject"
+uv add "kivy>=2.3.1" "git+https://github.com/kivy-school/kivy-reloader@macfix_gaimwsl"
+uv add --dev "kivy-reloader[desktop]"
+
+uv run ksproject init
+uv run kivy-reloader init project
+uv run kivy-reloader run
+
+=-=-=-=-= straight wtf
+ TERMINAL 1
+cd /home/pengin/kspt/helloworld
+uv cache clean
+uv run ksproject android build debug
+UNINSTALL OLD APP
+adb -s 288d2830923f7ece uninstall org.example.helloworld
+
+
+adb -s 192.168.1.131:5555 install -r $(wslpath -w /home/pengin/kspt/helloworld/project_dist/gradle/app/build/outputs/apk/debug/app-debug.apk)
+adb -s 192.168.1.131:5555 shell am start -n org.example.helloworld/.MainActivity
+ 
+adb -s 288d2830923f7ece install -r $(wslpath -w /home/pengin/kspt/helloworld/project_dist/gradle/app/build/outputs/apk/debug/app-debug.apk)
+adb -s 288d2830923f7ece shell am start -n org.example.helloworld/.MainActivity
+ 
+
+
+ TERMINAL 2
+
+Terminal 2 — logs (start this before launching):
+
+adb -s 288d2830923f7ece logcat -c && adb -s 288d2830923f7ece logcat | grep -E "I python|E python|AndroidRuntime|FATAL|ksproject"
+
+adb -s 192.168.1.131:5555 logcat -c && adb -s 192.168.1.131:5555 logcat | grep -E "I python|E python|AndroidRuntime|FATAL|ksproject"
+Start terminal 2 first, then run terminal 1 top to bottom. The logcat filter covers normal Python output (I python), errors (E python), native crashes (AndroidRuntime/FATAL), and ksproject's own entrypoint tags.
+
+=-=-=-=-=
+Here are the three files to change and one to create:
+
+1. src/helloworld/app.py — one line change:
+
+
+# FROM:
+from kivy.app import App
+
+# TO:
+from kivy_reloader.app import App
+Everything else in app.py stays the same. kivy_reloader.App is a drop-in replacement — on Android it becomes AndroidApp, on desktop DesktopApp, in production it falls back to plain kivy.app.App.
+
+2. main.py at project root — replace entirely:
+
+
+import trio
+from helloworld.app import KivyIntroApp
+
+app = KivyIntroApp()
+trio.run(app.async_run, "trio")
+The trio.run() is mandatory — it's what runs the TCP server on the phone that receives hot-reload file pushes.
+
+3. Create kivy-reloader.toml at project root:
+
+
+[kivy_reloader]
+HOT_RELOAD_ON_PHONE = true
+FULL_RELOAD_FILES = ["main.py", "src/helloworld/app.py"]
+WATCHED_FOLDERS_RECURSIVELY = ["."]
+STREAM_USING = "WIFI"
+4. pyproject.toml — add kivy-reloader back to main deps (base only, no [desktop]):
+
+
+dependencies = [
+    "kivy>=2.3.1",
+    "kivy-reloader",
+    "trio>=0.33.0",
+]
+
+[dependency-groups]
+dev = [
+    "ksproject",
+    "kivy-reloader[desktop]",
+]
+That's the full diff. The blocker remains: once you make these changes, the Android app will crash on startup because android_app.py does import trio at module level and trio 0.33.0 fails on Android Python. The changes above are correct — but they won't work until the trio version issue is resolved.
+=-=-=-=-=
+Commands to get it to phone
+
+# 1. Build the APK (first run downloads SDK/NDK/Java — takes a while)
+uv run ksproject android build debug
+
+# 2. See what devices are connected
+uv run ksproject android devices
+
+# 3. Install + launch on a real device
+uv run ksproject android run --uuid <adb-serial>
+
+# OR launch on an emulator AVD by name
+uv run ksproject android run --name <avd-name>
+What android build debug actually does (three stages)
+
+install_site_packages()
+  └─ uv pip install <project> --python-platform aarch64-linux-android
+     → project_dist/gradle/site_packages/arm64-v8a/
+
+collect gradle configs from site_packages (any .gradle/*.json)
+
+generate()
+  └─ writes Gradle files, copies CPython stdlib + jniLibs
+
+./gradlew assembleDebug
+  → project_dist/gradle/app/build/outputs/apk/debug/app-debug.apk
+android run doesn't rebuild — it finds the existing APK from the last build, does adb install, then adb shell am start.
+
+Note on kivy-reloader
+You added kivy-reloader in the uv add step, which puts it in [project].dependencies. That means it goes into the Android APK. The trio crash you just saw will still happen unless you sort out the trio version before you test on phone. Worth getting the blank ksproject app booting first (no kivy-reloader in deps at all), then add it once that's confirmed working.
+=-=-==************ KSPROJECT INTEGRATION NOTES ************=-=-=-==
+
+Here's the full list of what was discovered:
+
+Android build failures
+
+kivy-reloader[desktop] in [project].dependencies pulls psutil into the Android cross-install — psutil has no aarch64-linux-android wheel so the build dies. Fix: [desktop] belongs in [dependency-groups].dev only.
+trio >= 0.33.0 unconditionally imports socket.if_indextoname which doesn't exist in Android Python's pure-Python socket fallback. The app crashes on startup before any of your code runs.
+adb / WSL
+
+ksproject hardcodes its own SDK adb (~/.kivyschool/android-sdk/platform-tools/adb) — it never looks at PATH, and shell aliases (alias adb='adb.exe') are never visible to subprocesses anyway. These are two separate adb servers with different RSA keys, so the phone rejects ksproject's Linux adb as unauthorized.
+kivy-reloader already handles this with explicit WSL detection and cmd.exe /c adb.exe calls — ksproject doesn't.
+Windows adb needs wslpath -w to convert Linux paths to Windows-style paths when calling it from WSL.
+ksproject deployment gaps
+
+ksproject android run has no uninstall step — it just does adb install -r. On a signature mismatch (old APK from a different keystore) it fails. You have to manually adb uninstall first. kivy-reloader detects INSTALL_FAILED_UPDATE_INCOMPATIBLE and does the uninstall+retry automatically.
+ksproject android devices only lists devices known to its own SDK adb server — WiFi devices you connected through Windows adb are invisible to it.
+Init workflow gap
+
+Neither ksproject init nor kivy-reloader init project writes the correct pyproject.toml dependencies for you. ksproject init adds nothing kivy-reloader related. kivy-reloader init project scaffolds the code but never touches pyproject.toml. You have to wire them together manually, and getting [desktop] vs base package in the right groups matters a lot.
+
+=-=-=-=-
+Found the key thing. uv pip install --target at line 34-36 — there's no clean step before it. It's purely additive. So:
+
+Add a dep → next build installs it into project_dist/gradle/site_packages/arm64-v8a/ ✅
+Remove a dep → next build does nothing to remove it — old package stays in site_packages ⚠️
+For the APK itself, adb install -r is the update mechanism — it replaces the APK on the device while keeping user data, and it works fine as long as the signing key hasn't changed. That's the normal iteration loop: rebuild → adb install -r → app updates.
+
+The --target flag the user probably told you about is the uv pip install --target <dir> call — it's how Python packages get bundled into the APK (installed into a directory that Gradle then packages). Not a cleanup flag, just how the cross-install works.
+
+The signature mismatch case (what kivy-reloader handles) only happens when the keystore changes — switching machines, deleting ~/.android/debug.keystore, or going from buildozer to ksproject. Normal day-to-day rebuilds on the same machine use the same debug keystore so adb install -r just works.
+
+To force a proper clean build when you suspect stale packages:
+
+
+uv run ksproject android build debug --clean
+That runs ./gradlew clean assembleDebug, but note it cleans Gradle outputs — it does not wipe site_packages/. To fully reset Python deps you'd need to delete project_dist/gradle/site_packages/ manually first.
+
+
+=-=-=-=-=
+if u check app.kv I changed the beginninglabel
+how do I see this change on my android device
+Same keystore, same machine — install -r is fine here, no need to uninstall first.
+
+
+cd /home/pengin/kspt/helloworld
+uv run ksproject android build debug
+
+adb -s 192.168.1.131:5555 install -r $(wslpath -w /home/pengin/kspt/helloworld/project_dist/gradle/app/build/outputs/apk/debug/app-debug.apk)
+
+adb -s 192.168.1.131:5555 shell am start -n org.example.helloworld/.MainActivity
+
+=-=-=-
+The bundled app.kv still says "Welcome to Kivy" — the change didn't make it in. uv used a cached wheel from before your edit.
+
+
+uv cache clean
+uv run ksproject android build debug
+Then reinstall as usual. uv caches built wheels from local projects by content hash, but it isn't picking up the .kv change — clearing the cache forces it to rebuild the wheel fresh and bundle the updated file.
+
+This is another instance of the same --target problem: because ksproject just runs uv pip install --target with no --reinstall flag, it silently skips rebuilding if it finds a cached wheel that looks valid.
+
+=-=-==************ KSPROJECT INTEGRATION ************=-=-=-==
 =-=-==************ FINAL TEST ************=-=-=-==
 ✔️ command to init basic project (uv run kivy-reloader init project)
 ✔️ update kivyschool command to use basic project instead of using install to do it
