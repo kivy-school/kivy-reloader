@@ -99,18 +99,35 @@ class Config:  # noqa: PLR0904
 
     @staticmethod
     def _determine_config_path(config_path: Union[str, Path] = None) -> Path:
-        """
-        Determines the configuration file path.
-
-        Args:
-            config_path: Optional custom config path
-
-        Returns:
-            Path: Resolved path to configuration file
-        """
         if config_path:
             return Path(config_path)
-        return Path.cwd() / 'kivy-reloader.toml'
+        cwd_toml = Path.cwd() / 'kivy-reloader.toml'
+        if cwd_toml.exists():
+            return cwd_toml
+        # On Android/packaged apps, CWD is not the package dir.
+        # Try __main__.__file__ first (same dir, one up, one down), then
+        # fall back to __file__ (config.py's own location) to find site-packages root.
+        search_roots = []
+        main_module = sys.modules.get('__main__')
+        if main_module and getattr(main_module, '__file__', None):
+            search_roots.append(Path(main_module.__file__).parent)
+        # Path(__file__) = .../site-packages/kivy_reloader/config.py
+        # .parent.parent     = .../site-packages/
+        search_roots.append(Path(__file__).parent.parent)
+        for root in search_roots:
+            candidate = root / 'kivy-reloader.toml'
+            if candidate.exists():
+                return candidate
+            candidate = root.parent / 'kivy-reloader.toml'
+            if candidate.exists():
+                return candidate
+            for subdir in root.iterdir():
+                if subdir.is_dir():
+                    candidate = subdir / 'kivy-reloader.toml'
+                    if candidate.exists():
+                        return candidate
+        return cwd_toml
+
 
     @staticmethod
     def _is_pyinstaller_environment() -> bool:

@@ -47,8 +47,17 @@ uv run ksproject android build
 
 REALLY FORCE A LEGIT REBUILD
 cd /home/pengin/kspt/helloworld
-uv run ksproject android build debug --clean
 
+uv run ksproject android build debug --clean
+adb -s 288d2830923f7ece uninstall org.example.helloworld
+adb -s 288d2830923f7ece install $(wslpath -w /home/pengin/kspt/helloworld/project_dist/gradle/app/build/outputs/apk/debug/app-debug.apk)
+adb -s 288d2830923f7ece shell am start -n org.example.helloworld/.MainActivity
+
+REALLY FORCE A LEGIT REBUILD2
+cd /home/pengin/kspt/helloworld
+uv sync  # re-fetches kivy-reloader from the local macfix_gaimwsl checkout
+rm -rf project_dist/gradle/site_packages/
+uv run ksproject android build debug --clean
 adb -s 288d2830923f7ece uninstall org.example.helloworld
 adb -s 288d2830923f7ece install $(wslpath -w /home/pengin/kspt/helloworld/project_dist/gradle/app/build/outputs/apk/debug/app-debug.apk)
 adb -s 288d2830923f7ece shell am start -n org.example.helloworld/.MainActivity
@@ -373,6 +382,8 @@ fixed bug in kivy-reloader init where the default toml was beautifulapp
 PROJECT FAILS ON WATCHING "." BUT WORKED WHEN WATCHING "HELLO-WORLD" (so totally diff from testing if reloading itself works)
 fixed notifications failing on mac (no pyojbius)
 setup nightly builds + alerts if tests fail
+fixed toml required for android even when RELOADER_STATUS='PROD' with 1. searching a few common directories 2. respecting prod
+https://github.com/kivy-school/kivy-reloader/issues/63
 
 
 =-=-=-=-=
