@@ -1119,6 +1119,10 @@ class AndroidApp(BaseReloaderApp, KivyApp):
         Logger.info('Reloader: App updated, triggering hot reload')
         Logger.info('Reloader: ************** END SERVER **************')
 
+        # After unpacking, Python's FileFinder has stale directory caches.
+        # Must invalidate before any importlib.reload call or spec lookups will fail.
+        importlib.invalidate_caches()
+        
         # Trigger hot reload
         self.unload_python_files_on_android()
         if self.__module__ != '__main__':

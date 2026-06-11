@@ -7,6 +7,7 @@ Contains shared functionality between Desktop and Android apps.
 from kivy.clock import Clock
 from kivy.core.window import Window
 from kivy.factory import Factory as F
+from kivy.lang import Builder
 from kivy.logger import Logger
 from kivy.utils import platform
 
@@ -49,7 +50,18 @@ class BaseReloaderApp:
 
     def delayed_build(self, *args):
         """Common delayed build logic for both platforms"""
+        # Unload any KV files that build() loaded last time.
+        # Handles the standard Kivy pattern of calling Builder.load_file inside build()
+        # without requiring users to change their code.
+        '''
+        First call: _build_kv_files doesn't exist → no unloading → build() runs → records which files it loaded. Every subsequent reload: unloads exactly those files → build() re-loads them fresh. Zero files from outside build() are touched.
+        '''
+        for f in getattr(self, '_build_kv_files', []):
+            Builder.unload_file(f)
+
+        files_before = set(Builder.files)
         self.root = self.build()
+        self._build_kv_files = set(Builder.files) - files_before
 
         if self.root:
             if not isinstance(self.root, F.Widget):
