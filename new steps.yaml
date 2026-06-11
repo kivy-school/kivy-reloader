@@ -74,7 +74,16 @@ adb -s 288d2830923f7ece uninstall org.example.helloworld
 adb -s 288d2830923f7ece install $(wslpath -w /home/pengin/kspt/helloworld/project_dist/gradle/app/build/outputs/apk/debug/app-debug.apk)
 adb -s 288d2830923f7ece shell am start -n org.example.helloworld/.MainActivity
 
+REALLY FORCE A LEGIT REBUILD FOR DESKTOP (REAL)
+cd ~/kspt/helloworld && uv lock --upgrade-package kivy-reloader && uv sync
 
+
+(also failed)
+cd ~/kspt/helloworld && uv sync --reinstall-package kivy-reloader
+
+uv cache clean
+uv sync
+(this didnt work)
 
 =-=-=-=-
 with a minor amt of struggle, I fixed it so desktop app works, it has to be in dev dep
@@ -397,7 +406,6 @@ setup nightly builds + alerts if tests fail
 fixed toml required for android even when RELOADER_STATUS='PROD' with 1. searching a few common directories 2. respecting prod
 https://github.com/kivy-school/kivy-reloader/issues/63
 I need to update kivy reloader to integrate with ksproject build def (thye regular kivy way) since it adds a dupe extra kv line (it isn't restarted so the extra build goes through)
-fixed bug with expand_current_directory not watching the actual basedir (was failing on ksproject with app.py and app.kv in basedir and app.kv being changed)
 
 =-=-=-=-=
 - fixed network flow between desktop and android phone client on mac/win10/win11
