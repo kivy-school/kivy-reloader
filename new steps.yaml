@@ -65,7 +65,7 @@ adb -s 288d2830923f7ece uninstall org.example.helloworld
 adb -s 288d2830923f7ece install $(wslpath -w /home/pengin/kspt/helloworld/project_dist/gradle/app/build/outputs/apk/debug/app-debug.apk)
 adb -s 288d2830923f7ece shell am start -n org.example.helloworld/.MainActivity
 
-REALLY FORCE A LEGIT REBUILD2
+REALLY FORCE A LEGIT REBUILD2 (REAL)
 cd /home/pengin/kspt/helloworld
 uv sync  # re-fetches kivy-reloader from the local macfix_gaimwsl checkout
 rm -rf project_dist/gradle/site_packages/
