@@ -896,48 +896,60 @@ def _sigkill_old_app(serial: str, package_name: str) -> None:
                 logging.info(f'sigkill {pid} ({package_name}): {r.stdout.strip()!r} {r.stderr.strip()!r}')
 
 def _wait_for_port_freedb(serial: str, port: int, timeout: int = 90, current_package: str = '') -> None:
-    """Poll /proc/net/tcp on device until the port has no LISTEN socket, then return."""
-    import time
+    import time, re as _re
     hex_port = format(port, '04X')
     deadline = time.time() + timeout
-    warned_pkg = None
+    force_stopped = set()
+
     while time.time() < deadline:
         result = subprocess.run(
             ['adb', '-s', serial, 'shell', 'cat', '/proc/net/tcp6', '/proc/net/tcp'],
             capture_output=True, text=True,
         )
-        listening = False
+        listening_uids = set()
         for line in result.stdout.splitlines():
             p = line.split()
             if len(p) >= 4 and p[1].upper().endswith(f':{hex_port}') and p[3] == '0A':
-                listening = True
-                uid   = p[7] if len(p) > 7 else '?'
+                uid = p[7] if len(p) > 7 else '?'
                 inode = p[9] if len(p) > 9 else '?'
-                logging.info(f'Port {port} LISTEN socket: uid={uid} inode={inode} raw={line.strip()}')
-                if uid != '?' and uid != warned_pkg:
-                    pkg_result = subprocess.run(
-                        ['adb', '-s', serial, 'shell',
-                         f'dumpsys package | grep -B30 "userId={uid}" | grep "Package \\["'],
-                        capture_output=True, text=True, timeout=5,
-                    )
-                    import re as _re
-                    m = _re.search(r'Package \[([^\]]+)\]', pkg_result.stdout)
-                    conflicting_pkg = m.group(1) if m else f'uid={uid}'
-                    if current_package and conflicting_pkg == current_package:
-                        logging.info(f'Port {port} held by same package (uid mismatch from reinstall) — waiting for OS to clean up')
-                    else:
-                        logging.warning(
-                            f'Port {port} is held by a different app: {conflicting_pkg} (uid={uid})\n'
-                            f'  If this is another kivy-reloader project, stop it with:\n'
-                            f'  adb -s {serial} shell am force-stop {conflicting_pkg}'
-                        )
-                    warned_pkg = uid
-        if not listening:
+                logging.info(f'Port {port} LISTEN: uid={uid} inode={inode}')
+                if uid != '?':
+                    listening_uids.add(uid)
+
+        if not listening_uids:
             logging.info(f'Port {port} is free — proceeding with install')
             return
+
+        for uid in listening_uids:
+            if uid in force_stopped:
+                continue
+            # Use awk to correctly map uid→package (userId line follows Package line)
+            pkg_result = subprocess.run(
+                ['adb', '-s', serial, 'shell',
+                 f"dumpsys package | awk '/^Packages:$/{{in_pkg=1}} in_pkg && /Package \\[/{{pkg=$0}} in_pkg && /userId={uid}/{{print pkg; exit}}'"],
+                capture_output=True, text=True, timeout=10,
+            )
+            m = _re.search(r'Package \[([^\]]+)\]', pkg_result.stdout)
+            conflicting_pkg = m.group(1) if m else f'uid={uid}'
+
+            if current_package and conflicting_pkg == current_package:
+                logging.info(f'Port {port} held by same package after reinstall — waiting for OS cleanup')
+            else:
+                logging.warning(
+                    f'Port {port} held by: {conflicting_pkg} (uid={uid})\n'
+                    f'  This is blocking installation. Force-stopping it now...'
+                )
+                subprocess.run(
+                    ['adb', '-s', serial, 'shell', 'am', 'force-stop', conflicting_pkg],
+                    timeout=10,
+                )
+                logging.info(f'Force-stopped {conflicting_pkg} — waiting for port to release...')
+                force_stopped.add(uid)
+
         elapsed = int(deadline - time.time())
         logging.info(f'Waiting for port {port} to be released... ({elapsed}s remaining)')
         time.sleep(2)
+
     logging.warning(f'Port {port} still held after {timeout}s — installing anyway')
 
 def _wait_for_port_free(serial: str, port: int, timeout: int = 90) -> None:
