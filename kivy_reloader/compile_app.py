@@ -808,6 +808,14 @@ def deploy_app_to_devices(target_devices, apk_file_path, package_name, activity_
                 logging.error(f'Install failed: {result.stdout} {result.stderr}')
                 return
 
+            # Force-stop old process so it releases port 8050 before new APK installs
+            logging.info(f'Force-stopping old app on {device["model"]} | ({device["serial"]})')
+            subprocess.run(
+                ['adb', '-s', device['serial'], 'shell', 'am', 'force-stop', package_name],
+                timeout=10
+            )
+
+            logging.info(f'Starting app on {device["model"]} | ({device["serial"]})')
             try:
                 subprocess.run([
                     'adb', '-s', device['serial'], 'shell', 'am', 'start',
@@ -815,6 +823,7 @@ def deploy_app_to_devices(target_devices, apk_file_path, package_name, activity_
                 ], timeout=60)
             except subprocess.TimeoutExpired:
                 logging.warning('am start timed out - app may still have launched, continuing...')
+
 
         except subprocess.TimeoutExpired:
             logging.error(f'adb install TIMED OUT after 120s for {device["serial"]}')
