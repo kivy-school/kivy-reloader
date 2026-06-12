@@ -745,43 +745,54 @@ def filter_target_devices(devices: list) -> dict:
 
     return physical_map
 
-def deploy_app_to_devices(target_devices, apk_file_path, package_name, activity_class='org.kivy.android.PythonActivity'):
+def deploy_app_to_devices(target_devices, apk_file_path, package_name, activity_class='org.kivy.android.PythonActivity', is_ksproject=False):
     for device in target_devices.values():
         logging.info(f'Installing APK on {device["model"]} | ({device["serial"]})')
+
+        # Prepare WSL-safe install path once so the signature-mismatch retry can reuse it
+        win_path = None
+        win_apk_path = None
+        win_temp = None
+        if in_wsl():
+            adb_path = get_adb_windows_path()
+            win_path = subprocess.check_output(['wslpath', '-w', adb_path]).decode().strip()
+            win_user = os.environ.get('WINDOWS_USERNAME') or subprocess.check_output(
+                ['cmd.exe', '/c', 'echo %USERNAME%'], text=True
+            ).strip()
+            win_temp = f'/mnt/c/Users/{win_user}/AppData/Local/Temp/kivy_install.apk'
+            subprocess.run(['cp', apk_file_path, win_temp], check=True)
+            win_apk_path = subprocess.check_output(['wslpath', '-w', win_temp]).decode().strip()
+
+        def _do_install(serial, reinstall=True):
+            flags = ['-r'] if reinstall else []
+            if win_path:
+                return subprocess.run(
+                    ['cmd.exe', '/c', win_path, '-s', serial, 'install'] + flags + [win_apk_path],
+                    timeout=120, capture_output=True, text=True,
+                )
+            return subprocess.run(
+                ['adb', '-s', serial, 'install'] + flags + [apk_file_path],
+                check=False, timeout=120, capture_output=True, text=True,
+            )
+
         try:
             print("in wsl or not?", in_wsl())
-            if in_wsl():
-                adb_path = get_adb_windows_path()  # returns /mnt/c/.../adb.exe
-                win_path = subprocess.check_output(['wslpath', '-w', adb_path]).decode().strip()
-                
-                # Copy APK to a Windows-accessible temp path (CMD can't handle UNC \\wsl.localhost paths)
-                win_user = os.environ.get('WINDOWS_USERNAME') or subprocess.check_output(
-                    ['cmd.exe', '/c', 'echo %USERNAME%'], text=True
-                ).strip()
-                win_temp = f'/mnt/c/Users/{win_user}/AppData/Local/Temp/kivy_install.apk'
-                subprocess.run(['cp', apk_file_path, win_temp], check=True)
-                win_apk_path = subprocess.check_output(['wslpath', '-w', win_temp]).decode().strip()
-
-
-                result = subprocess.run(
-                    ['cmd.exe', '/c', win_path, '-s', device['serial'], 'install', '-r', win_apk_path],
-                    timeout=120,
-                    capture_output=True,
-                    text=True,
+            if is_ksproject:
+                # Uninstall first to clear extracted Python asset cache on Android
+                subprocess.run(
+                    ['adb', '-s', device['serial'], 'uninstall', package_name],
+                    timeout=30, capture_output=True
                 )
-                # Clean up temp file
-                subprocess.run(['rm', '-f', win_temp], check=False)
+                result = _do_install(device['serial'], reinstall=False)
             else:
-                result = subprocess.run(
-                    ['adb', '-s', device['serial'], 'install', '-r', apk_file_path],
-                    check=False,
-                    timeout=120,  # don't hang forever
-                    capture_output=True,
-                    text=True,
-                )
+                result = _do_install(device['serial'], reinstall=True)
+
+            if win_temp:
+                subprocess.run(['rm', '-f', win_temp], check=False)
+
             logging.info(f'Install stdout: {result.stdout.strip()}')
             logging.info(f'Install stderr: {result.stderr.strip()}')
-            # ── signature mismatch detection ──────────────────────────
+            # ── signature mismatch detection (safety net if uninstall failed) ──
             if 'INSTALL_FAILED_UPDATE_INCOMPATIBLE' in result.stdout + result.stderr:
                 logging.warning(f'Signature mismatch on {device["serial"]} — uninstalling old version')
                 print(f'{yellow}⚠️  Signature mismatch on {device["model"]}. Uninstalling old version...{Style.RESET_ALL}')
@@ -789,17 +800,13 @@ def deploy_app_to_devices(target_devices, apk_file_path, package_name, activity_
                     ['adb', '-s', device['serial'], 'uninstall', package_name],
                     timeout=30, capture_output=True
                 )
-                # Retry install after uninstall
-                result = subprocess.run(
-                    ['adb', '-s', device['serial'], 'install', '-r', apk_file_path],
-                    timeout=120, capture_output=True, text=True,
-                )
+                result = _do_install(device['serial'], reinstall=False)
                 logging.info(f'Retry stdout: {result.stdout.strip()}')
+            # ─────────────────────────────────────────────────────────────────
 
             if 'Success' not in result.stdout + result.stderr:
                 logging.error(f'Install failed: {result.stdout} {result.stderr}')
                 return
-            # ──────────────────────────────────────────────────────────
         except subprocess.TimeoutExpired:
             logging.error(f'adb install TIMED OUT after 120s for {device["serial"]}')
             return
@@ -807,25 +814,6 @@ def deploy_app_to_devices(target_devices, apk_file_path, package_name, activity_
             logging.error(f'adb install FAILED: {e.stderr}')
             return
 
-        # Force-stop old process so it releases port 8050 before new APK installs
-        logging.info(f'Force-stopping old app on {device["model"]} | ({device["serial"]})')
-        subprocess.run(
-            ['adb', '-s', device['serial'], 'shell', 'am', 'force-stop', package_name],
-            timeout=10
-        )
-
-        logging.info(f'Starting app on {device["model"]} | ({device["serial"]})')
-        # subprocess.run([
-        #     'adb', '-s', device['serial'], 'shell', 'am', 'start',
-        #     '-n', f'{package_name}/org.kivy.android.PythonActivity',
-        # ], check=True, timeout=30)
-        try:
-            subprocess.run([
-                'adb', '-s', device['serial'], 'shell', 'am', 'start',
-                '-n', f'{package_name}/{activity_class}',
-            ], timeout=60)  # longer timeout, no check=True
-        except subprocess.TimeoutExpired:
-            logging.warning('am start timed out - app may still have launched, continuing...')
 
 # worked? unsure
 # def deploy_app_to_devices(
@@ -944,7 +932,9 @@ def compile_app(buildozer_compiled: Event = None):
     deploy_app_to_devices(
         target_devices, apk_path, package,
         activity_class='.MainActivity' if _is_ksp else 'org.kivy.android.PythonActivity',
+        is_ksproject=_is_ksp,
     )
+
     buildozer_compiled.set()
 
 

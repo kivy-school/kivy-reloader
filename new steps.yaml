@@ -254,9 +254,8 @@ uv add --dev "kivy-reloader[desktop]"
 here I might have to like uv update somehow to point to correct trio:
 uv lock
 uv sync
-
-
 uv run kivy-reloader init project
+
 This creates src/myapp/screens/main_screen.py, main_screen.kv, rewrites app.py to use kivy_reloader.App + trio, creates kivy-reloader.toml at project root, and creates main.py.
 
 7. Run on desktop
