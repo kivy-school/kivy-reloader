@@ -679,8 +679,9 @@ class DropdownPicker(ButtonBehavior, BoxLayout):
         self.container.bind(height=self._update_container_position)
 
         # Bind to ScrollView's scroll position - close dropdown on any scroll
-        if self.scroll_view:
-            self.scroll_view.bind(scroll_y=self._on_scroll_change)
+        if self.scroll_view and self.scroll_view._viewport:
+            self.scroll_view._viewport.bind(pos=self._on_scroll_change)
+
 
         # Bind to track selection changes
         self._setup_selection_tracking()
@@ -756,8 +757,9 @@ class DropdownPicker(ButtonBehavior, BoxLayout):
         self.property('selected_files').dispatch(self)
 
         # Unbind from ScrollView
-        if self.scroll_view:
-            self.scroll_view.unbind(scroll_y=self._on_scroll_change)
+        if self.scroll_view and self.scroll_view._viewport:
+            self.scroll_view._viewport.unbind(pos=self._on_scroll_change)
+
 
         # Remove the dropdown container from window
         if self.container:
@@ -930,8 +932,8 @@ class FolderOnlyDropdownPicker(DropdownPicker):
         self.container.bind(height=self._update_container_position)
 
         # Bind to ScrollView's scroll position - close dropdown on any scroll
-        if self.scroll_view:
-            self.scroll_view.bind(scroll_y=self._on_scroll_change)
+        if self.scroll_view and self.scroll_view._viewport:
+            self.scroll_view._viewport.bind(pos=self._on_scroll_change)
 
         # Bind to track selection changes
         self._setup_selection_tracking()

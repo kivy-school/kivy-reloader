@@ -796,6 +796,7 @@ def deploy_app_to_devices(target_devices, apk_file_path, package_name, activity_
                     timeout=30, capture_output=True
                 )
                 logging.info(f'adb uninstall returned')
+                _sigkill_old_app(device['serial'], package_name)
                 _wait_for_port_freedb(device['serial'], int(config.RELOADER_PORT), timeout=30)
                 result = _do_install(device['serial'], reinstall=False)
             else:
@@ -875,6 +876,25 @@ def deploy_app_to_devices(target_devices, apk_file_path, package_name, activity_
 #             ],
 #             check=True,
 #         )
+
+def _sigkill_old_app(serial: str, package_name: str) -> None:
+    """Find and SIGKILL processes matching package_name via ps -A (no root needed for lookup)."""
+    ps = subprocess.run(
+        ['adb', '-s', serial, 'shell', 'ps', '-A'],
+        capture_output=True, text=True, timeout=10,
+    )
+    for line in ps.stdout.splitlines():
+        if package_name in line:
+            cols = line.split()
+            if len(cols) >= 2:
+                pid = cols[1]
+                r = subprocess.run(
+                    ['adb', '-s', serial, 'shell', 'kill', '-9', pid],
+                    capture_output=True, text=True, timeout=5,
+                )
+                logging.info(f'sigkill {pid} ({package_name}): {r.stdout.strip()!r} {r.stderr.strip()!r}')
+
+
 
 def _wait_for_port_freedb(serial: str, port: int, timeout: int = 90) -> None:
     """Poll /proc/net/tcp on device until the port has no LISTEN socket, then return."""
