@@ -226,7 +226,15 @@ cd myapp
 uv add --dev "git+https://github.com/kivy-school/ksproject@1bee1b2cfb444f5cc200499a2e144ea5ff9f751f"
 
 uv run ksproject init
-3. Download the trio wheel into wheelhouse
+3. UNTESTED SETUP
+uv run pip download trio -i https://pypi-index.psychowaspx.workers.dev/simple/ --no-deps -d ./wheelhouse
+uv lock --upgrade-package trio
+uv sync
+(basically uv lock should regenerate lock and point to trio wheel in wheelshouse, if not it's cooked)
+3. UNTESTED SETUP
+
+3. Download the trio wheel and put in wheelhouse:
+https://discord.com/channels/994825273352659036/1514305688896278618/1514313324282515467
 
 mkdir wheelhouse
 uv pip download "trio==0.33.0" --no-deps -d wheelhouse
@@ -242,6 +250,9 @@ dependencies = [
 
 [tool.uv.sources]
 trio = { path = "wheelhouse/trio-0.33.0-py3-none-any.whl" }
+
+test this flow: uv add ./wheelhouse/trio-0.33.0-py3-none-any.whl
+
 
 
 And add kivy-reloader[desktop] to the dev dependency-group:
@@ -444,6 +455,31 @@ Then reinstall as usual. uv caches built wheels from local projects by content h
 This is another instance of the same --target problem: because ksproject just runs uv pip install --target with no --reinstall flag, it silently skips rebuilding if it finds a cached wheel that looks valid.
 
 =-=-==************ KSPROJECT INTEGRATION ************=-=-=-==
+=-=-==************ FINAL TEST + ksproject ************=-=-=-==
+FINAL TEST:
+SETUPS:
+
+A
+win10
+win11
+mac
+android emulator
+
+B 
+buildozer
+ksproject
+
+C
+FOR USB/WIFI
+
+D
+do uninstall sh
+do install sh
+do compile > main
+then reset
+main > compile
+
+
 =-=-==************ FINAL TEST ************=-=-=-==
 ✔️ command to init basic project (uv run kivy-reloader init project)
 ✔️ update kivyschool command to use basic project instead of using install to do it

@@ -21,6 +21,7 @@ from fnmatch import fnmatch
 from pathlib import Path
 from uuid import uuid4
 import contextlib
+import socket as _socket
 
 # Third-party imports
 import trio
@@ -632,8 +633,19 @@ class AndroidApp(BaseReloaderApp, KivyApp):
         max_attempts = 60
         for attempt in range(max_attempts):
             try:
+                # Logger.info(f'Kivy-Reloader: starting server on host{host},port:{PORT}')
+                # await trio.serve_tcp(self.data_receiver, PORT, host=host)
+
                 Logger.info(f'Kivy-Reloader: starting server on host{host},port:{PORT}')
-                await trio.serve_tcp(self.data_receiver, PORT, host=host)
+                raw_sock = _socket.socket(_socket.AF_INET, _socket.SOCK_STREAM)
+                raw_sock.setsockopt(_socket.SOL_SOCKET, _socket.SO_REUSEADDR, 1)
+                raw_sock.setsockopt(_socket.SOL_SOCKET, _socket.SO_REUSEPORT, 1)
+                raw_sock.bind((host, PORT))
+                raw_sock.listen(5)
+                raw_sock.setblocking(False)
+                trio_sock = trio.socket.from_stdlib_socket(raw_sock)
+                listener = trio.SocketListener(trio_sock)
+                await trio.serve_listeners(self.data_receiver, [listener])
                 return
             except OSError as e:
                 if e.errno == _errno.EADDRINUSE and attempt < max_attempts - 1:
