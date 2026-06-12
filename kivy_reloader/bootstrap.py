@@ -143,18 +143,20 @@ from {module_name}.screens.main_screen import MainScreen
 class {class_name}App(App):
     def build(self):
         return MainScreen()
+
+def main():
+    {class_name}App().run()
 """
 
 
 
 def _main_py(module_name: str, class_name: str) -> str:
     return f"""\
-from {module_name}.app import {class_name}App
+from {module_name}.app import main
 
 if __name__ == "__main__":
-    {class_name}App().run()
+    main()
 """
-
 
 
 

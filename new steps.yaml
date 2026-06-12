@@ -68,11 +68,22 @@ adb -s 288d2830923f7ece shell am start -n org.example.helloworld/.MainActivity
 REALLY FORCE A LEGIT REBUILD2 (REAL)
 cd /home/pengin/kspt/helloworld
 uv sync  # re-fetches kivy-reloader from the local macfix_gaimwsl checkout
-rm -rf project_dist/gradle/site_packages/
+rm -rf ~/kspt/helloworld/project_dist/gradle/app/src/main/assets/site-packages/ # force delete old kivy-reloader
+rm -rf ~/kspt/helloworld/project_dist/gradle/site_packages/
 uv run ksproject android build debug --clean
 adb -s 288d2830923f7ece uninstall org.example.helloworld
 adb -s 288d2830923f7ece install $(wslpath -w /home/pengin/kspt/helloworld/project_dist/gradle/app/build/outputs/apk/debug/app-debug.apk)
 adb -s 288d2830923f7ece shell am start -n org.example.helloworld/.MainActivity
+
+CHECK LOCAL KIVY RELOADER INSTALL VER
+Command to check yourself anytime:
+
+git -C ~/kivyschool-hello/kivy-reloader log --oneline -1 && cat ~/kspt/helloworld/.venv/lib/python3.13/site-packages/kivy_reloader-*.dist-info/direct_url.json
+
+Compare the hash after "commit_id": with the git log hash — if they differ, run:
+
+cd ~/kspt/helloworld && uv lock --upgrade-package kivy-reloader && uv sync
+
 
 REALLY FORCE A LEGIT REBUILD FOR DESKTOP (REAL)
 cd ~/kspt/helloworld && uv lock --upgrade-package kivy-reloader && uv sync
