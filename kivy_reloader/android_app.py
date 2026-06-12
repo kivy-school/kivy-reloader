@@ -10,6 +10,7 @@ Handles hot reload on Android devices:
 # Standard library imports
 import hashlib
 import importlib
+import pathlib
 import json
 import os
 import socket
@@ -19,6 +20,7 @@ import zipfile
 from fnmatch import fnmatch
 from pathlib import Path
 from uuid import uuid4
+import contextlib
 
 # Third-party imports
 import trio
@@ -53,7 +55,6 @@ MODULE_RELOAD_PASSES = 2
 DNS_SERVER_IP = '8.8.8.8'
 DNS_SERVER_PORT = 80
 
-
 class AndroidApp(BaseReloaderApp, KivyApp):
     """Android hot reload app with TCP server and service management"""
 
@@ -68,6 +69,32 @@ class AndroidApp(BaseReloaderApp, KivyApp):
 
         # Serialize update application to avoid concurrent extract/delete races
         self._update_lock = trio.Lock()
+        
+    def _get_app_root(self):
+        """Package apps live in site-packages; use that as the hot-reload root
+        so extraction overwrites bundled files in-place instead of duplicating them."""
+        module_name = self.__class__.__module__
+        if module_name == '__main__':
+            return os.getcwd()
+        top_package = module_name.split('.')[0]
+        pkg = sys.modules.get(top_package)
+        if pkg and getattr(pkg, '__file__', None):
+            return str(pathlib.Path(pkg.__file__).parent.resolve())
+        return os.getcwd()
+
+    @contextlib.contextmanager
+    def _app_root_cwd(self):
+        """Temporarily set CWD to the app root for hot-reload operations only."""
+        target = self._app_root
+        original = os.getcwd()
+        if original == target:
+            yield
+            return
+        os.chdir(target)
+        try:
+            yield
+        finally:
+            os.chdir(original)
 
     def _initialize_file_hashing(self):
         """Initialize file hash tracking for hot reload detection."""
@@ -121,6 +148,9 @@ class AndroidApp(BaseReloaderApp, KivyApp):
         async with trio.open_nursery() as nursery:
             Logger.info('Reloader: Starting Async Kivy app')
             self.nursery = nursery
+            self._app_root = self._get_app_root()
+            import kivy_reloader.lang as krl
+            krl.base_dir = self._app_root
             self.initialize_server()
             self._run_prepare()
             await async_runTouchApp(async_lib=async_lib)
@@ -1092,43 +1122,54 @@ class AndroidApp(BaseReloaderApp, KivyApp):
         Args:
             zip_file_path: Path to the received zip file
         """
-        Logger.info('Reloader: Finished receiving all files from computer')
-        Logger.info('Reloader: Processing app update')
+        _orig_cwd = os.getcwd() 
+        with self._app_root_cwd():
+            Logger.info('Reloader: Finished receiving all files from computer')
+            Logger.info('Reloader: Processing app update')
 
-        # Log zip file information and extract
-        # Check if this is a delta or full transfer
-        transfer_type = self._detect_transfer_type(zip_file_path)
 
-        # Log transfer metadata
-        if print_file_tree: 
-            self._log_transfer_metadata(zip_file_path, transfer_type)
 
-        if transfer_type == 'delta':
-            self._process_delta_update(zip_file_path)
-        else:
-            # Full transfer - extract everything and handle deletions
-            self._process_full_update(zip_file_path, print_file_tree)
+            # Log zip file information and extract
+            # Check if this is a delta or full transfer
+            transfer_type = self._detect_transfer_type(zip_file_path)
 
-        # Best-effort cleanup of temp file
-        try:
-            if os.path.exists(zip_file_path):
-                os.remove(zip_file_path)
-        except Exception as e:
-            Logger.warning(f'Reloader: Failed to remove temp file {zip_file_path}: {e}')
+            # Log transfer metadata
+            if print_file_tree: 
+                self._log_transfer_metadata(zip_file_path, transfer_type)
 
-        Logger.info('Reloader: App updated, triggering hot reload')
-        Logger.info('Reloader: ************** END SERVER **************')
+            if transfer_type == 'delta':
+                self._process_delta_update(zip_file_path)
+            else:
+                # Full transfer - extract everything and handle deletions
+                self._process_full_update(zip_file_path, print_file_tree)
 
-        # After unpacking, Python's FileFinder has stale directory caches.
-        # Must invalidate before any importlib.reload call or spec lookups will fail.
-        importlib.invalidate_caches()
-        
-        # Trigger hot reload
-        self.unload_python_files_on_android()
-        if self.__module__ != '__main__':
-            importlib.reload(importlib.import_module(self.__module__))
+            # Verify extraction went in-place (no duplicate in original CWD)
+            site_pkg_kv = os.path.join(self._app_root, 'hello_world', 'screens', 'main_screen.kv')
+            cwd_kv = os.path.join(_orig_cwd, 'hello_world', 'screens', 'main_screen.kv')
+            Logger.info(f'[CWD check] app_root={self._app_root}')
+            Logger.info(f'[CWD check] site_pkg_kv exists={os.path.exists(site_pkg_kv)}')
+            Logger.info(f'[CWD check] cwd_kv (duplicate) exists={os.path.exists(cwd_kv)}')
 
-        self.reload_app()
+            # Best-effort cleanup of temp file
+            try:
+                if os.path.exists(zip_file_path):
+                    os.remove(zip_file_path)
+            except Exception as e:
+                Logger.warning(f'Reloader: Failed to remove temp file {zip_file_path}: {e}')
+
+            Logger.info('Reloader: App updated, triggering hot reload')
+            Logger.info('Reloader: ************** END SERVER **************')
+
+            # After unpacking, Python's FileFinder has stale directory caches.
+            # Must invalidate before any importlib.reload call or spec lookups will fail.
+            importlib.invalidate_caches()
+            
+            # Trigger hot reload
+            self.unload_python_files_on_android()
+            if self.__module__ != '__main__':
+                importlib.reload(importlib.import_module(self.__module__))
+
+            self.reload_app()
 
     def _detect_transfer_type(self, zip_file_path):
         """
