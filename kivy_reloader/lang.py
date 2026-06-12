@@ -63,6 +63,7 @@ def load_kv_path(path: str, encoding='utf8', **kwargs):
         kv_path = os.path.join(base_dir, path)
     if kv_path is None:
         logging.error(f'failed to load kv path: {path}')
+        return
     
     # Resolve to canonical path — avoids symlink/relative mismatches on Android
     kv_path = str(pathlib.Path(kv_path).resolve())    
