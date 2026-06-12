@@ -218,6 +218,46 @@ Note on kivy-reloader
 You added kivy-reloader in the uv add step, which puts it in [project].dependencies. That means it goes into the Android APK. The trio crash you just saw will still happen unless you sort out the trio version before you test on phone. Worth getting the blank ksproject app booting first (no kivy-reloader in deps at all), then add it once that's confirmed working.
 
 =-=-==************ KSPROJECT INTEGRATION SETUP ************=-=-=-==
+=-=-=-=- REAL  VER 2 =-=-=-==-
+uv init --package myapp --python 3.13
+cd myapp
+uv add --dev "git+https://github.com/kivy-school/ksproject@1bee1b2cfb444f5cc200499a2e144ea5ff9f751f"
+uv run ksproject init
+uv add pip
+uv sync
+uv run pip download trio -i https://pypi-index.psychowaspx.workers.dev/simple/ --no-deps -d ./wheelhouse
+uv add trio
+uv sync
+uv add "kivy>=2.3.1" "git+https://github.com/kivy-school/kivy-reloader@macfix_gaimwsl"
+uv add --dev "kivy-reloader[desktop]"
+
+uv run kivy-reloader init project
+
+7. Run on desktop
+
+uv run python -m myapp
+# or
+uv run python main.py
+8. Build and deploy to phone
+
+uv run kivy-reloader run
+Builds the APK, installs on device, starts logcat + scrcpy. Run from project root.
+
+
+REALLY FORCE A LEGIT REBUILD2 (REAL)
+cd /home/pengin/kspt/helloworld
+uv lock --upgrade-package kivy-reloader && uv sync 
+uv sync  # re-fetches kivy-reloader from the local macfix_gaimwsl checkout
+rm -rf ~/kspt/helloworld/project_dist/gradle/app/src/main/assets/site-packages/ # force delete old kivy-reloader
+rm -rf ~/kspt/helloworld/project_dist/gradle/site_packages/
+uv run ksproject android build debug --clean
+adb -s 288d2830923f7ece uninstall org.example.helloworld
+adb -s 288d2830923f7ece install $(wslpath -w /home/pengin/kspt/helloworld/project_dist/gradle/app/build/outputs/apk/debug/app-debug.apk)
+adb -s 288d2830923f7ece shell am start -n org.example.helloworld/.MainActivity
+
+REALLY FORCE A LEGIT REBUILD FOR DESKTOP (REAL)
+cd ~/kspt/helloworld && uv lock --upgrade-package kivy-reloader && uv sync
+
 =-=-=-=- REAL  VER  =-=-=-==-
 
 uv init --package myapp --python 3.13
@@ -227,8 +267,11 @@ uv add --dev "git+https://github.com/kivy-school/ksproject@1bee1b2cfb444f5cc2004
 
 uv run ksproject init
 3. UNTESTED SETUP
+uv add pip
+uv sync
 uv run pip download trio -i https://pypi-index.psychowaspx.workers.dev/simple/ --no-deps -d ./wheelhouse
-uv lock --upgrade-package trio
+uv add trio
+# uv lock --upgrade-package trio
 uv sync
 (basically uv lock should regenerate lock and point to trio wheel in wheelshouse, if not it's cooked)
 3. UNTESTED SETUP
