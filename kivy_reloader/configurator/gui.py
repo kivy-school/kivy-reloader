@@ -75,7 +75,10 @@ def run_gui(
             config_model = create_config_model()
             self.core_screen = CoreScreen()
             self.core_screen.config_model = config_model
-            self.title = "Kivy Flightdeck " # 🛩️ for dev, ✈️ for prod
+            pyproject = base / 'pyproject.toml'
+            text = pyproject.read_text() if pyproject.exists() else ''
+            backend = 'ksproject' if '[tool.kivy-school]' in text else 'buildozer'
+            self.title = f'Kivy Flightdeck [{backend}]' # 🛩️ for dev, ✈️ for prod
             return self.core_screen
 
         def on_start(self):
