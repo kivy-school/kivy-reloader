@@ -291,7 +291,7 @@ class MainScreen(BoxLayout):
             text_size: self.width, None
 
         Label:
-            text: "• Fast & GPU Accelerated\n• Same code for Android, iOS, Windows, & Mac\n• Declarative UI with KVLang\n• Open Source & Flexible"
+            text: "• Fast & GPU Accelerated\\n• Same code for Android, iOS, Windows, & Mac\\n• Declarative UI with KVLang\\n• Open Source & Flexible"
             font_size: '14sp'
             color: (0.85, 0.85, 0.85, 1)
             line_height: 1.3
