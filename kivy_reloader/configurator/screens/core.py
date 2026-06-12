@@ -1,6 +1,8 @@
 import os
 import subprocess
 import sys
+import webbrowser
+
 
 from kivy.animation import Animation
 from kivy.app import App
@@ -87,6 +89,7 @@ class CoreScreen(Screen):
         toolbar.on_help = self.handle_help
         toolbar.on_toggle_sidebar = self.toggle_sidebar
         toolbar.on_toggle_dark_mode = self.handle_toggle_dark_mode 
+        toolbar.on_discord = lambda: webbrowser.open('https://discord.gg/kEEA7gkPvG')
 
         sidebar = self.sidebar
         self._sidebar_default_width = sidebar.width

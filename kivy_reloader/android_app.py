@@ -629,7 +629,7 @@ class AndroidApp(BaseReloaderApp, KivyApp):
         #     Logger.info(f"I python full trace, {full_trace}")
         #     Logger.info(f"I python error detail, {error_detail}")
         #     self._log_server_startup_error(error_detail, full_trace)
-        max_attempts = 10
+        max_attempts = 60
         for attempt in range(max_attempts):
             try:
                 Logger.info(f'Kivy-Reloader: starting server on host{host},port:{PORT}')

@@ -168,6 +168,26 @@
                 size: self.size
                 radius: [border_radius_md]
 
+    # Discord support button
+    Button:
+        text: f'[size=16][font={emoji_font}]🎮[/font][/size]   Discord'
+        markup: True
+        size_hint: None, None
+        size: [dp(110), dp(40)]
+        background_color: transparent
+        color: foreground_color
+        font_size: font_size_sm
+        on_release: root.handle_discord()
+
+        canvas.before:
+            Color:
+                rgba: muted_active_color if self.state == 'down' else transparent
+            SmoothRoundedRectangle:
+                pos: self.pos
+                size: self.size
+                radius: [border_radius_md]
+
+
     # Dark mode toggle (far right)
     Button:
         text: 'Light' if root.is_dark_mode else 'Dark'

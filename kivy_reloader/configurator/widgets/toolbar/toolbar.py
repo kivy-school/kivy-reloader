@@ -8,7 +8,6 @@ from kivy_reloader.lang import Builder
 
 Builder.load_file(__file__)
 
-
 class Toolbar(BoxLayout):
     """Top toolbar with action buttons"""
 
@@ -24,6 +23,8 @@ class Toolbar(BoxLayout):
     is_sidebar_visible = BooleanProperty(True)
     has_unsaved_changes = BooleanProperty(False)
     is_dark_mode = BooleanProperty(False) 
+    on_discord = ObjectProperty(None)
+
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -36,6 +37,10 @@ class Toolbar(BoxLayout):
             end_color=(0.067, 0.686, 0.84, 1.0),  # Cyan (accent)
             size=(512, 512),
         )
+
+    def handle_discord(self):
+        if self.on_discord:
+            self.on_discord()
 
     def handle_apply_reload(self):
         """Handle Apply & Reload button"""
