@@ -170,11 +170,12 @@
 
     # Dark mode toggle (far right)
     Button:
-        text: '☀' if root.is_dark_mode else '☾'
+        text: 'Light' if root.is_dark_mode else 'Dark'
         size_hint: None, None
-        size: [dp(40), dp(40)]
+        size: [dp(56), dp(40)]
         background_color: transparent
         color: foreground_color
+        font_size: font_size_sm
         on_release: root.handle_toggle_dark_mode()
 
         canvas.before:
@@ -184,3 +185,5 @@
                 pos: self.pos
                 size: self.size
                 radius: [border_radius_md]
+
+

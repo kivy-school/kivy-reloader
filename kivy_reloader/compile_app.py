@@ -807,6 +807,15 @@ def deploy_app_to_devices(target_devices, apk_file_path, package_name, activity_
             if 'Success' not in result.stdout + result.stderr:
                 logging.error(f'Install failed: {result.stdout} {result.stderr}')
                 return
+
+            try:
+                subprocess.run([
+                    'adb', '-s', device['serial'], 'shell', 'am', 'start',
+                    '-n', f'{package_name}/{activity_class}',
+                ], timeout=60)
+            except subprocess.TimeoutExpired:
+                logging.warning('am start timed out - app may still have launched, continuing...')
+
         except subprocess.TimeoutExpired:
             logging.error(f'adb install TIMED OUT after 120s for {device["serial"]}')
             return
