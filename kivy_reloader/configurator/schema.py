@@ -432,6 +432,13 @@ FIELD_DEFS: list[FieldDef] = [
         examples=['"1280:720:0:0"'],
         advanced=True,
     ),
+    FieldDef(                           
+        'DARK_MODE',
+        FieldType.BOOL,
+        False,
+        'Display',
+        help_short='Dark mode for the configurator UI',
+    ),
     # ---------------------------------------------------------------------------
     # 🎵 Audio
     # ---------------------------------------------------------------------------

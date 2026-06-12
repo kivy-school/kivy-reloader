@@ -282,7 +282,7 @@ Builds the APK, installs on device, starts logcat + scrcpy. Run from project roo
 
 REALLY FORCE A LEGIT REBUILD2 (REAL)
 cd /home/pengin/kspt/helloworld
-uv lock --upgrade-package kivy-reloader
+uv lock --upgrade-package kivy-reloader && uv sync 
 uv sync  # re-fetches kivy-reloader from the local macfix_gaimwsl checkout
 rm -rf ~/kspt/helloworld/project_dist/gradle/app/src/main/assets/site-packages/ # force delete old kivy-reloader
 rm -rf ~/kspt/helloworld/project_dist/gradle/site_packages/
@@ -606,7 +606,7 @@ weekly autobuild now
 merge with ksproject
 AMAZING DANCE STAR
 
-=-=-==************ FINISHED LIST ************=-=-=-==
+=-=-==************ FINISHED LIST FIXED LIST ************=-=-=-==
 fixed network flow between desktop and android phone client on mac/win10/win11
 works with win 11 wsl2 mirrored networking and updated kivyschool to do mirred networking if no wslconfig found
 fixed typer.clear() failing on newest typer
@@ -627,6 +627,27 @@ added light/dark mode
 added terminal so u can see commands 
 added discord button to go to support channel at kivyschool
 
+config: 
+fixed cascade design issue: 
+[INFO   ] [Base        ] Start application main loop
+[CRITICAL] [Clock       ] Warning, too much iteration done before the next frame. Check your code, or increase the Clock.max_iteration attribute. Remaining events:
+<ClockEvent (-1.0) callback=<bound method BoxLayout.do_layout of <kivy.factory.SectionBox object at 0x7bb67c6755c0>>>
+<ClockEvent (-1.0) callback=<bound method ScrollView.update_from_scroll of <kivy.factory.SectionScrollView object at 0x7bb67c662200>>>
+[CRITICAL] [Clock       ] Warning, too much iteration done before the next frame. Check your code, or increase the Clock.max_iteration attribute. Remaining events:
+<ClockEvent (-1.0) callback=<bound method BoxLayout.do_layout of <kivy.factory.SectionBox object at 0x7bb67c6755c0>>>
+<ClockEvent (-1.0) callback=<bound method ScrollView.update_from_scroll of <kivy.factory.SectionScrollView object at 0x7bb67c662200>>>
+[INFO   ] [Window      ] exiting mainloop and closing.
+
+duplicate lines:
+self.values = [v for v in self.values if v != value]
+in chip_input py
+
+and 
+
+for btn in self.radio_buttons:
+            btn.selected = btn.value == value
+
+in radio_button.py
 =-=-=-=-=
 - fixed network flow between desktop and android phone client on mac/win10/win11
 - works with win 11 wsl2 mirrored networking and updated kivyschool to do mirred networking if no wslconfig found

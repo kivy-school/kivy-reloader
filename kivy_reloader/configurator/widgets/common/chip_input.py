@@ -63,4 +63,3 @@ class ChipInput(BoxLayout):
         """Remove a value"""
         if value in self.values:
             self.values = [v for v in self.values if v != value]
-            self.values = [v for v in self.values if v != value]

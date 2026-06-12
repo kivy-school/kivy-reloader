@@ -784,6 +784,7 @@ def deploy_app_to_devices(target_devices, apk_file_path, package_name, activity_
                     ['adb', '-s', device['serial'], 'shell', 'am', 'force-stop', package_name],
                     timeout=10
                 )
+                _wait_for_port_free(device['serial'], int(config.RELOADER_PORT))
                 # Uninstall first to clear extracted Python asset cache on Android
                 subprocess.run(
                     ['adb', '-s', device['serial'], 'uninstall', package_name],
@@ -868,6 +869,31 @@ def deploy_app_to_devices(target_devices, apk_file_path, package_name, activity_
 #             check=True,
 #         )
 
+def _wait_for_port_free(serial: str, port: int, timeout: int = 90) -> None:
+    """Poll /proc/net/tcp on device until the port has no LISTEN socket, then return."""
+    import time
+    hex_port = format(port, '04X')
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        result = subprocess.run(
+            ['adb', '-s', serial, 'shell', 'cat', '/proc/net/tcp6', '/proc/net/tcp'],
+            capture_output=True, text=True,
+        )
+        listening = any(
+            len(p := line.split()) >= 4
+            and p[1].upper().endswith(f':{hex_port}')
+            and p[3] == '0A'
+            for line in result.stdout.splitlines()
+        )
+        if not listening:
+            logging.info(f'Port {port} is free — proceeding with install')
+            return
+        elapsed = int(deadline - time.time())
+        logging.info(f'Waiting for port {port} to be released by old process... ({elapsed}s remaining)')
+        time.sleep(2)
+    logging.warning(f'Port {port} still held after {timeout}s — installing anyway')
+
+
 def _clear_ksproject_cache() -> None:
     if not Path('pyproject.toml').exists():
         print(f'{red}pyproject.toml not found. Run kivy-reloader from your project root (the folder containing pyproject.toml).{Fore.RESET}')
@@ -891,6 +917,36 @@ def _gradle_clean() -> None:
     subprocess.run(['./gradlew', 'clean'], cwd=str(gradle_dir), check=False)
 
 
+def _check_pypi_indexes_reachable() -> None:
+    """Warn if any configured PyPI indexes appear unreachable."""
+    import socket as _sock
+    import tomlkit
+    indexes = []
+    try:
+        with open('pyproject.toml', 'r', encoding='utf-8') as f:
+            data = tomlkit.load(f)
+        indexes = data.get('tool', {}).get('uv', {}).get('pip', {}).get('extra-index-url', [])
+    except Exception:
+        pass
+
+    unreachable = []
+    for url in indexes:
+        try:
+            host = url.split('/')[2]
+            _sock.setdefaulttimeout(5)
+            _sock.getaddrinfo(host, 443)
+        except Exception:
+            unreachable.append(url)
+
+    if unreachable:
+        logging.warning(
+            'Build failed — the following PyPI indexes appear unreachable:\n'
+            + '\n'.join(f'  {u}' for u in unreachable)
+            + '\nRetry when the network recovers, or pre-download missing wheels:\n'
+            + '  uv run pip download <package> -d ./wheelhouse'
+        )
+
+
 def run_ksproject_build() -> float:
     """Run ksproject android build instead of buildozer."""
     _clear_ksproject_cache()
@@ -898,7 +954,11 @@ def run_ksproject_build() -> float:
     print(f'{yellow}Started compiling {app_name} with ksproject')
     notify(f'Compiling {app_name}', f'Compilation started at {time.strftime("%H:%M:%S")}')
     start_time = time.time()
-    subprocess.run(['ksproject', 'android', 'build', 'debug'], check=True)
+    try:
+        subprocess.run(['ksproject', 'android', 'build', 'debug'], check=True)
+    except subprocess.CalledProcessError:
+        _check_pypi_indexes_reachable()
+        raise
     compilation_time = round(time.time() - start_time, 2)
     print(f'{green}Compiled {app_name} successfully in {compilation_time}s')
     notify(f'Compiled {app_name} successfully', f'Compilation finished in {compilation_time} seconds')

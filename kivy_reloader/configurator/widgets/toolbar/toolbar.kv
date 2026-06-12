@@ -170,18 +170,18 @@
 
     # Discord support button
     Button:
-        text: f'[size=16][font={emoji_font}]🎮[/font][/size] Discord Support'
+        text: f'Discord Support'
         markup: True
         size_hint: None, None
-        size: [dp(110), dp(40)]
+        size: self.texture_size[0] + dp(24), dp(40)
         background_color: transparent
-        color: foreground_color
+        color: (1, 1, 1, 1)
         font_size: font_size_sm
         on_release: root.handle_discord()
 
         canvas.before:
             Color:
-                rgba: muted_active_color if self.state == 'down' else transparent
+                rgba: (0.27, 0.31, 0.79, 1) if self.state == 'down' else (0.345, 0.396, 0.949, 1)
             SmoothRoundedRectangle:
                 pos: self.pos
                 size: self.size
