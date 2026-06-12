@@ -608,6 +608,8 @@ def adb_forward(port: int, serial: str = None) -> int:
         return 1
 
 def adb_has_forward(port: int) -> bool:
+    if not in_wsl():
+        return False
     pattern = re.compile(rf"tcp:{port}\s+tcp:{port}\b")
 
     try:

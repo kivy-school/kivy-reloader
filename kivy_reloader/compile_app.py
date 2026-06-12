@@ -1036,6 +1036,8 @@ def restart_adb_server():
 
 def kill_windows_adb():
     """Kill any orphaned adb.exe processes on the Windows side (WSL only)."""
+    if not in_wsl():
+        return
     result = subprocess.run(
         ["tasklist.exe", "/FI", "IMAGENAME eq adb.exe", "/NH"],
         capture_output=True, text=True
@@ -1095,6 +1097,8 @@ def get_wsl_host_ip() -> str:
     return extract_ip(nameservers[0]) if nameservers else "127.0.0.1"
 
 def adb_nodaemon_check():
+    if not in_wsl():
+        return False
     answer = False
     # Query Windows processes from WSL
     result = subprocess.run(
