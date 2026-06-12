@@ -76,9 +76,9 @@ def load_kv_path(path: str, encoding='utf8', **kwargs):
     # Builder.files check below prevents double-loading when both paths
     # refer to the same .kv (e.g. site-packages copy already loaded).
 
-    logging.debug(f'[load_kv_path] kv_path={kv_path}')
-    logging.debug(f'[load_kv_path] Builder.files={Builder.files}')
-    logging.debug(f'[load_kv_path] already_loaded={kv_path in Builder.files}')
+    # logging.debug(f'[load_kv_path] kv_path={kv_path}')
+    # logging.debug(f'[load_kv_path] Builder.files={Builder.files}')
+    # logging.debug(f'[load_kv_path] already_loaded={kv_path in Builder.files}')
 
 
     # First try exact match

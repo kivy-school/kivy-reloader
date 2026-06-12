@@ -784,12 +784,19 @@ def deploy_app_to_devices(target_devices, apk_file_path, package_name, activity_
                     ['adb', '-s', device['serial'], 'shell', 'am', 'force-stop', package_name],
                     timeout=10
                 )
+                # # Uninstall first to clear extracted Python asset cache on Android
+                # subprocess.run(
+                #     ['adb', '-s', device['serial'], 'uninstall', package_name],
+                #     timeout=30, capture_output=True
+                # )
                 # Uninstall first to clear extracted Python asset cache on Android
+                logging.info(f'Starting adb uninstall for {package_name}...')
                 subprocess.run(
                     ['adb', '-s', device['serial'], 'uninstall', package_name],
                     timeout=30, capture_output=True
                 )
-                _wait_for_port_free(device['serial'], int(config.RELOADER_PORT), timeout=30)
+                logging.info(f'adb uninstall returned')
+                _wait_for_port_freedb(device['serial'], int(config.RELOADER_PORT), timeout=30)
                 result = _do_install(device['serial'], reinstall=False)
             else:
                 result = _do_install(device['serial'], reinstall=True)
@@ -868,6 +875,33 @@ def deploy_app_to_devices(target_devices, apk_file_path, package_name, activity_
 #             ],
 #             check=True,
 #         )
+
+def _wait_for_port_freedb(serial: str, port: int, timeout: int = 90) -> None:
+    """Poll /proc/net/tcp on device until the port has no LISTEN socket, then return."""
+    import time
+    hex_port = format(port, '04X')
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        result = subprocess.run(
+            ['adb', '-s', serial, 'shell', 'cat', '/proc/net/tcp6', '/proc/net/tcp'],
+            capture_output=True, text=True,
+        )
+        listening = False
+        for line in result.stdout.splitlines():
+            p = line.split()
+            if len(p) >= 4 and p[1].upper().endswith(f':{hex_port}') and p[3] == '0A':
+                listening = True
+                uid   = p[7] if len(p) > 7 else '?'
+                inode = p[9] if len(p) > 9 else '?'
+                logging.info(f'Port {port} LISTEN socket: uid={uid} inode={inode} raw={line.strip()}')
+        if not listening:
+            logging.info(f'Port {port} is free — proceeding with install')
+            return
+        elapsed = int(deadline - time.time())
+        logging.info(f'Waiting for port {port} to be released... ({elapsed}s remaining)')
+        time.sleep(2)
+    logging.warning(f'Port {port} still held after {timeout}s — installing anyway')
+
 
 def _wait_for_port_free(serial: str, port: int, timeout: int = 90) -> None:
     """Poll /proc/net/tcp on device until the port has no LISTEN socket, then return."""

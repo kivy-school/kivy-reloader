@@ -24,8 +24,14 @@ from kivy_reloader.lang import Builder
 import io
 
 class SectionBox(BoxLayout):
+    _height_ev = None
+
     def on_minimum_height(self, instance, value):
-        Clock.schedule_once(lambda dt: setattr(self, 'height', value), -1)
+        if self._height_ev:
+            self._height_ev.cancel()
+        self._height_ev = Clock.schedule_once(
+            lambda dt: setattr(self, 'height', self.minimum_height), 0
+        )
 
 class _LogCapture(io.StringIO):
     def __init__(self, panel):
