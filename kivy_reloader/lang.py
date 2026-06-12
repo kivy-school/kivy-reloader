@@ -67,6 +67,11 @@ def load_kv_path(path: str, encoding='utf8', **kwargs):
     # Resolve to canonical path — avoids symlink/relative mismatches on Android
     kv_path = str(pathlib.Path(kv_path).resolve())    
 
+    logging.info(f'[load_kv_path] kv_path={kv_path}')
+    logging.info(f'[load_kv_path] Builder.files={Builder.files}')
+    logging.info(f'[load_kv_path] already_loaded={kv_path in Builder.files}')
+
+
     if kv_path in Builder.files:
         Builder.unload_file(kv_path)
 
