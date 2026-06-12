@@ -73,7 +73,7 @@ def load_kv_path(path: str, encoding='utf8', **kwargs):
     if kv_path not in Builder.files:
         filename = resource_find(path) or path
 
-        kwargs['filename'] = filename
+        kwargs['filename'] = kv_path  # store resolved path, not resource_find result
         with open(filename, 'r', encoding=encoding) as fd:
             data = fd.read()
             return Builder.load_string(data, **kwargs)

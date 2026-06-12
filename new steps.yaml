@@ -67,6 +67,7 @@ adb -s 288d2830923f7ece shell am start -n org.example.helloworld/.MainActivity
 
 REALLY FORCE A LEGIT REBUILD2 (REAL)
 cd /home/pengin/kspt/helloworld
+uv lock --upgrade-package kivy-reloader
 uv sync  # re-fetches kivy-reloader from the local macfix_gaimwsl checkout
 rm -rf ~/kspt/helloworld/project_dist/gradle/app/src/main/assets/site-packages/ # force delete old kivy-reloader
 rm -rf ~/kspt/helloworld/project_dist/gradle/site_packages/
