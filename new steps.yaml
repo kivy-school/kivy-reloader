@@ -220,9 +220,11 @@ You added kivy-reloader in the uv add step, which puts it in [project].dependenc
 =-=-==************ KSPROJECT INTEGRATION SETUP ************=-=-=-==
 =-=-=-=- REAL  VER  =-=-=-==-
 
-uv init myapp
+uv init --package myapp --python 3.13
 cd myapp
-uv add --dev "git+https://github.com/kivy-school/ksproject"
+# uv add --dev "git+https://github.com/kivy-school/ksproject"
+uv add --dev "git+https://github.com/kivy-school/ksproject@1bee1b2cfb444f5cc200499a2e144ea5ff9f751f"
+
 uv run ksproject init
 3. Download the trio wheel into wheelhouse
 
@@ -244,16 +246,10 @@ trio = { path = "wheelhouse/trio-0.33.0-py3-none-any.whl" }
 
 And add kivy-reloader[desktop] to the dev dependency-group:
 
-(for now use this branch)
-uv add "git+https://github.com/kivy-school/kivy-reloader@macfix_gaimwsl"
+(for now use this branch + ADD KIVY SINCE NOBODY ADDS KIVY)
+uv add "kivy>=2.3.1" "git+https://github.com/kivy-school/kivy-reloader@macfix_gaimwsl"
 uv add --dev "kivy-reloader[desktop]"
 
-
-[dependency-groups]
-dev = [
-    "kivy-reloader[desktop]>=0.8.80",
-    "ksproject",
-]
 
 here I might have to like uv update somehow to point to correct trio:
 uv lock

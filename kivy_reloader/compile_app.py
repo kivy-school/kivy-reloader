@@ -877,10 +877,19 @@ def _clear_ksproject_cache() -> None:
             shutil.rmtree(path)
             logging.info(f'Cleared ksproject cache: {path}')
 
+def _gradle_clean() -> None:
+    gradle_dir = Path('project_dist/gradle')
+    gradlew = gradle_dir / 'gradlew'
+    if not gradlew.exists():
+        return
+    logging.info('Running gradle clean')
+    subprocess.run(['./gradlew', 'clean'], cwd=str(gradle_dir), check=False)
+
 
 def run_ksproject_build() -> float:
     """Run ksproject android build instead of buildozer."""
     _clear_ksproject_cache()
+    _gradle_clean()
     print(f'{yellow}Started compiling {app_name} with ksproject')
     notify(f'Compiling {app_name}', f'Compilation started at {time.strftime("%H:%M:%S")}')
     start_time = time.time()
