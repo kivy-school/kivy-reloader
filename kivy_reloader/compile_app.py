@@ -2,9 +2,11 @@ import logging
 import os
 import platform as _platform
 import re
+import shutil
 import signal
 import subprocess
 import sys
+from pathlib import Path
 
 import time
 from contextlib import suppress
@@ -861,15 +863,33 @@ def deploy_app_to_devices(target_devices, apk_file_path, package_name, activity_
 #             check=True,
 #         )
 
+def _clear_ksproject_cache() -> None:
+    if not Path('pyproject.toml').exists():
+        print(f'{red}pyproject.toml not found. Run kivy-reloader from your project root (the folder containing pyproject.toml).{Fore.RESET}')
+        return
+    root = Path('pyproject.toml').resolve().parent
+    for rel in [
+        'project_dist/gradle/app/src/main/assets/site-packages',
+        'project_dist/gradle/site_packages',
+    ]:
+        path = root / rel
+        if path.exists():
+            shutil.rmtree(path)
+            logging.info(f'Cleared ksproject cache: {path}')
+
+
 def run_ksproject_build() -> float:
     """Run ksproject android build instead of buildozer."""
+    _clear_ksproject_cache()
     print(f'{yellow}Started compiling {app_name} with ksproject')
+    notify(f'Compiling {app_name}', f'Compilation started at {time.strftime("%H:%M:%S")}')
     start_time = time.time()
     subprocess.run(['ksproject', 'android', 'build', 'debug'], check=True)
     compilation_time = round(time.time() - start_time, 2)
     print(f'{green}Compiled {app_name} successfully in {compilation_time}s')
     notify(f'Compiled {app_name} successfully', f'Compilation finished in {compilation_time} seconds')
     return compilation_time
+
 
 def compile_app(buildozer_compiled: Event = None):
     """

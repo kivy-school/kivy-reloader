@@ -618,8 +618,12 @@ class DesktopApp(BaseReloaderApp, KakiApp):
         Uses differential transfer to send only changed files for improved performance,
         falling back to full transfer when necessary.
         """
+
+        watched = config.WATCHED_FOLDERS_RECURSIVELY
+        _first = watched[0] if watched else '.'
+        _delta_root = os.getcwd() if _first == '.' else os.path.realpath(os.path.join(os.getcwd(), _first))
         # Initialize delta transfer manager
-        delta_manager = DeltaTransferManager(os.getcwd())
+        delta_manager = DeltaTransferManager(_delta_root)
 
         # Apply only exclusions (include everything else)
         exclude_patterns = config.FOLDERS_AND_FILES_TO_EXCLUDE_FROM_PHONE
