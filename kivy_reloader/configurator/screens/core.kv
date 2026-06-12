@@ -1,12 +1,11 @@
 #:import cards kivy_reloader.configurator.widgets.cards
 #:import command_panel_mod kivy_reloader.configurator.widgets.command_panel 
 
-<SectionBox@BoxLayout>:
+<SectionBox>:
     orientation: 'vertical'
     padding: [dp(32), dp(24), dp(32), dp(24)]
     spacing: dp(16)
     size_hint_y: None
-    height: self.minimum_height
 
     canvas.before:
         Color:

@@ -8,6 +8,8 @@ from kivy.animation import Animation
 from kivy.app import App
 from kivy.core.window import Window
 from kivy.properties import ObjectProperty, StringProperty
+from kivy.clock import Clock
+from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.screenmanager import Screen
 
 from kivy_reloader.configurator.widgets.cards import (  # noqa: F401
@@ -20,6 +22,10 @@ from kivy_reloader.configurator.widgets.sidebar import SideBar  # noqa: F401
 from kivy_reloader.configurator.widgets.toolbar import Toolbar  # noqa: F401
 from kivy_reloader.lang import Builder
 import io
+
+class SectionBox(BoxLayout):
+    def on_minimum_height(self, instance, value):
+        Clock.schedule_once(lambda dt: setattr(self, 'height', value), -1)
 
 class _LogCapture(io.StringIO):
     def __init__(self, panel):

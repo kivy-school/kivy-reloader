@@ -784,12 +784,12 @@ def deploy_app_to_devices(target_devices, apk_file_path, package_name, activity_
                     ['adb', '-s', device['serial'], 'shell', 'am', 'force-stop', package_name],
                     timeout=10
                 )
-                _wait_for_port_free(device['serial'], int(config.RELOADER_PORT))
                 # Uninstall first to clear extracted Python asset cache on Android
                 subprocess.run(
                     ['adb', '-s', device['serial'], 'uninstall', package_name],
                     timeout=30, capture_output=True
                 )
+                _wait_for_port_free(device['serial'], int(config.RELOADER_PORT), timeout=30)
                 result = _do_install(device['serial'], reinstall=False)
             else:
                 result = _do_install(device['serial'], reinstall=True)
