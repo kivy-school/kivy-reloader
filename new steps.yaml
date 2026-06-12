@@ -216,7 +216,177 @@ android run doesn't rebuild — it finds the existing APK from the last build, d
 
 Note on kivy-reloader
 You added kivy-reloader in the uv add step, which puts it in [project].dependencies. That means it goes into the Android APK. The trio crash you just saw will still happen unless you sort out the trio version before you test on phone. Worth getting the blank ksproject app booting first (no kivy-reloader in deps at all), then add it once that's confirmed working.
+
+=-=-==************ KSPROJECT INTEGRATION SETUP ************=-=-=-==
+=-=-=-=- REAL  VER  =-=-=-==-
+
+uv init myapp
+cd myapp
+uv add --dev "git+https://github.com/kivy-school/ksproject"
+uv run ksproject init
+3. Download the trio wheel into wheelhouse
+
+mkdir wheelhouse
+uv pip download "trio==0.33.0" --no-deps -d wheelhouse
+4. Update pyproject.toml
+Add/update these sections after ksproject init:
+get wheel + add trio path in tool.uv.sources
+
+dependencies = [
+    "kivy>=2.3.1",
+    "kivy-reloader",
+    "trio>=0.33.0",
+]
+
+[tool.uv.sources]
+trio = { path = "wheelhouse/trio-0.33.0-py3-none-any.whl" }
+
+
+And add kivy-reloader[desktop] to the dev dependency-group:
+
+(for now use this branch)
+uv add "git+https://github.com/kivy-school/kivy-reloader@macfix_gaimwsl"
+uv add --dev "kivy-reloader[desktop]"
+
+
+[dependency-groups]
+dev = [
+    "kivy-reloader[desktop]>=0.8.80",
+    "ksproject",
+]
+
+here I might have to like uv update somehow to point to correct trio:
+uv lock
+uv sync
+
+
+uv run kivy-reloader init project
+This creates src/myapp/screens/main_screen.py, main_screen.kv, rewrites app.py to use kivy_reloader.App + trio, creates kivy-reloader.toml at project root, and creates main.py.
+
+7. Run on desktop
+
+uv run python -m myapp
+# or
+uv run python main.py
+8. Build and deploy to phone
+
+uv run kivy-reloader run
+Builds the APK, installs on device, starts logcat + scrcpy. Run from project root.
+
+
+REALLY FORCE A LEGIT REBUILD2 (REAL)
+cd /home/pengin/kspt/helloworld
+uv lock --upgrade-package kivy-reloader
+uv sync  # re-fetches kivy-reloader from the local macfix_gaimwsl checkout
+rm -rf ~/kspt/helloworld/project_dist/gradle/app/src/main/assets/site-packages/ # force delete old kivy-reloader
+rm -rf ~/kspt/helloworld/project_dist/gradle/site_packages/
+uv run ksproject android build debug --clean
+adb -s 288d2830923f7ece uninstall org.example.helloworld
+adb -s 288d2830923f7ece install $(wslpath -w /home/pengin/kspt/helloworld/project_dist/gradle/app/build/outputs/apk/debug/app-debug.apk)
+adb -s 288d2830923f7ece shell am start -n org.example.helloworld/.MainActivity
+
+REALLY FORCE A LEGIT REBUILD FOR DESKTOP (REAL)
+cd ~/kspt/helloworld && uv lock --upgrade-package kivy-reloader && uv sync
+
+=-=-=-=
+
+1. Create the project
+
+uv init myapp
+cd myapp
+2. Add ksproject and scaffold the src layout
+
+uv add --dev "git+https://github.com/kivy-school/ksproject"
+uv run ksproject init
+3. Download the trio wheel into wheelhouse
+
+mkdir wheelhouse
+uv pip download "trio==0.33.0" --no-deps -d wheelhouse
+4. Update pyproject.toml
+Add/update these sections after ksproject init:
+
+
+[project]
+dependencies = [
+    "kivy>=2.3.1",
+    "kivy-reloader",
+    "trio>=0.33.0",
+]
+
+[project.scripts]
+myapp = "myapp:main"
+
+[dependency-groups]
+dev = [
+    "kivy-reloader[desktop]>=0.8.80",
+    "ksproject",
+]
+
+[tool.uv.sources]
+ksproject = { git = "https://github.com/kivy-school/ksproject" }
+trio = { path = "wheelhouse/trio-0.33.0-py3-none-any.whl" }
+
+[tool.uv]
+index-strategy = "unsafe-best-match"
+find-links = ["./wheelhouse"]
+
+[tool.uv.pip]
+extra-index-url = [
+    "https://pypi.anaconda.org/pyswift/simple",
+    "https://pypi.anaconda.org/kivyschool/simple"
+]
+find-links = ["./wheelhouse"]
+5. Install everything
+
+uv sync
+6. Scaffold kivy-reloader into the project
+
+uv run kivy-reloader init project
+This creates src/myapp/screens/main_screen.py, main_screen.kv, rewrites app.py to use kivy_reloader.App + trio, creates kivy-reloader.toml at project root, and creates main.py.
+
+7. Run on desktop
+
+uv run python -m myapp
+# or
+uv run python main.py
+8. Build and deploy to phone
+
+uv run kivy-reloader run
+Builds the APK, installs on device, starts logcat + scrcpy. Run from project root.
+
+=-=-=-=- BAD VER =-=-=-==-
+1. Create the project
+
+uv init myapp
+cd myapp
+
+2. Add ksproject (build tool, dev-only)
+
+uv add --dev "git+https://github.com/kivy-school/ksproject"
+uv run ksproject init
+
+This writes [tool.kivy-school] into pyproject.toml and creates src/myapp/.
+
+3. Add kivy-reloader
+
+uv add "kivy-reloader"
+uv run kivy-reloader init project
+
+to run:
+
+
+
+5. Run on desktop
+
+uv run myapp        # via pyproject.toml [project.scripts] entry
+# or
+uv run python main.py
+
+6. Build and deploy to phone
+
+uv run kivy-reloader run
 =-=-==************ KSPROJECT INTEGRATION NOTES ************=-=-=-==
+
 
 Here's the full list of what was discovered:
 
