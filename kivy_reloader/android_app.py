@@ -650,7 +650,7 @@ class AndroidApp(BaseReloaderApp, KivyApp):
             except OSError as e:
                 if e.errno == _errno.EADDRINUSE and attempt < max_attempts - 1:
                     Logger.info(
-                        f'Port {PORT} still in use (old process not dead yet), '
+                        f'Port {PORT} still in use (old process not dead yet - might be duplicate app on phone), '
                         f'retrying in 1s... ({attempt + 1}/{max_attempts})'
                     )
                     await trio.sleep(1)
