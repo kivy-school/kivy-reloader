@@ -648,6 +648,8 @@ for btn in self.radio_buttons:
             btn.selected = btn.value == value
 
 in radio_button.py
+
+configurator bug: scrollwheel outside of dropdown cancels dropdown/ now dropdown  tracks the parent widget
 =-=-=-=-=
 - fixed network flow between desktop and android phone client on mac/win10/win11
 - works with win 11 wsl2 mirrored networking and updated kivyschool to do mirred networking if no wslconfig found

@@ -686,8 +686,8 @@ class DropdownPicker(ButtonBehavior, BoxLayout):
         self._setup_selection_tracking()
 
     def _on_scroll_change(self, instance, value):
-        """Called when the ScrollView scrolls - close dropdown immediately"""
-        self.close_dropdown()
+        """Called when the ScrollView scrolls - reposition dropdown to follow picker"""
+        self._update_container_position()
 
     def _setup_selection_tracking(self):
         """Setup bindings to track selection changes in the tree"""
