@@ -578,12 +578,21 @@ class AndroidApp(BaseReloaderApp, KivyApp):
 
         for pass_num in range(MODULE_RELOAD_PASSES):
             for module in modules_to_reload:
+                # play nice with ksproject loading things:
+                # desktop ksproject loads __main__
+                # android ksproject loads bapp.__main__
+                if module.__name__ not in sys.modules:
+                    continue  # can't reload — registered under a different name (e.g. __main__)
                 try:
                     importlib.reload(module)
                 except Exception as e:
                     Logger.warning(
                         f'Failed to reload {module} on pass {pass_num + 1}: {e}'
                     )
+
+
+
+        
 
     # ==================== NETWORK SERVER ====================
 
