@@ -1192,6 +1192,19 @@ class AndroidApp(BaseReloaderApp, KivyApp):
             if print_file_tree: 
                 self._log_transfer_metadata(zip_file_path, transfer_type)
 
+            # Reject zips from a different app's desktop reloader
+            with zipfile.ZipFile(zip_file_path, 'r') as _zf:
+                if '_delta_metadata.json' in _zf.namelist():
+                    _meta = json.loads(_zf.read('_delta_metadata.json').decode('utf-8'))
+                    source_pkg = _meta.get('source_package')
+                    my_pkg = self.__class__.__module__.split('.')[0]
+                    if source_pkg and source_pkg != my_pkg:
+                        Logger.warning(
+                            f'Android: Rejecting zip from {source_pkg!r}, '
+                            f'this app is {my_pkg!r}'
+                        )
+                        return
+
             if transfer_type == 'delta':
                 self._process_delta_update(zip_file_path)
             else:
