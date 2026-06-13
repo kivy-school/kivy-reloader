@@ -590,17 +590,31 @@ class AndroidApp(BaseReloaderApp, KivyApp):
         #                 f'Failed to reload {module} on pass {pass_num + 1}: {e}'
         #             )
 
+        # for pass_num in range(MODULE_RELOAD_PASSES):
+        #     for module in modules_to_reload:
+        #         spec_name = getattr(getattr(module, '__spec__', None), 'name', None)
+        #         Logger.info(
+        #             f'[reload debug] pass={pass_num+1} '
+        #             f'module.__name__={module.__name__!r} '
+        #             f'spec_name={spec_name!r} '
+        #             f'in_sys_by_name={module.__name__ in sys.modules} '
+        #             f'in_sys_by_spec={spec_name in sys.modules if spec_name else "N/A"}'
+        #         )
+        #         if module.__name__ not in sys.modules:
+        #             continue
+        #         try:
+        #             importlib.reload(module)
+        #         except Exception as e:
+        #             Logger.warning(
+        #                 f'Failed to reload {module} on pass {pass_num + 1}: {e}'
+        #             )
         for pass_num in range(MODULE_RELOAD_PASSES):
             for module in modules_to_reload:
-                spec_name = getattr(getattr(module, '__spec__', None), 'name', None)
-                Logger.info(
-                    f'[reload debug] pass={pass_num+1} '
-                    f'module.__name__={module.__name__!r} '
-                    f'spec_name={spec_name!r} '
-                    f'in_sys_by_name={module.__name__ in sys.modules} '
-                    f'in_sys_by_spec={spec_name in sys.modules if spec_name else "N/A"}'
-                )
-                if module.__name__ not in sys.modules:
+                # importlib.reload requires sys.modules[spec.name] to be the exact
+                # same object. Skip modules where that isn't true — e.g. __main__
+                # aliasing where spec.name='capp.__main__' but the key is '__main__'.
+                spec = getattr(module, '__spec__', None)
+                if spec is None or sys.modules.get(spec.name) is not module:
                     continue
                 try:
                     importlib.reload(module)

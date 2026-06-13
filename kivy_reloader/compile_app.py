@@ -797,7 +797,7 @@ def deploy_app_to_devices(target_devices, apk_file_path, package_name, activity_
                 )
                 logging.info(f'adb uninstall returned')
                 _sigkill_old_app(device['serial'], package_name)
-                _wait_for_port_freedb(device['serial'], int(config.RELOADER_PORT), timeout=30, current_package=package_name)
+                _wait_for_port_free(device['serial'], int(config.RELOADER_PORT), timeout=30, current_package=package_name)
                 result = _do_install(device['serial'], reinstall=False)
 
             else:
@@ -895,7 +895,7 @@ def _sigkill_old_app(serial: str, package_name: str) -> None:
                 )
                 logging.info(f'sigkill {pid} ({package_name}): {r.stdout.strip()!r} {r.stderr.strip()!r}')
 
-def _wait_for_port_freedb(serial: str, port: int, timeout: int = 90, current_package: str = '') -> None:
+def _wait_for_port_free(serial: str, port: int, timeout: int = 90, current_package: str = '') -> None:
     import time, re as _re
     hex_port = format(port, '04X')
     deadline = time.time() + timeout
@@ -950,30 +950,6 @@ def _wait_for_port_freedb(serial: str, port: int, timeout: int = 90, current_pac
         logging.info(f'Waiting for port {port} to be released... ({elapsed}s remaining)')
         time.sleep(2)
 
-    logging.warning(f'Port {port} still held after {timeout}s — installing anyway')
-
-def _wait_for_port_free(serial: str, port: int, timeout: int = 90) -> None:
-    """Poll /proc/net/tcp on device until the port has no LISTEN socket, then return."""
-    import time
-    hex_port = format(port, '04X')
-    deadline = time.time() + timeout
-    while time.time() < deadline:
-        result = subprocess.run(
-            ['adb', '-s', serial, 'shell', 'cat', '/proc/net/tcp6', '/proc/net/tcp'],
-            capture_output=True, text=True,
-        )
-        listening = any(
-            len(p := line.split()) >= 4
-            and p[1].upper().endswith(f':{hex_port}')
-            and p[3] == '0A'
-            for line in result.stdout.splitlines()
-        )
-        if not listening:
-            logging.info(f'Port {port} is free — proceeding with install')
-            return
-        elapsed = int(deadline - time.time())
-        logging.info(f'Waiting for port {port} to be released by old process... ({elapsed}s remaining)')
-        time.sleep(2)
     logging.warning(f'Port {port} still held after {timeout}s — installing anyway')
 
 

@@ -347,7 +347,7 @@ class {class_name}App(App):
 
 def main():
     import trio
-    trio.run({class_name}App().async_run, "trio")
+    {class_name}App().run()
 '''
 
     if app_py.exists() and 'from kivy_reloader.app import App' in app_py.read_text():
@@ -365,7 +365,7 @@ def main(*args) -> None:
     main()
 '''
 
-    if init_py.read_text() != init_content:
+    if not init_py.exists() or init_py.read_text() != init_content:
         init_py.write_text(init_content)
         klprint(f'Updated: src/{module_name}/__init__.py')
     else:
@@ -380,7 +380,7 @@ if __name__ == "__main__":
     main()
 '''
 
-    if main_module_py.read_text() != main_module_content:
+    if not main_module_py.exists() or main_module_py.read_text() != main_module_content:
         main_module_py.write_text(main_module_content)
         klprint(f'Updated: src/{module_name}/__main__.py')
     else:

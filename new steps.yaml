@@ -221,7 +221,8 @@ You added kivy-reloader in the uv add step, which puts it in [project].dependenc
 =-=-=-=- REAL  VER 2 =-=-=-==-
 uv init --package myapp --python 3.13
 cd myapp
-uv add --dev "git+https://github.com/kivy-school/ksproject@1bee1b2cfb444f5cc200499a2e144ea5ff9f751f"
+uv add --dev "git+https://github.com/kivy-school/ksproject"
+# uv add --dev "git+https://github.com/kivy-school/ksproject@1bee1b2cfb444f5cc200499a2e144ea5ff9f751f"
 uv run ksproject init
 uv add pip
 uv sync
@@ -672,6 +673,7 @@ added light/dark mode
 added terminal so u can see commands 
 added discord button to go to support channel at kivyschool
 got kivy reloader to deal with ksproject app structure (looks for app_copy in the right folder when you run uv run python -m helloworld)
+fixed ksproject/ kivyreloader multiapp collisions (bapp on android lives and capp desktop would push to bapp android somehow)
 
 config: 
 fixed cascade design issue: 
