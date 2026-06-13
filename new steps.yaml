@@ -243,6 +243,8 @@ uv run python main.py
 uv run kivy-reloader run
 Builds the APK, installs on device, starts logcat + scrcpy. Run from project root.
 
+FORCE KIVY RELOADER UPDATE FROM GIT COMMIT PUSHED TO GITHUB
+uv lock --upgrade-package kivy-reloader && uv sync 
 
 REALLY FORCE A LEGIT REBUILD2 (REAL)
 cd /home/pengin/kspt/helloworld
