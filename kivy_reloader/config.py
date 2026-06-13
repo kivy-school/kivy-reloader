@@ -57,7 +57,7 @@ class Config:  # noqa: PLR0904
         'README.md',
         '_python_bundle',
         'app_copy.zip',
-        '.kivy_reloader_state.json',
+        '*.kivy_reloader_state.json',
         'bin',
         'build',
         'buildozer.spec',
