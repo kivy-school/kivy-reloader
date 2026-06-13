@@ -576,19 +576,39 @@ class AndroidApp(BaseReloaderApp, KivyApp):
             f'({MODULE_RELOAD_PASSES} passes)'
         )
 
+        # for pass_num in range(MODULE_RELOAD_PASSES):
+        #     for module in modules_to_reload:
+        #         # play nice with ksproject loading things:
+        #         # desktop ksproject loads __main__
+        #         # android ksproject loads bapp.__main__
+        #         if module.__name__ not in sys.modules:
+        #             continue  # can't reload — registered under a different name (e.g. __main__)
+        #         try:
+        #             importlib.reload(module)
+        #         except Exception as e:
+        #             Logger.warning(
+        #                 f'Failed to reload {module} on pass {pass_num + 1}: {e}'
+        #             )
+
         for pass_num in range(MODULE_RELOAD_PASSES):
             for module in modules_to_reload:
-                # play nice with ksproject loading things:
-                # desktop ksproject loads __main__
-                # android ksproject loads bapp.__main__
+                spec_name = getattr(getattr(module, '__spec__', None), 'name', None)
+                Logger.info(
+                    f'[reload debug] pass={pass_num+1} '
+                    f'module.__name__={module.__name__!r} '
+                    f'spec_name={spec_name!r} '
+                    f'in_sys_by_name={module.__name__ in sys.modules} '
+                    f'in_sys_by_spec={spec_name in sys.modules if spec_name else "N/A"}'
+                )
                 if module.__name__ not in sys.modules:
-                    continue  # can't reload — registered under a different name (e.g. __main__)
+                    continue
                 try:
                     importlib.reload(module)
                 except Exception as e:
                     Logger.warning(
                         f'Failed to reload {module} on pass {pass_num + 1}: {e}'
                     )
+
 
 
 

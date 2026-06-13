@@ -697,6 +697,10 @@ class DesktopApp(BaseReloaderApp, KakiApp):
         if filename.startswith(prefix):
             filename = filename[1:]
 
+        # strip src/ prefix for ksproject src layout
+        if filename.startswith('src' + os.path.sep):
+            filename = filename[len('src' + os.path.sep):]
+
         # Convert to module notation (remove .py extension and replace separators)
         module = filename[:-3].replace(prefix, '.')
         return module
