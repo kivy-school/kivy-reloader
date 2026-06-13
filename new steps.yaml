@@ -669,6 +669,7 @@ renamed to kivy flightdeck
 added light/dark mode
 added terminal so u can see commands 
 added discord button to go to support channel at kivyschool
+got kivy reloader to deal with ksproject app structure (looks for app_copy in the right folder when you run uv run python -m helloworld)
 
 config: 
 fixed cascade design issue: 

@@ -621,9 +621,16 @@ class DesktopApp(BaseReloaderApp, KakiApp):
 
         watched = config.WATCHED_FOLDERS_RECURSIVELY
         _first = watched[0] if watched else '.'
-        _delta_root = os.getcwd() if _first == '.' else os.path.realpath(os.path.join(os.getcwd(), _first))
-        # Initialize delta transfer manager
-        delta_manager = DeltaTransferManager(_delta_root)
+        _cwd = os.getcwd()
+        if _first == '.':
+            app_name = getattr(config, 'APP_NAME', None)
+            src_candidate = os.path.join(_cwd, 'src', app_name) if app_name else None
+            _delta_root = src_candidate if src_candidate and os.path.isdir(src_candidate) else _cwd
+        else:
+            _delta_root = os.path.realpath(os.path.join(_cwd, _first))
+        # Initialize delta transfer manager — zip always lands at CWD for send_app_to_phone.py
+        delta_manager = DeltaTransferManager(_delta_root, zip_root=_cwd)
+
 
         # Apply only exclusions (include everything else)
         exclude_patterns = config.FOLDERS_AND_FILES_TO_EXCLUDE_FROM_PHONE

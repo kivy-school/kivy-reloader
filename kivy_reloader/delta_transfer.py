@@ -26,11 +26,13 @@ DELTA_CHANGE_THRESHOLD = 0.3  # Use delta if less than 30% of files changed
 class DeltaTransferManager:
     """Manages delta transfers by tracking file changes and creating minimal updates."""
 
-    def __init__(self, project_root: str):
+    def __init__(self, project_root: str, zip_root: str = None):
         self.project_root = Path(project_root)
+        self.zip_root = Path(zip_root) if zip_root else self.project_root
         self.state_file = self.project_root / '.kivy_reloader_state.json'
         self.last_state: Dict[str, str] = {}
         self.load_state()
+
 
     def load_state(self):
         """Load the last known file state from disk."""
@@ -331,7 +333,8 @@ class DeltaTransferManager:
             Logger.info('Changed files: (none)')
 
         # Determine transfer type
-        output_path = str(self.project_root / 'app_copy.zip')
+        output_path = str(self.zip_root / 'app_copy.zip')
+
 
         if self.should_use_delta(
             added_files, modified_files, deleted_files, len(current_state)
