@@ -58,6 +58,23 @@ main > compile
 
 
 =-=-==************ FINAL TEST ************=-=-=-==
+
+how to run ??? test
+
+cd ~
+mkdir reloadtest && cd reloadtest
+uv init --python 3.13
+uv add "kivy>=2.3.1"
+uv add --editable "/home/pengin/kivyschool-hello/kivy-reloader[desktop]"
+uv run kivy-reloader init project
+
+Then run the app:
+
+xvfb-run -a uv run python main.py
+Second terminal to trigger reload:
+
+echo "# trigger" >> ~/reloadtest/hello_world/screens/main_screen.kv
+
 =-=-==************ KSPROJECT INTEGRATION ************=-=-=-==
 =--=-=-= WHAT I DID =-=-=-=
 make sure the new trio wheel works
