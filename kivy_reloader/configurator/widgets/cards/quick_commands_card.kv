@@ -149,6 +149,137 @@
                             color: primary_foreground_color if root.stream_using == 'WIFI' else foreground_color
                             on_release: root.set_stream_using('WIFI')
 
+                # SCREEN_SIZE
+                BoxLayout:
+                    orientation: 'horizontal'
+                    size_hint_y: None
+                    height: dp(36)
+                    spacing: dp(12)
+
+                    Label:
+                        text: 'Screen size (set this then F5 on desktop app to update)'
+                        font_size: font_size_sm
+                        color: foreground_color
+                        halign: 'left'
+                        valign: 'middle'
+                        text_size: self.size
+
+                    BoxLayout:
+                        size_hint_x: None
+                        width: dp(290)
+                        spacing: dp(4)
+
+                        Button:
+                            text: 'off'
+                            font_size: font_size_xs
+                            background_color: primary_color if root.screen_size == '' else muted_color
+                            color: primary_foreground_color if root.screen_size == '' else foreground_color
+                            on_release: root.set_screen_size('')
+
+                        Button:
+                            text: '360x640'
+                            font_size: font_size_xs
+                            background_color: primary_color if root.screen_size == '360x640' else muted_color
+                            color: primary_foreground_color if root.screen_size == '360x640' else foreground_color
+                            on_release: root.set_screen_size('360x640')
+                        
+                        Button:
+                            text: '360x780'
+                            font_size: font_size_xs
+                            background_color: primary_color if root.screen_size == '360x780' else muted_color
+                            color: primary_foreground_color if root.screen_size == '360x780' else foreground_color
+                            on_release: root.set_screen_size('360x780')
+
+                        Button:
+                            text: '412x915'
+                            font_size: font_size_xs
+                            background_color: primary_color if root.screen_size == '412x915' else muted_color
+                            color: primary_foreground_color if root.screen_size == '412x915' else foreground_color
+                            on_release: root.set_screen_size('412x915')
+
+                        Button:
+                            text: '600x1024'
+                            font_size: font_size_xs
+                            background_color: primary_color if root.screen_size == '600x1024' else muted_color
+                            color: primary_foreground_color if root.screen_size == '600x1024' else foreground_color
+                            on_release: root.set_screen_size('600x1024')
+
+                Label:
+                    text: {'360x640': 'Small/budget phone — compact', '360x780': 'Pixel 4a — compact standard', '412x915': 'Pixel 6 Pro reference — compact large', '600x1024': '7" tablet — medium breakpoint'}.get(root.screen_size, '')
+                    font_size: font_size_xs
+                    color: muted_foreground_color
+                    size_hint_y: None
+                    height: dp(16) if root.screen_size else 0
+                    opacity: 1 if root.screen_size else 0
+                    halign: 'right'
+                    text_size: self.width, self.height
+
+
+                # SCREEN_DPI
+                BoxLayout:
+                    orientation: 'horizontal'
+                    size_hint_y: None
+                    height: dp(36)
+                    spacing: dp(12)
+
+                    Label:
+                        text: 'Screen DPI'
+                        font_size: font_size_sm
+                        color: foreground_color
+                        halign: 'left'
+                        valign: 'middle'
+                        text_size: self.size
+
+                    BoxLayout:
+                        size_hint_x: None
+                        width: dp(290)
+                        spacing: dp(4)
+
+                        Button:
+                            text: 'off'
+                            font_size: font_size_xs
+                            background_color: primary_color if root.screen_dpi == '' else muted_color
+                            color: primary_foreground_color if root.screen_dpi == '' else foreground_color
+                            on_release: root.set_screen_dpi('')
+
+                        Button:
+                            text: '240'
+                            font_size: font_size_xs
+                            background_color: primary_color if root.screen_dpi == '240' else muted_color
+                            color: primary_foreground_color if root.screen_dpi == '240' else foreground_color
+                            on_release: root.set_screen_dpi('240')
+
+                        Button:
+                            text: '320'
+                            font_size: font_size_xs
+                            background_color: primary_color if root.screen_dpi == '320' else muted_color
+                            color: primary_foreground_color if root.screen_dpi == '320' else foreground_color
+                            on_release: root.set_screen_dpi('320')
+
+                        Button:
+                            text: '420'
+                            font_size: font_size_xs
+                            background_color: primary_color if root.screen_dpi == '420' else muted_color
+                            color: primary_foreground_color if root.screen_dpi == '420' else foreground_color
+                            on_release: root.set_screen_dpi('420')
+
+                        Button:
+                            text: '480'
+                            font_size: font_size_xs
+                            background_color: primary_color if root.screen_dpi == '480' else muted_color
+                            color: primary_foreground_color if root.screen_dpi == '480' else foreground_color
+                            on_release: root.set_screen_dpi('480')
+
+                Label:
+                    text: {'240': '1.5× density · tablets, old hdpi phones', '320': '2.0× density · mid-range xhdpi phones', '420': '2.625× density · Pixel 6 Pro, 412dp phones', '480': '3.0× density · Pixel 4a, most 360dp phones'}.get(root.screen_dpi, '')
+                    font_size: font_size_xs
+                    color: muted_foreground_color
+                    size_hint_y: None
+                    height: dp(16) if root.screen_dpi else 0
+                    opacity: 1 if root.screen_dpi else 0
+                    halign: 'right'
+                    text_size: self.width, self.height
+
                 # TARGET_IP
                 BoxLayout:
                     orientation: 'horizontal'

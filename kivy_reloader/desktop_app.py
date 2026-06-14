@@ -25,6 +25,7 @@ from kaki.app import App as KakiApp
 from kivy.base import EventLoop, async_runTouchApp
 from kivy.clock import Clock, mainthread
 from kivy.core.window import Window
+from kivy.metrics import Metrics
 from kivy.factory import Factory as F
 from kivy.lang import Builder
 from kivy.logger import Logger
@@ -416,6 +417,15 @@ class DesktopApp(BaseReloaderApp, KakiApp):
         Logger.info('Reloader: Rebuilding the application')
 
         try:
+            config.reload()
+            screen_size = config.SCREEN_SIZE
+            if screen_size and 'x' in screen_size:
+                w, h = map(int, screen_size.split('x'))
+                Window.size = (w, h)
+            screen_dpi = config.SCREEN_DPI
+            if screen_dpi:
+                Metrics.density = int(screen_dpi) / 160.0
+
             if not first:
                 self._perform_hot_reload()
 

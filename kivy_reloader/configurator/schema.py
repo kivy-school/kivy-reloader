@@ -620,6 +620,27 @@ FIELD_DEFS: list[FieldDef] = [
         advanced=True,
     ),
     # ---------------------------------------------------------------------------
+    # 🖥️ Desktop Screen Testing
+    # ---------------------------------------------------------------------------
+    FieldDef(
+        'SCREEN_SIZE',
+        FieldType.STR,
+        '',
+        'Core',
+        help_short='Simulated screen size (desktop testing)',
+        help_long='Set Window.size on each hot-reload to simulate an Android screen. Format: WxH in dp (e.g. 360x780). Empty = system default.',
+        examples=['"360x780"', '"412x915"', '"600x1024"'],
+    ),
+    FieldDef(
+        'SCREEN_DPI',
+        FieldType.STR,
+        '',
+        'Core',
+        help_short='Simulated DPI (desktop testing)',
+        help_long='Override Metrics.density on each hot-reload. 420 = Pixel 6 Pro (2.625×), 480 = Pixel 4a (3.0×). Empty = system default.',
+        examples=['"240"', '"320"', '"420"', '"480"'],
+    ),
+    # ---------------------------------------------------------------------------
     # 🔔 Notifications
     # ---------------------------------------------------------------------------
     FieldDef(

@@ -177,6 +177,14 @@ class Config:  # noqa: PLR0904
             raise ConfigurationError(f'Invalid TOML syntax in config file: {e}') from e
         except Exception as e:
             raise ConfigurationError(f'Failed to read config file: {e}') from e
+        
+    def reload(self) -> None:
+        """Re-read the TOML from disk so live edits (e.g. from FlightDeck) are picked up."""
+        try:
+            self._load_config()
+        except Exception:
+            pass
+
 
     def _validate_config(self) -> None:
         """Validate configuration values."""
@@ -510,6 +518,16 @@ class Config:  # noqa: PLR0904
     def RENDER_DRIVER(self) -> str:
         """SDL render driver. Use 'software' for VMs, or 'opengl'/'direct3d'/'metal'."""
         return self.get('RENDER_DRIVER', '')
+    
+    @property
+    def SCREEN_SIZE(self) -> str:
+        """Simulated Android screen size for desktop testing (e.g. '360x780'). Empty = system default."""
+        return self.get('SCREEN_SIZE', '')
+
+    @property
+    def SCREEN_DPI(self) -> str:
+        """Simulated Android DPI for desktop testing (e.g. '420'). Empty = system default."""
+        return self.get('SCREEN_DPI', '')
 
     @property
     def NO_MOUSE_HOVER(self) -> bool:

@@ -64,6 +64,8 @@ class QuickCommandsCard(BoxLayout):
     stream_using = StringProperty('WIFI')
     target_ip = StringProperty('')
     recipe_name = StringProperty('')
+    screen_size = StringProperty('')
+    screen_dpi = StringProperty('')
 
     def load_from_model(self):
         if not self.config_model:
@@ -71,6 +73,9 @@ class QuickCommandsCard(BoxLayout):
         self.hot_reload_on_phone = bool(self.config_model.get_value('HOT_RELOAD_ON_PHONE'))
         self.stream_using = str(self.config_model.get_value('STREAM_USING') or 'WIFI')
         self.target_ip = str(self.config_model.get_value('TARGET_IP') or '')
+        self.screen_size = str(self.config_model.get_value('SCREEN_SIZE') or '')
+        self.screen_dpi = str(self.config_model.get_value('SCREEN_DPI') or '')
+
 
     def _save(self, key, value):
         if self.config_model:
@@ -84,6 +89,14 @@ class QuickCommandsCard(BoxLayout):
     def set_stream_using(self, value):
         self.stream_using = value
         self._save('STREAM_USING', value)
+
+    def set_screen_size(self, value):
+        self.screen_size = value
+        self._save('SCREEN_SIZE', value)
+
+    def set_screen_dpi(self, value):
+        self.screen_dpi = value
+        self._save('SCREEN_DPI', value)
 
     def set_target_ip(self, text):
         text = text.strip()

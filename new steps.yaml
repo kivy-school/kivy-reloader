@@ -688,6 +688,7 @@ kivy-reloader:
 - added kivy-reloader init project that does kivy-reloader init + project scaffolds basic hello world for buildozer (kivy-reloader default) or ksproject (ksproject takes priority over buildozer)
 - fixed typer.clear() failing on newest typer
 - kivy-reloader usb option now is full usb, no wifi required BUT you might need admin perms for windows/wsl2 setup
+- fixed ksproject/ kivyreloader revealing multiapp collisions (bapp on android lives and capp desktop would push to bapp android somehow)
 - added uv run kivy-reloader init project to give you a fresh hello world project
 - fixed bug in kivy-reloader init where the default toml was beautifulapp
 - PROJECT FAILS ON WATCHING "." BUT WORKED WHEN WATCHING "HELLO-WORLD" (so totally diff from testing if reloading itself works)
@@ -711,12 +712,21 @@ kivy-reloader:
     Need a clean slate after something breaks badly
 - added exit option to cli
 - added buttons to: buildozer android clean, buildozer appclean, and target delete a recipe to quick commands and deployment screen
+- flightdeck lets you check common mobile screen sizes to stress test your app design + you can just type in what size you want (window.size trick): just update on flightdeck and press f5 to force window to reload
 
 kivy reloader flightdeck (renamed from ConfigGUI):
+- flightdeck auto spawn on CLI open has a toggle on main screen
 - added button that does buildozer android clean for you or deletes a specific lib and also added under deploy and quick commands
 - flightdeck option added to uv run kivy-reloader run
 - added a button to kivy flightdeck to delete reloader state (.kivy_reloader_state.json)
 - status page check for phone connection
+- added a quick commands tab that tracks your most used commands (tracking is fake but works for the buttons with a count on them)
+- set quick commands tab as default
+- added status page to help ppl diagnose their networking issues on wsl2, mac, linux, windows
+- added light/dark mode
+- added terminal so u can see commands + python output (not complete but helps)
+- added discord button to go to support channel at kivyschool
+- got kivy reloader to deal with ksproject app structure (looks for app_copy in the right folder when you run uv run python -m helloworld)
 
 github CI/CD:
 - setup nightly builds + alerts if tests fail
@@ -751,20 +761,140 @@ for btn in self.radio_buttons:
 
 in radio_button.py
 
+MANUAL STEPS FOR LATER REFERENCE:
 
-flightdeck permanence has a toggle
-added a quick commands tab that tracks  your most used commands
-set quick commands tab as default
-renamed to kivy flightdeck
-added status page to help ppl diagnose their networking issues
-added light/dark mode
-added terminal so u can see commands 
-added discord button to go to support channel at kivyschool
-got kivy reloader to deal with ksproject app structure (looks for app_copy in the right folder when you run uv run python -m helloworld)
-fixed ksproject/ kivyreloader multiapp collisions (bapp on android lives and capp desktop would push to bapp android somehow)
+how to run kivy-reloader default smoke test to test for py changes
+```
+cd ~
+mkdir reloadtest && cd reloadtest
+uv init --python 3.13
+uv add "kivy>=2.3.1"
+uv add "kivy>=2.3.1" "git+https://github.com/kivy-school/kivy-reloader@macfix_gaimwsl"
+uv add --dev "kivy-reloader[desktop]"
+uv run kivy-reloader init project
+
+Then run the app:
+
+xvfb-run -a uv run python main.py
+Second terminal to trigger reload:
+
+echo "# trigger" >> ~/reloadtest/hello_world/screens/main_screen.kv
+```
+
+how to run kivy-reloader default buildozer test
+```
+cd ~
+mkdir reloadtest && cd reloadtest
+uv init --python 3.13
+uv add "kivy>=2.3.1"
+uv add --editable "/home/pengin/kivyschool-hello/kivy-reloader[desktop]"
+uv run kivy-reloader init project
+
+Then run the app:
+
+uv run kivy-reloader run
+Second terminal to trigger reload:
+
+uv run python main.py
+
+this works with uv run kivy-reloader run or uv run python main.py but if phoneapp isn't on and desktop tries to reach phone it times out (which is normal behavior)
+```
+
+how to run kivy-reloader development in buildozer when set as an editable install with uv:
+
+```
+mkdir myapp
+cd myapp 
+uv init --python 3.11
+git clone https://github.com/kivy-school/kivy-reloader -b macfix_gaimwsl kivy-reloader
+uv add "kivy>=2.3.1"
+uv add -e "./kivy-reloader[desktop]" # point to local kivyreloader location and get desktop dev requirements, here it is a subdir of root myapp
+uv run kivy-reloader init project # make blank project which by default uses buildozer
+
+# then edit buildozer.spec to point to your local install correctly so it will pick up latest git commit on a forced rebuild, example:
+
+WSL2:
+git+file:///home/pengin/kivyschool-hello/kivy-reloader
+# requirements = python3, kivy, git+file:///home/pengin/kivyschool-hello/kivy-reloader, android, tomlkit, trio, attrs, outcome, sniffio, sortedcontainers, exceptiongroup
+mac: 
+git+file:///users/raidraptorultimatefalcon/coding/kivyschool-hello/kivy-reloader
+# requirements = python3, kivy, git+file:///users/raidraptorultimatefalcon/coding/kivyschool-hello/kivy-reloader, android, tomlkit, trio, attrs, outcome, sniffio, sortedcontainers, exceptiongroup
 
 
+TO FORCE UPDATE FROM LATEST GIT COMMIT:
+cd to kivy-reloader (so for me it's an internal project under root (so myapp/kivy-reloader))
+cd kivy-reloader
+git commit -a -m "u" # make any commit
+# to force a full rebuild
+buildozer appclean 
+# or if you're lucky and think updates will be picked up (most likely they will i still need to figure out the exact refresh mechanism)
+buildozer android clean
+# claude says this   # The exact refresh mechanism: p4a clones git+file:// by commit hash.
+  # A new commit = new hash = cache miss = re-install.
+  # android clean is usually sufficient. appclean only needed if something is
+  # truly stuck (corrupted cache, SDK version change, etc.)
 
+# then to test
+
+uv run kivy-reloader run
+select
+[ ] Compile, debug and livestream
+
+then in 2nd terminal
+uv run python main.py
+make any kv change and see it commit to desktop > android 
+```
+
+
+how to run kivy-reloader default ksproject test with fixed trio wheel from psychowasp
+
+```
+uv init --package myapp --python 3.13
+cd myapp
+uv add --dev "git+https://github.com/kivy-school/ksproject"
+# uv add --dev "git+https://github.com/kivy-school/ksproject@1bee1b2cfb444f5cc200499a2e144ea5ff9f751f"
+uv run ksproject init
+uv add pip
+uv sync
+uv run pip download trio -i https://pypi-index.psychowaspx.workers.dev/simple/ --no-deps -d ./wheelhouse
+uv add trio
+uv sync
+uv add "kivy>=2.3.1" "git+https://github.com/kivy-school/kivy-reloader@macfix_gaimwsl"
+uv add --dev "kivy-reloader[desktop]"
+uv run kivy-reloader init project
+
+7. Run on desktop
+
+uv run python -m myapp
+# or
+uv run python main.py
+8. Build and deploy to phone
+
+uv run kivy-reloader run
+Builds the APK, installs on device, starts logcat + scrcpy. Run from project root.
+
+```
+
+FORCE KIVY RELOADER UPDATE FROM GIT COMMIT PUSHED TO GITHUB
+```uv lock --upgrade-package kivy-reloader && uv sync ```
+
+how to force kivy-reloader ksproject legit rebuild onto android manually when ksproject is setup already
+```
+cd /home/pengin/kspt/helloworld
+uv lock --upgrade-package kivy-reloader && uv sync 
+uv sync  # re-fetches kivy-reloader from the local macfix_gaimwsl checkout
+rm -rf ~/kspt/helloworld/project_dist/gradle/app/src/main/assets/site-packages/ # force delete old kivy-reloader
+rm -rf ~/kspt/helloworld/project_dist/gradle/site_packages/
+uv run ksproject android build debug --clean
+adb -s 288d2830923f7ece uninstall org.example.helloworld
+adb -s 288d2830923f7ece install $(wslpath -w /home/pengin/kspt/helloworld/project_dist/gradle/app/build/outputs/apk/debug/app-debug.apk)
+adb -s 288d2830923f7ece shell am start -n org.example.helloworld/.MainActivity
+```
+
+how to really force a legit rebuild for ksproject + kivy-reloader on desktop app side
+```
+cd ~/kspt/helloworld && uv lock --upgrade-package kivy-reloader && uv sync
+```
 =-=-=-=-=
 - fixed network flow between desktop and android phone client on mac/win10/win11
 - works with win 11 wsl2 mirrored networking and updated kivyschool to do mirred networking if no wslconfig found
