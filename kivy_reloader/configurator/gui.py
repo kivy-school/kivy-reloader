@@ -18,6 +18,7 @@ from kivy_reloader.configurator.model import ConfigModel
 from kivy_reloader.configurator.schema import FIELD_DEFS
 from kivy_reloader.configurator.screens.core import CoreScreen
 from kivy_reloader.configurator.theme import load_theme
+from kivy_reloader.launcher import _acquire_flightdeck_lock
 
 import sys
 import shutil
@@ -34,70 +35,77 @@ def run_gui(
         config_path: Path to the config file (kivy-reloader.toml)
         debug: Enable debug mode
     """
-    raw = config_loader.load_config_values(config_path) if config_path.exists() else {}
-    dark_mode = bool(raw.get('DARK_MODE', False))
-    if sys.platform == 'linux' and not shutil.which('xclip') and not shutil.which('xsel'):
-        print(
-            '[Flightdeck] WSL2/Linux: xclip and xsel not found — clipboard cut buffer unavailable.\n'
-            '             Fix: sudo apt install xclip'
-        )
-    # Load theme colors/fonts into global_idmap
-    load_theme(dark_mode=dark_mode) 
+    lock = _acquire_flightdeck_lock(base)
+    if lock is None:
+        print('[FlightDeck] Already running — bringing it to focus')
+        return
+    try:
+        raw = config_loader.load_config_values(config_path) if config_path.exists() else {}
+        dark_mode = bool(raw.get('DARK_MODE', False))
+        if sys.platform == 'linux' and not shutil.which('xclip') and not shutil.which('xsel'):
+            print(
+                '[Flightdeck] WSL2/Linux: xclip and xsel not found — clipboard cut buffer unavailable.\n'
+                '             Fix: sudo apt install xclip'
+            )
+        # Load theme colors/fonts into global_idmap
+        load_theme(dark_mode=dark_mode) 
 
-    # Create backup directory
-    backup_dir = base / '.kivy-reloader' / 'backups'
+        # Create backup directory
+        backup_dir = base / '.kivy-reloader' / 'backups'
 
-    def create_config_model() -> ConfigModel:
-        """Load configuration from disk or defaults for each build."""
-        if config_path.exists():
-            return ConfigModel.from_file(config_path, backup_dir=backup_dir)
+        def create_config_model() -> ConfigModel:
+            """Load configuration from disk or defaults for each build."""
+            if config_path.exists():
+                return ConfigModel.from_file(config_path, backup_dir=backup_dir)
 
-        defaults = merge_with_defaults({}, FIELD_DEFS)
-        return ConfigModel(defaults, config_path=config_path, backup_dir=backup_dir)
+            defaults = merge_with_defaults({}, FIELD_DEFS)
+            return ConfigModel(defaults, config_path=config_path, backup_dir=backup_dir)
 
-    # Create and run the Kivy app
-    class ConfiguratorGUI(App):
-        DEBUG = False
-        RAISE_ERROR = True
-        def __init__(self, **kwargs):
-            super().__init__(**kwargs)
-            self._dark_mode = dark_mode
-            self._base = base 
-        def build(self):
-            config_model = create_config_model()
-            self.core_screen = CoreScreen()
-            self.core_screen.config_model = config_model
-            pyproject = base / 'pyproject.toml'
-            text = pyproject.read_text() if pyproject.exists() else ''
-            backend = 'ksproject' if '[tool.kivy-school]' in text else 'buildozer'
-            self.title = f'Kivy Flightdeck [{backend}]' # 🛩️ for dev, ✈️ for prod
-            return self.core_screen
+        # Create and run the Kivy app
+        class ConfiguratorGUI(App):
+            DEBUG = False
+            RAISE_ERROR = True
+            def __init__(self, **kwargs):
+                super().__init__(**kwargs)
+                self._dark_mode = dark_mode
+                self._base = base 
+            def build(self):
+                config_model = create_config_model()
+                self.core_screen = CoreScreen()
+                self.core_screen.config_model = config_model
+                pyproject = base / 'pyproject.toml'
+                text = pyproject.read_text() if pyproject.exists() else ''
+                backend = 'ksproject' if '[tool.kivy-school]' in text else 'buildozer'
+                self.title = f'Kivy Flightdeck [{backend}]' # 🛩️ for dev, ✈️ for prod
+                return self.core_screen
 
-        def on_start(self):
-            Clock.schedule_once(
-                lambda dt: setattr(self.core_screen.toolbar, 'is_dark_mode', self._dark_mode),
-                0,
-                )
-        def toggle_dark_mode(self, current_screen):
-            self._dark_mode = not self._dark_mode
-            model = current_screen.config_model
-            model.set_value('DARK_MODE', self._dark_mode)
-            model.save(create_backup=False)
-            load_theme(dark_mode=self._dark_mode)
-            config_model = current_screen.config_model
-            Window.unbind(on_keyboard=current_screen._on_keyboard)
-            Window.remove_widget(current_screen)
-            new_screen = CoreScreen()
-            new_screen.config_model = config_model
-            self.core_screen = new_screen
-            Window.add_widget(new_screen)
-            Clock.schedule_once(
-                lambda dt: setattr(new_screen.toolbar, 'is_dark_mode', self._dark_mode),
-                0,
-            ) 
+            def on_start(self):
+                Clock.schedule_once(
+                    lambda dt: setattr(self.core_screen.toolbar, 'is_dark_mode', self._dark_mode),
+                    0,
+                    )
+            def toggle_dark_mode(self, current_screen):
+                self._dark_mode = not self._dark_mode
+                model = current_screen.config_model
+                model.set_value('DARK_MODE', self._dark_mode)
+                model.save(create_backup=False)
+                load_theme(dark_mode=self._dark_mode)
+                config_model = current_screen.config_model
+                Window.unbind(on_keyboard=current_screen._on_keyboard)
+                Window.remove_widget(current_screen)
+                new_screen = CoreScreen()
+                new_screen.config_model = config_model
+                self.core_screen = new_screen
+                Window.add_widget(new_screen)
+                Clock.schedule_once(
+                    lambda dt: setattr(new_screen.toolbar, 'is_dark_mode', self._dark_mode),
+                    0,
+                ) 
 
-    app = ConfiguratorGUI()
-    trio.run(app.async_run, 'trio')
+        app = ConfiguratorGUI()
+        trio.run(app.async_run, 'trio')
+    finally:
+        lock.close()
 
 
 if __name__ == '__main__':

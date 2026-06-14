@@ -17,6 +17,7 @@ import sys
 import time
 import traceback
 from fnmatch import fnmatch
+from pathlib import Path
 
 # Third-party imports
 import trio
@@ -48,6 +49,8 @@ from .base_app import BaseReloaderApp
 from .config import config
 from .delta_transfer import DeltaTransferManager
 from .utils import get_auto_reloader_paths, get_connected_devices, get_kv_files_paths, in_wsl
+from .launcher import _acquire_flightdeck_lock, _should_launch_flightdeck
+
 
 # Constants
 F5_KEYCODE = 286
@@ -103,6 +106,18 @@ class DesktopApp(BaseReloaderApp, KakiApp):
     # ==================== INITIALIZATION ====================
 
     def __init__(self, *args, **kwargs):
+        if _should_launch_flightdeck():
+            lock = _acquire_flightdeck_lock(Path.cwd())
+            if lock is not None:
+                try:
+                    subprocess.run(
+                        [sys.executable, '-m', 'kivy_reloader', 'config'],
+                        cwd=Path.cwd(),
+                    )
+                finally:
+                    lock.close()
+                sys.exit(0)   # don't start the user's app after FlightDeck closes
+    
         super().__init__(*args, **kwargs)
         Logger.info(f'Reloader: Kivy Reloader v{__version__}')
         self._initialize_app_state()

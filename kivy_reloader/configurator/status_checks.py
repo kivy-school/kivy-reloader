@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import re
 import shutil
 import socket
 import subprocess
@@ -85,9 +86,23 @@ def _read_stream_using(config_path: Path | None = None) -> str | None:
         return None
     try:
         import tomlkit
-        return tomlkit.loads(t.read_text()).get('STREAM_USING')
+        data = tomlkit.loads(t.read_text())
+        return tomlkit.loads(t.read_text()).get('kivy_reloader', {}).get('STREAM_USING')
     except Exception:
         return None
+
+
+def _read_reloader_port(config_path: Path | None = None) -> int:
+    t = _find_toml(config_path)
+    if not t:
+        return 8050
+    try:
+        import tomlkit
+        data = tomlkit.loads(t.read_text())
+        return int(data.get('kivy_reloader', {}).get('RELOADER_PORT', 8050))
+    except Exception:
+        return 8050
+
 
 
 # ── WSL2 environment ──────────────────────────────────────────────────────────
@@ -136,6 +151,53 @@ def check_xclip() -> CheckResult:
             return CheckResult('xclip/xsel', Status.OK, p)
     return CheckResult('xclip/xsel', Status.WARN,
                        'Neither found — sudo apt install xclip')
+
+def check_wsl2_adb_nodaemon() -> CheckResult:
+    try:
+        result = subprocess.run(
+            ['cmd.exe', '/c', 'wmic process where "name=\'adb.exe\'" get CommandLine'],
+            capture_output=True, text=True, timeout=5,
+        )
+        cmdlines = result.stdout.lower()
+        if '-a' in cmdlines and 'nodaemon' in cmdlines and 'server' in cmdlines:
+            return CheckResult('ADB nodaemon mode', Status.OK, 'adb.exe running as nodaemon server ✓')
+        return CheckResult('ADB nodaemon mode', Status.WARN,
+                           'Not in nodaemon mode — kivy-reloader will restart it on next run')
+    except Exception as e:
+        return CheckResult('ADB nodaemon mode', Status.FAIL, str(e))
+
+
+def check_wsl2_adb_listening() -> CheckResult:
+    try:
+        result = subprocess.run(
+            ['cmd.exe', '/c', 'adb.exe', 'start-server'],
+            capture_output=True, text=True, timeout=10,
+        )
+        if result.returncode == 0:
+            return CheckResult('ADB server listening', Status.OK, 'adb.exe start-server OK ✓')
+        return CheckResult('ADB server listening', Status.WARN,
+                           (result.stdout + result.stderr).strip() or 'non-zero exit')
+    except subprocess.TimeoutExpired:
+        return CheckResult('ADB server listening', Status.FAIL, 'timed out — adb.exe not found?')
+    except Exception as e:
+        return CheckResult('ADB server listening', Status.FAIL, str(e))
+
+
+def check_wsl2_adb_forward(config_path: Path | None = None) -> CheckResult:
+    port = _read_reloader_port(config_path)
+    pattern = re.compile(rf'tcp:{port}\s+tcp:{port}\b')
+    try:
+        result = subprocess.run(
+            ['cmd.exe', '/c', 'adb.exe', 'forward', '--list'],
+            capture_output=True, text=True, timeout=5,
+        )
+        for line in result.stdout.lower().splitlines():
+            if pattern.search(line):
+                return CheckResult('ADB port forward', Status.OK, f'tcp:{port} → tcp:{port} ✓')
+        return CheckResult('ADB port forward', Status.WARN,
+                           f'tcp:{port} not forwarded — run: adb forward tcp:{port} tcp:{port}')
+    except Exception as e:
+        return CheckResult('ADB port forward', Status.FAIL, str(e))
 
 
 # ── ADB + device ──────────────────────────────────────────────────────────────
@@ -266,7 +328,14 @@ def run_all_checks(config_path: Path | None = None) -> list[CheckResult]:
         results += [check_homebrew(), check_brew_adb()]
 
     # 2. ADB + device
+    if os_name == 'wsl2':
+        results += [
+            check_wsl2_adb_nodaemon(),
+            check_wsl2_adb_listening(),
+            check_wsl2_adb_forward(config_path),
+        ]
     results += [check_adb(), check_adb_device()]
+
 
     # 3. Project config
     results += [check_toml(config_path), check_stream_using(config_path)]

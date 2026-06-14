@@ -377,6 +377,12 @@ class Config:  # noqa: PLR0904
     def SHOW_NOTIFICATIONS(self) -> bool:
         """Enable desktop notifications during compilation and deployment."""
         return self.get('SHOW_NOTIFICATIONS', True)
+    
+    @property
+    def PERSISTENT_FLIGHTDECK(self) -> bool:
+        """Open FlightDeck configurator on startup instead of running the app directly."""
+        return self.get('PERSISTENT_FLIGHTDECK', True)
+
 
     @property
     def ADB_PORT(self) -> int:

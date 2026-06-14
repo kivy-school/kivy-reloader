@@ -439,6 +439,14 @@ FIELD_DEFS: list[FieldDef] = [
         'Display',
         help_short='Dark mode for the configurator UI',
     ),
+    FieldDef(
+        'PERSISTENT_FLIGHTDECK',
+        FieldType.BOOL,
+        True,
+        'Display',
+        help_short='Open FlightDeck on startup',
+        help_long='When true, python main.py and kivy-reloader run open FlightDeck instead of launching the app directly.',
+    ),
     # ---------------------------------------------------------------------------
     # 🎵 Audio
     # ---------------------------------------------------------------------------

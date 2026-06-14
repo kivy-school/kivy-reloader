@@ -172,6 +172,7 @@ HOT_RELOAD_ON_PHONE = true
 FULL_RELOAD_FILES = ["main.py", "{full_reload_app_path}/app.py"]
 WATCHED_FOLDERS_RECURSIVELY = ["."]
 STREAM_USING = "WIFI"
+PERSISTENT_FLIGHTDECK = true
 """
 
 
@@ -648,16 +649,23 @@ def main():
         run_gui(base=project_dir, config_path=config_path, debug=False)
 
     elif args.command in {'start', 'run', 'compile'}:
-        from .compile_app import debug_and_livestream  # noqa
-        from .compile_app import compile_app, start  # noqa
-
         if getattr(args, 'action', None) == 'build':
+            from .compile_app import compile_app, debug_and_livestream
             compile_app()
             debug_and_livestream()
         elif getattr(args, 'action', None) == 'debug':
+            from .compile_app import debug_and_livestream
             debug_and_livestream()
         else:
+            # from .configurator.gui import run_gui
+            # project_dir = Path(os.getcwd())
+            # config_path = project_dir / 'kivy-reloader.toml'
+            # run_gui(base=project_dir, config_path=config_path, debug=False)
+            from .compile_app import start
             start()
+
+
+
     elif args.command == 'smoke':
         sys.exit(smoke())
 

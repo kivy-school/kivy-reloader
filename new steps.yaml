@@ -712,6 +712,8 @@ Change native code (buildozer) / gradle config (ksproject)
 
 Need a clean slate after something breaks badly
 
+added kivy-reloader init project 
+which does kivy-reloader init then sets up default kivy reloader helloworld project
 
 
 kivy reloader config:

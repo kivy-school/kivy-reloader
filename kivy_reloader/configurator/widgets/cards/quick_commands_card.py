@@ -23,8 +23,31 @@ class CommandButton(BoxLayout):
 
     def run(self):
         record(self.label, self.command)
-        print(self.command)
-        subprocess.Popen(self.command.split())
+        import threading
+        from kivy_reloader.compile_app import select_option
+        from kivy_reloader import config
+
+        _OPTION_MAP = {
+            'uv run kivy-reloader run build': '1',
+            'uv run kivy-reloader run':       '2',
+        }
+
+        option = _OPTION_MAP.get(self.command)
+        if option:
+            app_name = getattr(config, 'APP_NAME', '')
+            threading.Thread(
+                target=select_option,
+                args=(option, app_name),
+                daemon=True,
+            ).start()
+        else:
+            subprocess.Popen(
+                self.command.split(),
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                stdin=subprocess.DEVNULL,
+                start_new_session=True,
+            )
 
 
 class QuickCommandsCard(BoxLayout):
