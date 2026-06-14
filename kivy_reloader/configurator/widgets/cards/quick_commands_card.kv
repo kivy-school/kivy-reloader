@@ -10,9 +10,11 @@
         size_hint_x: 0.45
         size_hint_y: None
         height: dp(36)
+        background_normal: ''
         background_color: primary_color
         color: primary_foreground_color
         on_release: root.run()
+
 
     Label:
         text: root.command
@@ -166,6 +168,33 @@
                         padding: [dp(8), dp(6), dp(8), dp(6)]
                         on_text_validate: root.set_target_ip(self.text)
                         on_focus: if not self.focus: root.set_target_ip(self.text)
+
+                # Recipe name for clean_recipe
+                BoxLayout:
+                    orientation: 'horizontal'
+                    size_hint_y: None
+                    height: dp(36)
+                    spacing: dp(8)
+
+                    Label:
+                        text: 'Recipe name'
+                        font_size: font_size_xs
+                        color: muted_foreground_color
+                        size_hint_x: None
+                        width: dp(90)
+                        halign: 'left'
+                        valign: 'middle'
+                        text_size: self.size
+
+                    TextInput:
+                        hint_text: 'e.g. pillow, numpy'
+                        font_size: font_size_xs
+                        multiline: False
+                        background_color: card_color
+                        foreground_color: foreground_color
+                        on_text_validate: root.recipe_name = self.text
+                        on_focus: if not self.focus: root.recipe_name = self.text
+
 
             Separator:
 

@@ -669,21 +669,25 @@ merge with ksproject
 AMAZING DANCE STAR
 
 =-=-=-= kinda happened kinda not =-=-=-=
-TODO: make github runner test for this nightly
-update bapp and capp with latest kivy reloader
-(uv lock --upgrade-package kivy-reloader)
-put bapp on phone then check if update works (text: bapp)
-run capp and attempt and update > gets rejected (GOOD)
-put capp on phone and check if update DOES NOT COLLIDE (text: capp) (ALSO GOOD)
-test if bapp desktop gets on capp android FAILS (GOOD IF IT FAILS)
-
 (what happened: test just checks if kv update works (presumably))
+    TODO: make github runner test for this nightly
+    update bapp and capp with latest kivy reloader
+    (uv lock --upgrade-package kivy-reloader)
+    put bapp on phone then check if update works (text: bapp)
+    run capp and attempt and update > gets rejected (GOOD)
+    put capp on phone and check if update DOES NOT COLLIDE (text: capp) (ALSO GOOD)
+    test if bapp desktop gets on capp android FAILS (GOOD IF IT FAILS)
+
+
 =-=-==************ FINISHED LIST FIXED LIST ************=-=-=-==
 kivyschool:
 - updated kivyschool uninstall scripts
+- created install scripts for ksproject + kivy-reloader on linux/mac/wsl/ win10
 
 kivy-reloader:
+- added kivy-reloader init project that does kivy-reloader init + project scaffolds basic hello world for buildozer (kivy-reloader default) or ksproject (ksproject takes priority over buildozer)
 - fixed typer.clear() failing on newest typer
+- kivy-reloader usb option now is full usb, no wifi required BUT you might need admin perms for windows/wsl2 setup
 - added uv run kivy-reloader init project to give you a fresh hello world project
 - fixed bug in kivy-reloader init where the default toml was beautifulapp
 - PROJECT FAILS ON WATCHING "." BUT WORKED WHEN WATCHING "HELLO-WORLD" (so totally diff from testing if reloading itself works)
@@ -691,6 +695,27 @@ kivy-reloader:
 - fixed toml required for android even when RELOADER_STATUS='PROD' with 1. searching a few common directories 2. respecting prod
 - https://github.com/kivy-school/kivy-reloader/issues/63
 - fixed kivy reloader failing and having app collisions when multiple reloader apps are on phone and the previous app holds port 8050 (make bapp and capp, bapp gets on phone, launch capp desktop, capp desktop goes to bapp on phone because bapp is listening on port 8050 and is a kivy reloader app. not ok)
+- kivy reloader respects prod env var
+- kivy reloader on android doesnt crash looking for kivy reloader toml on android anymore
+- fixed buildozer spec pinning to specific p4a
+- fixed watchdog also being a specific pin 
+- make a note of this so ppl dont recompile a lot
+    print(f"\n{green}[kivy-reloader] APK installed. Next run: 'uv run kivy-reloader run' (hot-reload, no recompile).{Style.RESET_ALL}")
+        print(f"{green}                Recompile only when: Python deps change · native/gradle config changes · clean slate needed.{Style.RESET_ALL}\n")
+    Only go back to "Compile" when you:
+
+    Add/change a Python dependency (new wheel needed in APK)
+
+    Change native code (buildozer) / gradle config (ksproject)
+
+    Need a clean slate after something breaks badly
+- added exit option to cli
+
+kivy reloader flightdeck (renamed from ConfigGUI):
+- added button that does buildozer android clean for you or deletes a specific lib and also added under deploy and quick commands
+- flightdeck option added to uv run kivy-reloader run
+- added a button to kivy flightdeck to delete reloader state (.kivy_reloader_state.json)
+- status page check for phone connection
 
 github CI/CD:
 - setup nightly builds + alerts if tests fail
@@ -703,41 +728,29 @@ buildozer build flow:
 ksproject build flow:
 - integrated kivy-reloader with ksproject project template
 - fixed kivy reloader assumed cwd structure and ksproject site project structure creating 2 widgets (because kivy reloader will unload to its own path on android and duplicate kv)
+- config: 
+fixed cascade design issue: 
+[INFO   ] [Base        ] Start application main loop
+[CRITICAL] [Clock       ] Warning, too much iteration done before the next frame. Check your code, or increase the Clock.max_iteration attribute. Remaining events:
+<ClockEvent (-1.0) callback=<bound method BoxLayout.do_layout of <kivy.factory.SectionBox object at 0x7bb67c6755c0>>>
+<ClockEvent (-1.0) callback=<bound method ScrollView.update_from_scroll of <kivy.factory.SectionScrollView object at 0x7bb67c662200>>>
+[CRITICAL] [Clock       ] Warning, too much iteration done before the next frame. Check your code, or increase the Clock.max_iteration attribute. Remaining events:
+<ClockEvent (-1.0) callback=<bound method BoxLayout.do_layout of <kivy.factory.SectionBox object at 0x7bb67c6755c0>>>
+<ClockEvent (-1.0) callback=<bound method ScrollView.update_from_scroll of <kivy.factory.SectionScrollView object at 0x7bb67c662200>>>
+[INFO   ] [Window      ] exiting mainloop and closing.
+
+- cleared duplicate lines:
+self.values = [v for v in self.values if v != value]
+in chip_input py
+
+and 
+
+for btn in self.radio_buttons:
+            btn.selected = btn.value == value
+
+in radio_button.py
 
 
-
-
-created install scripts for ksproject + kivy-reloader on linux/mac/wsl/ win10
-
-kivy reloader respects prod env var
-kivy reloader on android doesnt crash looking for kivy reloader toml on android anymore
-
-fixed buildozer spec pinning to specific p4a
-fixed watchdog also being a specific pin 
-fix filipe fork fix(do i still need to be pinned to that p4a in buildozer spec?) > fixed with watchdog bug but imo works/ ill find this err when i manual test again buildozer
-
-make a note of this so ppl dont recompile a lot
-
-print(f"\n{green}[kivy-reloader] APK installed. Next run: 'uv run kivy-reloader run' (hot-reload, no recompile).{Style.RESET_ALL}")
-    print(f"{green}                Recompile only when: Python deps change · native/gradle config changes · clean slate needed.{Style.RESET_ALL}\n")
-Only go back to "Compile" when you:
-
-Add/change a Python dependency (new wheel needed in APK)
-
-Change native code (buildozer) / gradle config (ksproject)
-
-Need a clean slate after something breaks badly
-
-added kivy-reloader init project 
-which does kivy-reloader init then sets up default kivy reloader helloworld project
-
-added exit option to cli
-added button that does buildozer android clean for you or deletes a specific lib and also added under deploy and quick commands
-
-flightdeck runs automatically when you run the app: uv run python main.py or uv run python -m myapp
-since desktop flow is required for phone dev it's not necessary to run flightdeck from uv run kivy-reloader run
-added a button to kivy flightdeck to delete reloader state
-status page check for phone connection
 flightdeck permanence has a toggle
 added a quick commands tab that tracks  your most used commands
 set quick commands tab as default
@@ -749,29 +762,8 @@ added discord button to go to support channel at kivyschool
 got kivy reloader to deal with ksproject app structure (looks for app_copy in the right folder when you run uv run python -m helloworld)
 fixed ksproject/ kivyreloader multiapp collisions (bapp on android lives and capp desktop would push to bapp android somehow)
 
-config: 
-fixed cascade design issue: 
-[INFO   ] [Base        ] Start application main loop
-[CRITICAL] [Clock       ] Warning, too much iteration done before the next frame. Check your code, or increase the Clock.max_iteration attribute. Remaining events:
-<ClockEvent (-1.0) callback=<bound method BoxLayout.do_layout of <kivy.factory.SectionBox object at 0x7bb67c6755c0>>>
-<ClockEvent (-1.0) callback=<bound method ScrollView.update_from_scroll of <kivy.factory.SectionScrollView object at 0x7bb67c662200>>>
-[CRITICAL] [Clock       ] Warning, too much iteration done before the next frame. Check your code, or increase the Clock.max_iteration attribute. Remaining events:
-<ClockEvent (-1.0) callback=<bound method BoxLayout.do_layout of <kivy.factory.SectionBox object at 0x7bb67c6755c0>>>
-<ClockEvent (-1.0) callback=<bound method ScrollView.update_from_scroll of <kivy.factory.SectionScrollView object at 0x7bb67c662200>>>
-[INFO   ] [Window      ] exiting mainloop and closing.
 
-duplicate lines:
-self.values = [v for v in self.values if v != value]
-in chip_input py
 
-and 
-
-for btn in self.radio_buttons:
-            btn.selected = btn.value == value
-
-in radio_button.py
-
-configurator bug: scrollwheel outside of dropdown cancels dropdown/ now dropdown  tracks the parent widget
 =-=-=-=-=
 - fixed network flow between desktop and android phone client on mac/win10/win11
 - works with win 11 wsl2 mirrored networking and updated kivyschool to do mirred networking if no wslconfig found

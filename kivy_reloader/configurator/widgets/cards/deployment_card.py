@@ -28,6 +28,8 @@ class DeploymentCard(BoxLayout):
     on_config_change = ObjectProperty(None)
     build_status = StringProperty('')
     recipe_name = StringProperty('')
+    command_panel = ObjectProperty(None, allownone=True)
+
 
 
     # Expose builtin exclusions to KV
@@ -70,43 +72,61 @@ class DeploymentCard(BoxLayout):
 
         if self.on_config_change:
             self.on_config_change(self.config)
-    
-    def clean_recipe(self):
+
+    def clean_recipe(self, recipe_override=''):
         import glob, shutil, threading
-        recipe = self.recipe_name.strip()
+        recipe = (recipe_override or self.recipe_name).strip()
+
         if not recipe:
             self.build_status = 'Enter a recipe name first'
             return
         pattern = f'.buildozer/android/platform/build-*/build/other_builds/{recipe}'
         paths = glob.glob(pattern)
         if not paths:
-            self.build_status = f'No cache found for: {recipe} — check recipe name'
+            self.build_status = f'No cache found for: {recipe}'
             return
+        cmd = f'rm -rf {pattern}'
         self.build_status = f'Cleaning {recipe}...'
+        if self.command_panel:
+            self.command_panel.log(cmd)
         def _clean():
             for p in paths:
                 shutil.rmtree(p, ignore_errors=True)
+            msg = f'Cleaned {recipe} build cache'
             from kivy.clock import Clock
-            Clock.schedule_once(lambda dt: setattr(self, 'build_status', f'Cleaned {recipe} build cache'))
+            Clock.schedule_once(lambda dt: setattr(self, 'build_status', msg))
+            if self.command_panel:
+                Clock.schedule_once(lambda dt: setattr(
+                    self.command_panel, 'output_log',
+                    (self.command_panel.output_log + f'\n{msg}').strip()
+                ))
         threading.Thread(target=_clean, daemon=True).start()
+
 
     def clean_all(self):
         import subprocess, threading
         from pathlib import Path
+        cmd = 'buildozer android clean'
         self.build_status = 'Running buildozer android clean...'
+        if self.command_panel:
+            self.command_panel.log(cmd)
         def _clean():
             r = subprocess.run(
                 ['buildozer', 'android', 'clean'],
                 capture_output=True, text=True, timeout=120,
                 cwd=str(Path.cwd()),
             )
+            output = (r.stdout + r.stderr).strip() or 'Done'
+            msg = 'Done — platform rebuilt, downloads preserved' if r.returncode == 0 else f'Failed: {output[-100:]}'
             from kivy.clock import Clock
-            if r.returncode == 0:
-                Clock.schedule_once(lambda dt: setattr(self, 'build_status', 'Done — platform rebuilt, downloads preserved'))
-            else:
-                msg = (r.stdout + r.stderr).strip()[-100:]
-                Clock.schedule_once(lambda dt: setattr(self, 'build_status', f'Failed: {msg}'))
+            Clock.schedule_once(lambda dt: setattr(self, 'build_status', msg))
+            if self.command_panel:
+                Clock.schedule_once(lambda dt: setattr(
+                    self.command_panel, 'output_log',
+                    (self.command_panel.output_log + f'\n{output}').strip()
+                ))
         threading.Thread(target=_clean, daemon=True).start()
+
 
     def list_recipes(self):
         import subprocess, threading

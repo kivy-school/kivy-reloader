@@ -10,9 +10,12 @@ Builder.load_file(__file__)
 
 _PERIODS = {'1 day': 1, '1 week': 7, '1 month': 30}
 
+
 _DEFAULT_COMMANDS = [
     {'label': 'Compile + deploy', 'command': 'uv run kivy-reloader run build'},
     {'label': 'Hot reload', 'command': 'uv run kivy-reloader run'},
+    {'label': 'Full clean', 'command': '__full_clean__'},
+    {'label': 'Clean recipe', 'command': '__clean_recipe__'},
 ]
 
 
@@ -21,12 +24,19 @@ class CommandButton(BoxLayout):
     command = StringProperty('')
     count = StringProperty('')
     command_panel = ObjectProperty(None, allownone=True)
+    card_action_handler = ObjectProperty(None, allownone=True)
+
 
 
     def run(self):
         record(self.label, self.command)
         if self.command_panel:
             self.command_panel.log(self.command)
+        _CARD_ACTIONS = {'__full_clean__', '__clean_recipe__'}
+        if self.command in _CARD_ACTIONS and self.card_action_handler:
+            self.card_action_handler(self.command)
+            return
+
         import threading
         from kivy_reloader.compile_app import select_option
         from kivy_reloader import config
@@ -62,6 +72,18 @@ class QuickCommandsCard(BoxLayout):
     stream_using = StringProperty('WIFI')
     target_ip = StringProperty('')
     command_panel = ObjectProperty(None, allownone=True)
+    recipe_name = StringProperty('')
+    full_clean_action = ObjectProperty(None, allownone=True)
+    clean_recipe_action = ObjectProperty(None, allownone=True)
+
+    def _handle_card_action(self, action):
+        if action == '__full_clean__' and self.full_clean_action:
+            self.full_clean_action()
+        elif action == '__clean_recipe__' and self.clean_recipe_action:
+            deployment_recipe = self.recipe_name.strip()
+            if self.clean_recipe_action:
+                self.clean_recipe_action(deployment_recipe)
+
 
     def on_command_panel(self, instance, value):
         self.refresh()
@@ -124,8 +146,23 @@ class QuickCommandsCard(BoxLayout):
                 command=item['command'],
                 count=f"×{item['count']}" if item.get('count') else '',
                 command_panel=self.command_panel,
+                card_action_handler=self._handle_card_action,
             )
             lst.add_widget(btn)
 
-        
+    def _handle_card_action(self, action):
+        from kivy_reloader.configurator.screens.core import CoreScreen
+        app = App.get_running_app()
+        screen = app.root.get_screen('core') if app and app.root else None
+        deployment_card = None
+        if screen and hasattr(screen, '_section_cards'):
+            deployment_card = screen._section_cards.get('Deployment')
+        if not deployment_card:
+            return
+        if action == '__full_clean__':
+            deployment_card.clean_all()
+        elif action == '__clean_recipe__':
+            deployment_card.recipe_name = self.recipe_name
+            deployment_card.clean_recipe()
+
 
