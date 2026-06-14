@@ -696,8 +696,29 @@ created install scripts for ksproject + kivy-reloader on linux/mac/wsl/ win10
 kivy reloader respects prod env var
 kivy reloader on android doesnt crash looking for kivy reloader toml on android anymore
 
+fixed buildozer spec pinning to specific p4a
+fixed watchdog also being a specific pin 
+fix filipe fork fix(do i still need to be pinned to that p4a in buildozer spec?) > fixed with watchdog bug but imo works/ ill find this err when i manual test again buildozer
+
+make a note of this so ppl dont recompile a lot
+
+print(f"\n{green}[kivy-reloader] APK installed. Next run: 'uv run kivy-reloader run' (hot-reload, no recompile).{Style.RESET_ALL}")
+    print(f"{green}                Recompile only when: Python deps change · native/gradle config changes · clean slate needed.{Style.RESET_ALL}\n")
+Only go back to "Compile" when you:
+
+Add/change a Python dependency (new wheel needed in APK)
+
+Change native code (buildozer) / gradle config (ksproject)
+
+Need a clean slate after something breaks badly
+
+
+
 kivy reloader config:
+added a quick commands tab that tracks  your most used commands
+set quick commands tab as default
 renamed to kivy flightdeck
+added status page to help ppl diagnose their networking issues
 added light/dark mode
 added terminal so u can see commands 
 added discord button to go to support channel at kivyschool

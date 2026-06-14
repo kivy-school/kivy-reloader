@@ -10,6 +10,8 @@ from .notifications_card import NotificationsCard
 from .performance_card import PerformanceCard
 from .services_card import ServicesCard
 from .window_card import WindowCard
+from .quick_commands_card import QuickCommandsCard  
+from .status_card import StatusCard
 
 __all__ = [
     'AdvancedCard',
@@ -22,4 +24,6 @@ __all__ = [
     'PerformanceCard',
     'ServicesCard',
     'WindowCard',
+    'QuickCommandsCard',
+    'StatusCard',
 ]

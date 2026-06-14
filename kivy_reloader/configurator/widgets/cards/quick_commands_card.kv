@@ -1,0 +1,100 @@
+<CommandButton>:
+    size_hint_y: None
+    height: dp(44)
+    spacing: dp(12)
+    padding: [dp(4), 0]
+
+    Button:
+        text: root.label
+        font_size: font_size_sm
+        size_hint_x: 0.45
+        size_hint_y: None
+        height: dp(36)
+        background_color: primary_color
+        color: primary_foreground_color
+        on_release: root.run()
+
+    Label:
+        text: root.command
+        font_size: font_size_xs
+        color: muted_foreground_color
+        halign: 'left'
+        valign: 'middle'
+        text_size: self.width, self.height
+        shorten: True
+        shorten_from: 'right'
+
+    Label:
+        text: root.count
+        font_size: font_size_xs
+        color: muted_foreground_color
+        size_hint_x: None
+        width: dp(40)
+        halign: 'right'
+        valign: 'middle'
+        text_size: self.width, self.height
+
+
+<QuickCommandsCard>:
+    orientation: 'vertical'
+    size_hint_y: None
+    height: self.minimum_height
+
+    Card:
+        title: f'[size=16][font={emoji_font}]⚡[/font][/size] Quick Commands'
+        description: 'Your most-used commands. Click to run and track usage.'
+
+        BoxLayout:
+            orientation: 'vertical'
+            spacing: dp(12)
+            size_hint_y: None
+            height: self.minimum_height
+
+            Separator:
+
+            # Period filter tabs
+            BoxLayout:
+                size_hint_y: None
+                height: dp(36)
+                spacing: dp(8)
+
+                Button:
+                    text: '1 day'
+                    font_size: font_size_xs
+                    background_color: primary_color if root.active_period == '1 day' else muted_color
+                    color: primary_foreground_color if root.active_period == '1 day' else foreground_color
+                    on_release: root.set_period('1 day')
+
+                Button:
+                    text: '1 week'
+                    font_size: font_size_xs
+                    background_color: primary_color if root.active_period == '1 week' else muted_color
+                    color: primary_foreground_color if root.active_period == '1 week' else foreground_color
+                    on_release: root.set_period('1 week')
+
+                Button:
+                    text: '1 month'
+                    font_size: font_size_xs
+                    background_color: primary_color if root.active_period == '1 month' else muted_color
+                    color: primary_foreground_color if root.active_period == '1 month' else foreground_color
+                    on_release: root.set_period('1 month')
+
+                Widget:
+
+                Button:
+                    text: 'Reset'
+                    font_size: font_size_xs
+                    size_hint_x: None
+                    width: dp(60)
+                    background_color: destructive_color
+                    color: destructive_foreground_color
+                    on_release: root.reset_history()
+
+
+            # Command list — rebuilt when commands changes
+            BoxLayout:
+                id: command_list
+                orientation: 'vertical'
+                size_hint_y: None
+                height: self.minimum_height
+                spacing: dp(4)

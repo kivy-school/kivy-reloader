@@ -110,7 +110,8 @@ class CoreScreen(Screen):
         self._collect_section_cards()
         self._attach_model_to_cards()
 
-        initial_section = sidebar.selected_section or 'Core'
+        initial_section = sidebar.selected_section or 'Quick Commands'
+
         self.show_section(initial_section)
 
         # Setup keyboard shortcuts
@@ -249,6 +250,12 @@ class CoreScreen(Screen):
 
         if self.config_model:
             try:
+                from kivy_reloader.configurator.command_history import record
+                for fs in self.config_model.unsaved_states():
+                    record(
+                        label=f'Set {fs.field.key}',
+                        command=f'{fs.field.key} = {fs.value}',
+                    )
                 self.config_model.save()
                 self.update_unsaved_indicator()
                 msg = f'Saved to {self.config_model.config_path}'

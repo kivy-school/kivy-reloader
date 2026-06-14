@@ -34,7 +34,9 @@ class SideBar(BoxLayout):
     __events__ = ('on_section_select',)
 
     menu_items = ListProperty([
+        {'icon': '⚡', 'text': 'Quick Commands'},
         {'icon': '🔥', 'text': 'Core'},
+        {'icon': '📡', 'text': 'Status'},
         {'icon': '🔧', 'text': 'Services'},
         {'icon': '📱', 'text': 'Device'},
         {'icon': '🪟', 'text': 'Window'},
@@ -50,7 +52,8 @@ class SideBar(BoxLayout):
         super().__init__(**kwargs)
         self.selected_item = None
         self.all_items = []  # Store all menu item widgets
-        self.selected_section = 'Core'
+        self.selected_section = 'Quick Commands'
+
 
     def on_kv_post(self, base_widget):
         """Called after KV rules are applied"""

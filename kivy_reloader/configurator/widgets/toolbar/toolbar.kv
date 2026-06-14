@@ -168,9 +168,10 @@
                 size: self.size
                 radius: [border_radius_md]
 
+
     # Discord support button
     Button:
-        text: f'Discord Support'
+        text: f"[font={icon_font}]{unicode['headset']}[/font]  Discord"
         markup: True
         size_hint: None, None
         size: self.texture_size[0] + dp(24), dp(40)
@@ -190,12 +191,14 @@
 
     # Dark mode toggle (far right)
     Button:
-        text: 'Light' if root.is_dark_mode else 'Dark'
+        # text: '\U000f0594 Light' if root.is_dark_mode else '\U000f0599 Dark'
+        text: unicode['weather-sunny'] if root.is_dark_mode else unicode['weather-night']
+        font_name: icon_font
+        font_size: font_size_xl
         size_hint: None, None
         size: [dp(56), dp(40)]
         background_color: transparent
         color: foreground_color
-        font_size: font_size_sm
         on_release: root.handle_toggle_dark_mode()
 
         canvas.before:

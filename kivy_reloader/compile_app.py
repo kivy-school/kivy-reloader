@@ -1070,6 +1070,9 @@ def compile_app(buildozer_compiled: Event = None):
         activity_class='.MainActivity' if _is_ksp else 'org.kivy.android.PythonActivity',
         is_ksproject=_is_ksp,
     )
+    print(f"\n{green}[kivy-reloader] APK installed. Next run: 'uv run kivy-reloader run' (hot-reload, no recompile).{Style.RESET_ALL}")
+    print(f"{green}                Recompile only when: Python deps change · native/gradle config changes · clean slate needed.{Style.RESET_ALL}\n")
+
 
     buildozer_compiled.set()
 
