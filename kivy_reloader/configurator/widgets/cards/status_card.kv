@@ -40,6 +40,82 @@
             shorten_from: 'right'
 
 
+<DeviceRow>:
+    orientation: 'horizontal'
+
+    size_hint_y: None
+    height: dp(56)
+    spacing: dp(10)
+    padding: [dp(4), dp(6)]
+
+    # Status dot
+    Widget:
+        size_hint: None, None
+        size: dp(10), dp(10)
+        pos_hint: {'center_y': 0.5}
+        canvas:
+            Color:
+                rgba: (0.3, 0.85, 0.4, 1) if root.device_status == 'ok' else (1, 0.75, 0.2, 1) if root.device_status == 'warn' else (0.9, 0.3, 0.3, 1)
+            Ellipse:
+                pos: self.pos
+                size: self.size
+
+    # USB / WIFI chip
+    Label:
+        text: root.connection
+        size_hint: None, None
+        size: dp(44), dp(22)
+        pos_hint: {'center_y': 0.5}
+        font_size: font_size_xs
+        bold: True
+        color: primary_foreground_color
+        halign: 'center'
+        valign: 'middle'
+        text_size: self.size
+        canvas.before:
+            Color:
+                rgba: primary_color if root.connection == 'WIFI' else secondary_color
+            RoundedRectangle:
+                pos: self.pos
+                size: self.size
+                radius: [dp(4)]
+
+    # Name + serial / detail
+    BoxLayout:
+        orientation: 'vertical'
+        spacing: dp(2)
+
+        Label:
+            text: root.name
+            font_size: font_size_sm
+            bold: True
+            color: foreground_color
+            halign: 'left'
+            valign: 'middle'
+            text_size: self.size
+
+        Label:
+            text: root.serial + '  —  ' + root.status_detail
+            font_size: font_size_xs
+            color: muted_foreground_color
+            halign: 'left'
+            valign: 'middle'
+            text_size: self.size
+            shorten: True
+            shorten_from: 'right'
+
+    # Recheck button
+    Button:
+        text: 'Recheck'
+        size_hint: None, None
+        size: dp(64), dp(28)
+        pos_hint: {'center_y': 0.5}
+        font_size: font_size_xs
+        background_color: secondary_color
+        color: foreground_color
+        on_release: root.recheck()
+
+
 <StatusCard>:
     orientation: 'vertical'
     size_hint_y: None
@@ -94,6 +170,38 @@
                 halign: 'left'
                 text_size: self.width, self.height
 
+            # Connected Devices
+            Label:
+                text: 'Connected Devices'
+                font_size: font_size_xs
+                bold: True
+                color: muted_foreground_color
+                size_hint_y: None
+                height: dp(20)
+                halign: 'left'
+                text_size: self.width, self.height
+
+            Label:
+                text: 'No devices connected'
+                font_size: font_size_sm
+                color: muted_foreground_color
+                size_hint_y: None
+                height: dp(36) if not root.devices else 0
+                opacity: 1 if not root.devices else 0
+                halign: 'left'
+                valign: 'middle'
+                text_size: self.size
+
+            BoxLayout:
+                id: device_list
+                orientation: 'vertical'
+                size_hint_y: None
+                height: self.minimum_height
+                spacing: dp(2)
+
+            Separator:
+
+            # Environment checklist
             BoxLayout:
                 id: row_list
                 orientation: 'vertical'

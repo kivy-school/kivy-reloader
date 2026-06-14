@@ -227,6 +227,43 @@ def check_adb_device() -> CheckResult:
     devices = [l.split('\t')[0] for l in lines if 'device' in l]
     return CheckResult('ADB device', Status.OK, '  '.join(devices))
 
+def get_connected_devices() -> list[dict]:
+    """Return one dict per ADB device with serial, name, connection type and status."""
+    rc, out = _run(['adb', 'devices', '-l'])
+    if rc != 0:
+        return []
+    results = []
+    for line in out.splitlines()[1:]:
+        line = line.strip()
+        if not line:
+            continue
+        parts = line.split()
+        if len(parts) < 2:
+            continue
+        serial, state = parts[0], parts[1]
+        conn = 'WIFI' if re.match(r'\d+\.\d+\.\d+\.\d+:\d+', serial) else 'USB'
+        if state == 'device':
+            dev_status, detail = 'ok', 'authorized'
+            _, model = _run(['adb', '-s', serial, 'shell', 'getprop', 'ro.product.model'], timeout=4)
+            name = model.strip() or serial
+        elif state == 'unauthorized':
+            dev_status, detail = 'warn', 'unauthorized — tap Allow on phone'
+            name = serial
+        elif state == 'offline':
+            dev_status, detail = 'fail', 'offline'
+            name = serial
+        else:
+            dev_status, detail = 'warn', state
+            name = serial
+        results.append({
+            'serial': serial,
+            'name': name,
+            'connection': conn,
+            'device_status': dev_status,
+            'status_detail': detail,
+        })
+    return results
+
 
 # ── Project config ────────────────────────────────────────────────────────────
 

@@ -1,7 +1,7 @@
 <CommandPanel>:
     orientation: 'vertical'
     size_hint_y: None
-    height: dp(196) if self.is_expanded else dp(32)
+    height: dp(196) if self.is_expanded else dp(36)
 
     canvas.before:
         Color:
@@ -22,7 +22,8 @@
         padding: [dp(8), dp(4), dp(8), dp(4)]
         spacing: dp(8)
         on_touch_down:
-            if self.collide_point(*args[1].pos): root.toggle(); return True
+            if self.collide_point(*args[1].pos): root.toggle()
+
 
         canvas.before:
             Color:
@@ -43,7 +44,7 @@
             text_size: self.size
 
         Label:
-            text: 'Terminal'
+            text: 'Terminal Output'
             size_hint_x: None
             width: self.texture_size[0] + dp(8)
             font_size: font_size_sm

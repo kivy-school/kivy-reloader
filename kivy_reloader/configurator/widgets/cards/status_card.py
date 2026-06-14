@@ -1,3 +1,5 @@
+import threading
+
 from kivy.properties import ListProperty, ObjectProperty, StringProperty
 from kivy.uix.boxlayout import BoxLayout
 
@@ -14,11 +16,32 @@ class StatusRow(BoxLayout):
     row_status = StringProperty('ok')
 
 
+class DeviceRow(BoxLayout):
+    serial = StringProperty('')
+    name = StringProperty('')
+    connection = StringProperty('USB')
+    device_status = StringProperty('ok')
+    status_detail = StringProperty('')
+
+    def recheck(self):
+        from kivy_reloader.configurator.status_checks import _run
+        from kivy.clock import Clock
+        import threading
+        def _check():
+            rc, out = _run(['adb', '-s', self.serial, 'get-state'], timeout=5)
+            state = ('ok', out.strip() or 'device') if rc == 0 else ('fail', out.strip() or 'unreachable')
+            Clock.schedule_once(lambda dt: setattr(self, 'device_status', state[0]))
+            Clock.schedule_once(lambda dt: setattr(self, 'status_detail', state[1]))
+        threading.Thread(target=_check, daemon=True).start()
+
+
+
 class StatusCard(BoxLayout):
     rows = ListProperty([])
+    devices = ListProperty([])
     config_model = ObjectProperty(None, allownone=True)
     os_label = StringProperty('')
-    report_status = StringProperty('')  # feedback message after copy/save
+    report_status = StringProperty('')
     _last_results = []
     _last_config_path = None
 
@@ -46,13 +69,33 @@ class StatusCard(BoxLayout):
             }
             for r in self._last_results
         ]
+        self.refresh_devices()
 
+    def refresh_devices(self):
+        from kivy_reloader.configurator.status_checks import get_connected_devices
+        def _fetch():
+            devs = get_connected_devices()
+            from kivy.clock import Clock
+            Clock.schedule_once(lambda dt: setattr(self, 'devices', devs))
+        threading.Thread(target=_fetch, daemon=True).start()
+
+    def on_devices(self, instance, devices):
+        lst = self.ids.get('device_list')
+        if not lst:
+            return
+        lst.clear_widgets()
+        for d in devices:
+            lst.add_widget(DeviceRow(
+                serial=d['serial'],
+                name=d['name'],
+                connection=d['connection'],
+                device_status=d['device_status'],
+                status_detail=d['status_detail'],
+            ))
 
     def copy_report(self):
         from kivy_reloader.configurator.status_checks import format_report
         text = format_report(self._last_results, self._last_config_path)
-
-        # Try Kivy clipboard first
         try:
             from kivy.core.clipboard import Clipboard
             Clipboard.copy(text)
@@ -60,8 +103,6 @@ class StatusCard(BoxLayout):
             return
         except Exception:
             pass
-
-        # Try xclip/xsel (WSL2/Linux)
         for tool, args in [
             ('xclip', ['xclip', '-selection', 'clipboard']),
             ('xsel', ['xsel', '--clipboard', '--input']),
@@ -76,30 +117,24 @@ class StatusCard(BoxLayout):
                     return
                 except Exception:
                     pass
-
-        # Fall back to file
         self.save_report(text)
 
     def save_report(self, text: str | None = None):
         from kivy_reloader.configurator.status_checks import format_report
         if text is None:
             text = format_report(self._last_results, self._last_config_path)
-
-        # Try to save to Windows Desktop if on WSL2
         from kivy_reloader.configurator.status_checks import _get_windows_home, detect_os
         save_path = None
         if detect_os() == 'wsl2':
             win_home = _get_windows_home()
             if win_home:
                 save_path = win_home / 'Desktop' / 'kivy-reloader-diag.txt'
-
         if save_path is None:
             from pathlib import Path
             save_path = Path.home() / 'kivy-reloader-diag.txt'
-
         save_path.write_text(text)
         self.report_status = f'Saved to {save_path}'
-        print(text)  # also prints to command panel
+        print(text)
 
     def on_rows(self, instance, rows):
         lst = self.ids.get('row_list')
