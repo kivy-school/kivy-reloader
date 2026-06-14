@@ -1078,26 +1078,6 @@ def compile_app(buildozer_compiled: Event = None):
 
     buildozer_compiled.set()
 
-def _debug_with_pipe(adb_logcat_ready: Event, w_fd: int) -> None:
-    """Run debug() with stdout/stderr redirected into a pipe so FlightDeck can ingest logs."""
-    os.dup2(w_fd, 1)
-    os.dup2(w_fd, 2)
-    os.close(w_fd)
-    debug(adb_logcat_ready)
-
-def _read_logcat_pipe(r_fd: int) -> None:
-    """Reader thread (parent process): forward pipe lines to FlightDeck via EventBus."""
-    from kivy.clock import Clock
-    from kivy_reloader.configurator.event_bus import EventBus
-    try:
-        with os.fdopen(r_fd, 'r', encoding='utf-8', errors='replace') as f:
-            for line in f:
-                line = line.rstrip('\n')
-                if line:
-                    Clock.schedule_once(lambda dt, l=line: EventBus.emit('logcat_line', line=l))
-    except Exception as e:
-        logging.error(f'_read_logcat_pipe failed: {e}')
-
 
 
 def debug_and_livestream(buildozer_compiled: Event = None) -> None:
@@ -1125,14 +1105,11 @@ def debug_and_livestream(buildozer_compiled: Event = None) -> None:
     try:
         logging.info(f"DEBUG RAN!!")
         adb_logcat_ready = Event()
-        r_fd, w_fd = os.pipe()
-        adb_logcat = Process(target=_debug_with_pipe, args=(adb_logcat_ready, w_fd))
+        adb_logcat = Process(target=debug, args=(adb_logcat_ready,))
         logging.info(f"LIVESTREAM RAN!!")
         scrcpy = Process(target=livestream, args=(adb_logcat_ready,))
 
         adb_logcat.start()
-        os.close(w_fd)
-        Thread(target=_read_logcat_pipe, args=(r_fd,), daemon=True).start()
         scrcpy.start()
         # Wait for processes and handle termination
         try:
@@ -1141,11 +1118,9 @@ def debug_and_livestream(buildozer_compiled: Event = None) -> None:
         except KeyboardInterrupt:
             logging.info('Terminating processes due to user interrupt')
             terminate_processes(adb_logcat, scrcpy)
-
     except Exception as e:
         logging.error(f'Error in debug_and_livestream: {e}')
         sys.exit(1)
-
 
 def debug(adb_logcat_ready: Event = None):
     """

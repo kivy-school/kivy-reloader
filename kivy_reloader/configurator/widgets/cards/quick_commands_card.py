@@ -14,6 +14,16 @@ _STATIC_COMMANDS = [
     {'label': 'Hot reload', 'command': 'uv run kivy-reloader run'},
 ]
 
+def _stream_proc_output(proc):
+    from kivy.clock import Clock
+    try:
+        for line in proc.stdout:
+            line = line.rstrip('\n')
+            if line:
+                Clock.schedule_once(lambda dt, l=line: EventBus.emit('logcat_line', line=l))
+    except Exception:
+        pass
+
 
 class CommandButton(BoxLayout):
     label = StringProperty('')
@@ -30,30 +40,17 @@ class CommandButton(BoxLayout):
             return
 
         import threading
-        from kivy_reloader.compile_app import select_option
-        from kivy_reloader import config
-
-        _OPTION_MAP = {
-            'uv run kivy-reloader run build': '1',
-            'uv run kivy-reloader run':       '2',
-        }
-
-        option = _OPTION_MAP.get(self.command)
-        if option:
-            app_name = getattr(config, 'APP_NAME', '')
-            threading.Thread(
-                target=select_option,
-                args=(option, app_name),
-                daemon=True,
-            ).start()
-        else:
-            subprocess.Popen(
-                self.command.split(),
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                stdin=subprocess.DEVNULL,
-                start_new_session=True,
-            )
+        proc = subprocess.Popen(
+            self.command.split(),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            stdin=subprocess.DEVNULL,
+            start_new_session=True,
+            text=True,
+            encoding='utf-8',
+            errors='replace',
+        )
+        threading.Thread(target=_stream_proc_output, args=(proc,), daemon=True).start()
 
 
 class QuickCommandsCard(BoxLayout):

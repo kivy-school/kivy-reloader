@@ -196,7 +196,7 @@ class DeltaTransferManager:
             'file_count': len(changed_files),
             'files': list(changed_files),
             'deleted_files': list(deleted_files),
-            'source_package': Path(self.zip_root).name
+            'source_package': Path(self.project_root).name
         }
 
         with zipfile.ZipFile(output_path, 'w', zipfile.ZIP_DEFLATED) as zip_file:
@@ -237,7 +237,7 @@ class DeltaTransferManager:
             'timestamp': time.time(),
             'file_count': len(all_files),
             'files': list(all_files.keys()),
-            'source_package': Path(self.zip_root).name, 
+            'source_package': Path(self.project_root).name
         }
 
         with zipfile.ZipFile(output_path, 'w', zipfile.ZIP_DEFLATED) as zip_file:
