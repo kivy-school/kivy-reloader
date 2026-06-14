@@ -606,6 +606,7 @@ compiler_options = [
     'Debug and livestream',
     'Create aab',
     'Restart adb server (fix phone connection issues)',
+    'Exit',
 ]
 
 selected_option = compiler_options[0]
@@ -2146,12 +2147,14 @@ def render_option_menu(current_selection: str) -> None:
     Args:
         current_selection: Currently selected option string
     """
-    typer.echo('\nSelect one of the 5 options below:\n')
+    typer.echo('\nSelect one of the 6 options below:\n')
 
     flightdeck_option = compiler_options[0]
     development_options = compiler_options[1:3]
     production_option = compiler_options[3]
     fix_option = compiler_options[4]
+    exit_option = compiler_options[5]
+
 
     # Render FlightDeck section
     typer.echo(f'🛩️  {yellow}FlightDeck{Style.RESET_ALL} ')
@@ -2170,6 +2173,12 @@ def render_option_menu(current_selection: str) -> None:
     typer.echo(f'\n🔄 {yellow}Fix{Style.RESET_ALL}')
     highlight_selected_option(fix_option)
     typer.echo('')
+
+    # Render Exit section
+    typer.echo(f'\n🚪 {yellow}Exit{Style.RESET_ALL}')
+    highlight_selected_option(exit_option)
+    typer.echo('')
+
 
 
 def handle_keyboard_input() -> str:
@@ -2210,6 +2219,8 @@ def execute_selected_option(option: str) -> None:
         from kivy_reloader.configurator.gui import run_gui
         run_gui(base=Path.cwd(), config_path=Path.cwd() / 'kivy-reloader.toml')
         return
+    if option == 'Exit':
+        safe_exit(0)
     print(f'{yellow} Selected option: {green}{option}')
     option_index = str(compiler_options.index(option))
     select_option(option_index, app_name)

@@ -20,9 +20,13 @@ class CommandButton(BoxLayout):
     label = StringProperty('')
     command = StringProperty('')
     count = StringProperty('')
+    command_panel = ObjectProperty(None, allownone=True)
+
 
     def run(self):
         record(self.label, self.command)
+        if self.command_panel:
+            self.command_panel.log(self.command)
         import threading
         from kivy_reloader.compile_app import select_option
         from kivy_reloader import config
@@ -57,6 +61,10 @@ class QuickCommandsCard(BoxLayout):
     hot_reload_on_phone = BooleanProperty(True)
     stream_using = StringProperty('WIFI')
     target_ip = StringProperty('')
+    command_panel = ObjectProperty(None, allownone=True)
+
+    def on_command_panel(self, instance, value):
+        self.refresh()
 
     def load_from_model(self):
         if not self.config_model:
@@ -115,5 +123,9 @@ class QuickCommandsCard(BoxLayout):
                 label=item['label'],
                 command=item['command'],
                 count=f"×{item['count']}" if item.get('count') else '',
+                command_panel=self.command_panel,
             )
             lst.add_widget(btn)
+
+        
+

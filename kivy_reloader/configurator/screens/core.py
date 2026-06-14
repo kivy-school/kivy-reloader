@@ -444,7 +444,10 @@ class CoreScreen(Screen):
             if card is None:
                 continue
             card.config_model = model
+            if hasattr(card, 'command_panel'):
+                card.command_panel = self.command_panel
             card.load_from_model()
+
 
         for card in self._section_cards.values():
             if card is None:

@@ -668,21 +668,7 @@ weekly autobuild now
 merge with ksproject
 AMAZING DANCE STAR
 
-=-=-==************ FINISHED LIST FIXED LIST ************=-=-=-==
-fixed network flow between desktop and android phone client on mac/win10/win11
-works with win 11 wsl2 mirrored networking and updated kivyschool to do mirred networking if no wslconfig found
-fixed typer.clear() failing on newest typer
-fixed kivy reloader crash (trying to compile watchdog/kaki for android which is unnecessary)
-added uv run kivy-reloader init project to give you a fresh hello world project
-fixed bug in kivy-reloader init where the default toml was beautifulapp
-PROJECT FAILS ON WATCHING "." BUT WORKED WHEN WATCHING "HELLO-WORLD" (so totally diff from testing if reloading itself works)
-fixed notifications failing on mac (no pyojbius)
-setup nightly builds + alerts if tests fail
-fixed toml required for android even when RELOADER_STATUS='PROD' with 1. searching a few common directories 2. respecting prod
-https://github.com/kivy-school/kivy-reloader/issues/63
-I need to update kivy reloader to integrate with ksproject build def (thye regular kivy way) since it adds a dupe extra kv line (it isn't restarted so the extra build goes through)
-- fixed kivy reloader assumed cwd structure and ksproject site project structure creating 2 widgets (because kivy reloader will unload to its own path on android and duplicate kv)
-- fixed kivy reloader failing and having app collisions when multiple reloader apps are on phone and the previous app holds port 8050 (make bapp and capp, bapp gets on phone, launch capp desktop, capp desktop goes to bapp on phone because bapp is listening on port 8050 and is a kivy reloader app. not ok)
+=-=-=-= kinda happened kinda not =-=-=-=
 TODO: make github runner test for this nightly
 update bapp and capp with latest kivy reloader
 (uv lock --upgrade-package kivy-reloader)
@@ -690,6 +676,36 @@ put bapp on phone then check if update works (text: bapp)
 run capp and attempt and update > gets rejected (GOOD)
 put capp on phone and check if update DOES NOT COLLIDE (text: capp) (ALSO GOOD)
 test if bapp desktop gets on capp android FAILS (GOOD IF IT FAILS)
+
+(what happened: test just checks if kv update works (presumably))
+=-=-==************ FINISHED LIST FIXED LIST ************=-=-=-==
+kivyschool:
+- updated kivyschool uninstall scripts
+
+kivy-reloader:
+- fixed typer.clear() failing on newest typer
+- added uv run kivy-reloader init project to give you a fresh hello world project
+- fixed bug in kivy-reloader init where the default toml was beautifulapp
+- PROJECT FAILS ON WATCHING "." BUT WORKED WHEN WATCHING "HELLO-WORLD" (so totally diff from testing if reloading itself works)
+- fixed notifications failing on mac (no pyojbius)
+- fixed toml required for android even when RELOADER_STATUS='PROD' with 1. searching a few common directories 2. respecting prod
+- https://github.com/kivy-school/kivy-reloader/issues/63
+- fixed kivy reloader failing and having app collisions when multiple reloader apps are on phone and the previous app holds port 8050 (make bapp and capp, bapp gets on phone, launch capp desktop, capp desktop goes to bapp on phone because bapp is listening on port 8050 and is a kivy reloader app. not ok)
+
+github CI/CD:
+- setup nightly builds + alerts if tests fail
+
+buildozer build flow:
+- works with win 11 wsl2 mirrored networking and updated kivyschool install to do mirred networking if no wslconfig found
+- fixed network flow between desktop and android phone client on mac/win10/win11
+- fixed kivy reloader crash (trying to compile watchdog/kaki for android which is unnecessary)
+
+ksproject build flow:
+- integrated kivy-reloader with ksproject project template
+- fixed kivy reloader assumed cwd structure and ksproject site project structure creating 2 widgets (because kivy reloader will unload to its own path on android and duplicate kv)
+
+
+
 
 created install scripts for ksproject + kivy-reloader on linux/mac/wsl/ win10
 
@@ -715,8 +731,9 @@ Need a clean slate after something breaks badly
 added kivy-reloader init project 
 which does kivy-reloader init then sets up default kivy reloader helloworld project
 
+added exit option to cli
+added button that does buildozer android clean for you or deletes a specific lib and also added under deploy and quick commands
 
-kivy reloader config:
 flightdeck runs automatically when you run the app: uv run python main.py or uv run python -m myapp
 since desktop flow is required for phone dev it's not necessary to run flightdeck from uv run kivy-reloader run
 added a button to kivy flightdeck to delete reloader state

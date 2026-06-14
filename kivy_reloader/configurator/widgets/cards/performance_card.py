@@ -38,6 +38,7 @@ class PerformanceCard(BoxLayout):
     scroll_view = ObjectProperty(None)
     on_config_change = ObjectProperty(None)
 
+
     def __init__(self, **kwargs):
         self.config_model = None
         self.render_drivers = RENDER_DRIVERS
@@ -111,3 +112,4 @@ class PerformanceCard(BoxLayout):
 
     def on_render_driver_change(self, value):
         self.update_config('RENDER_DRIVER', value)
+
