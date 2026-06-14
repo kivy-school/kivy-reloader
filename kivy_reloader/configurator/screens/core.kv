@@ -47,15 +47,16 @@
     
     BoxLayout:
         orientation: 'vertical'
-        # Sidebar + main content (horizontal)
-    
+
+        Toolbar:
+            id: toolbar
+
+        # Sidebar + main content (horizontal), fills remaining height
         BoxLayout:
             SideBar:
                 id: sidebar
             BoxLayout:
                 orientation: 'vertical'
-                Toolbar:
-                    id: toolbar
                 ScreenManager:
                     id: section_manager
                     SectionScreen:
@@ -75,7 +76,7 @@
                         name: 'Device'
                     SectionScreen:
                         card_cls: cards.WindowCard
-                        name: 'Window'
+                        name: 'scrcpy window'
                     SectionScreen:
                         card_cls: cards.DisplayCard
                         name: 'Display'
@@ -94,6 +95,5 @@
                     SectionScreen:
                         card_cls: cards.NotificationsCard
                         name: 'Notifications'
-        # Command panel pinned to bottom
-        CommandPanel:
-            id: command_panel
+                CommandPanel:
+                    id: command_panel

@@ -688,14 +688,14 @@ kivy-reloader:
 - added kivy-reloader init project that does kivy-reloader init + project scaffolds basic hello world for buildozer (kivy-reloader default) or ksproject (ksproject takes priority over buildozer)
 - fixed typer.clear() failing on newest typer
 - kivy-reloader usb option now is full usb, no wifi required BUT you might need admin perms for windows/wsl2 setup
-- fixed ksproject/ kivyreloader revealing multiapp collisions (bapp on android lives and capp desktop would push to bapp android somehow)
+- 
 - added uv run kivy-reloader init project to give you a fresh hello world project
 - fixed bug in kivy-reloader init where the default toml was beautifulapp
 - PROJECT FAILS ON WATCHING "." BUT WORKED WHEN WATCHING "HELLO-WORLD" (so totally diff from testing if reloading itself works)
 - fixed notifications failing on mac (no pyojbius)
 - fixed toml required for android even when RELOADER_STATUS='PROD' with 1. searching a few common directories 2. respecting prod
 - https://github.com/kivy-school/kivy-reloader/issues/63
-- fixed kivy reloader failing and having app collisions when multiple reloader apps are on phone and the previous app holds port 8050 (make bapp and capp, bapp gets on phone, launch capp desktop, capp desktop goes to bapp on phone because bapp is listening on port 8050 and is a kivy reloader app. not ok)
+- fixed ksproject/ kivyreloader revealing multiapp collisions when multiple reloader apps are on phone and the previous app holds port 8050 (make bapp and capp, bapp gets on phone, launch capp desktop, capp desktop goes to bapp on phone because bapp is listening on port 8050 and is a kivy reloader app. not ok) (bapp on android lives and capp desktop would push to bapp android somehow. TEST: make bapp and compile onto phone, buildozer/ksproject doesn't matter. make capp and turn on desktop try a push to phone with hotreload to phone as true. now bapp on phone should refuse update. if capp is also on phone, bapp refuses,capp accepts)
 - kivy reloader respects prod env var
 - kivy reloader on android doesnt crash looking for kivy reloader toml on android anymore
 - fixed buildozer spec pinning to specific p4a
@@ -711,8 +711,6 @@ kivy-reloader:
 
     Need a clean slate after something breaks badly
 - added exit option to cli
-- added buttons to: buildozer android clean, buildozer appclean, and target delete a recipe to quick commands and deployment screen
-- flightdeck lets you check common mobile screen sizes to stress test your app design + you can just type in what size you want (window.size trick): just update on flightdeck and press f5 to force window to reload
 
 kivy reloader flightdeck (renamed from ConfigGUI):
 - flightdeck auto spawn on CLI open has a toggle on main screen
@@ -725,8 +723,12 @@ kivy reloader flightdeck (renamed from ConfigGUI):
 - added status page to help ppl diagnose their networking issues on wsl2, mac, linux, windows
 - added light/dark mode
 - added terminal so u can see commands + python output (not complete but helps)
-- added discord button to go to support channel at kivyschool
+- added discord button to go to kivyschool discord
 - got kivy reloader to deal with ksproject app structure (looks for app_copy in the right folder when you run uv run python -m helloworld)
+- added buttons to: buildozer android clean, buildozer appclean, and target delete a recipe to quick commands and deployment screen
+- flightdeck lets you check common mobile screen sizes to stress test your app design + you can just type in what size you want (window.size trick): just update on flightdeck and press f5 to force window to reload
+- added button for scrcpy to match your phone display
+- flighdeck reads logcat logs now that it's kinda replaced CLI
 
 github CI/CD:
 - setup nightly builds + alerts if tests fail
