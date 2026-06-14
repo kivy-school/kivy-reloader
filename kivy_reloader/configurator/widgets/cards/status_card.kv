@@ -5,7 +5,8 @@
     padding: [dp(4), dp(4)]
 
     Label:
-        text: root.icon
+        text: unicode['check-circle'] if root.row_status == 'ok' else unicode['alert'] if root.row_status == 'warn' else unicode['close'] if root.row_status == 'fail' else unicode['minus']
+        font_name: icon_font
         size_hint: None, None
         size: dp(28), dp(28)
         font_size: font_size_base

@@ -88,8 +88,8 @@ class Config:  # noqa: PLR0904
 
         if not self._is_pyinstaller_environment():
             try:
-                from kivy.utils import platform as _platform
-                on_android = (_platform == 'android')
+                import sys as _sys
+                on_android = (_sys.platform == 'android' or 'ANDROID_ARGUMENT' in __import__('os').environ)
             except Exception:
                 on_android = False
 
@@ -382,6 +382,10 @@ class Config:  # noqa: PLR0904
     def PERSISTENT_FLIGHTDECK(self) -> bool:
         """Open FlightDeck configurator on startup instead of running the app directly."""
         return self.get('PERSISTENT_FLIGHTDECK', True)
+
+    @property
+    def FLIGHTDECK_ALWAYS_ON_TOP(self) -> bool:
+        return self.get('FLIGHTDECK_ALWAYS_ON_TOP', False)
 
 
     @property

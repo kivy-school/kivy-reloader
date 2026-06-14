@@ -32,6 +32,10 @@ class SideBar(BoxLayout):
     """Main sidebar navigation component"""
 
     __events__ = ('on_section_select',)
+    flightdeck_active = BooleanProperty(True)
+    config_model = ObjectProperty(None, allownone=True)
+    flightdeck_always_on_top = BooleanProperty(False)
+
 
     menu_items = ListProperty([
         {'icon': '⚡', 'text': 'Quick Commands'},
@@ -116,3 +120,23 @@ class SideBar(BoxLayout):
         """Event dispatched when a menu section is selected."""
         # Default handler; can be bound from outside
         return None
+    
+    def load_from_model(self):
+        if self.config_model:
+            self.flightdeck_active = bool(self.config_model.get_value('PERSISTENT_FLIGHTDECK'))
+            self.flightdeck_always_on_top = bool(self.config_model.get_value('FLIGHTDECK_ALWAYS_ON_TOP'))
+
+    def toggle_flightdeck(self):
+        self.flightdeck_active = not self.flightdeck_active
+        if self.config_model:
+            self.config_model.set_value('PERSISTENT_FLIGHTDECK', self.flightdeck_active)
+            self.config_model.save(create_backup=False)
+
+    def toggle_flightdeck_always_on_top(self):
+        self.flightdeck_always_on_top = not self.flightdeck_always_on_top
+        from kivy.core.window import Window
+        Window.always_on_top = self.flightdeck_always_on_top
+        if self.config_model:
+            self.config_model.set_value('FLIGHTDECK_ALWAYS_ON_TOP', self.flightdeck_always_on_top)
+            self.config_model.save(create_backup=False)
+

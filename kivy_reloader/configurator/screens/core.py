@@ -446,6 +446,17 @@ class CoreScreen(Screen):
             card.config_model = model
             card.load_from_model()
 
+        for card in self._section_cards.values():
+            if card is None:
+                continue
+            card.config_model = model
+            card.load_from_model()
+
+        # Sync sidebar power switch
+        self.sidebar.config_model = model
+        self.sidebar.load_from_model()
+
+
         # Update indicator after initial load (should be clean)
         self.update_unsaved_indicator()
 

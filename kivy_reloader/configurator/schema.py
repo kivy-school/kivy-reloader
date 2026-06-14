@@ -442,11 +442,20 @@ FIELD_DEFS: list[FieldDef] = [
     FieldDef(
         'PERSISTENT_FLIGHTDECK',
         FieldType.BOOL,
-        True,
+        False,
         'Display',
         help_short='Open FlightDeck on startup',
         help_long='When true, python main.py and kivy-reloader run open FlightDeck instead of launching the app directly.',
     ),
+    FieldDef(
+        'FLIGHTDECK_ALWAYS_ON_TOP',
+        FieldType.BOOL,
+        False,
+        'Display',
+        help_short='Keep FlightDeck window on top',
+        help_long='When true, the FlightDeck window stays above all other windows.',
+    ),
+
     # ---------------------------------------------------------------------------
     # 🎵 Audio
     # ---------------------------------------------------------------------------

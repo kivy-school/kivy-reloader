@@ -318,8 +318,8 @@ def run_all_checks(config_path: Path | None = None) -> list[CheckResult]:
     # 1. OS-specific environment first (most likely to cause all other failures)
     if os_name == 'wsl2':
         results += [
-            check_display(),
             check_wsl2_networking(),
+            check_display(),
             check_adb_port_conflict(),
             check_xclip(),
         ]

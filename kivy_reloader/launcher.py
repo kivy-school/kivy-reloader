@@ -12,7 +12,7 @@ def _should_launch_flightdeck() -> bool:
         if not t.exists():
             return False
         data = tomlkit.loads(t.read_text())
-        return bool(data.get('kivy_reloader', {}).get('PERSISTENT_FLIGHTDECK', True))
+        return bool(data.get('kivy_reloader', {}).get('PERSISTENT_FLIGHTDECK', False))
     except Exception:
         return False
 
