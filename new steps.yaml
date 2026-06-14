@@ -710,6 +710,7 @@ kivy-reloader:
 
     Need a clean slate after something breaks badly
 - added exit option to cli
+- added buttons to: buildozer android clean, buildozer appclean, and target delete a recipe to quick commands and deployment screen
 
 kivy reloader flightdeck (renamed from ConfigGUI):
 - added button that does buildozer android clean for you or deletes a specific lib and also added under deploy and quick commands

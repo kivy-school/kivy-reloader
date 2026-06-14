@@ -19,6 +19,7 @@ class CommandButton(BoxLayout):
     label = StringProperty('')
     command = StringProperty('')
     count = StringProperty('')
+    display_command = StringProperty('')
     card_action_handler = ObjectProperty(None, allownone=True)
 
     def run(self):
@@ -125,10 +126,13 @@ class QuickCommandsCard(BoxLayout):
             btn = CommandButton(
                 label=item['label'],
                 command=item['command'],
+                display_command=item.get('display', ''),
                 count=f"×{item['count']}" if item.get('count') else '',
                 card_action_handler=self._handle_card_action,
             )
             lst.add_widget(btn)
+
+
 
     def _handle_card_action(self, action):
         for card in EventBus.get_cards().values():

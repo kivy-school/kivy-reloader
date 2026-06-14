@@ -208,7 +208,7 @@
 
                 # Full clean
                 Label:
-                    text: 'Full clean (keeps downloads)'
+                    text: 'Android clean (keeps downloads)'
                     font_size: font_size_sm
                     bold: True
                     color: foreground_color
@@ -234,3 +234,34 @@
                     background_color: destructive_color
                     color: destructive_foreground_color
                     on_release: root.clean_all()
+
+                Separator:
+
+                # App clean
+                Label:
+                    text: 'App clean (re-downloads everything)'
+                    font_size: font_size_sm
+                    bold: True
+                    color: foreground_color
+                    size_hint_y: None
+                    height: dp(28)
+                    halign: 'left'
+                    text_size: self.width, self.height
+
+                Label:
+                    text: 'Wipes the full .buildozer folder including downloads. Forces a complete SDK re-download on next build.'
+                    font_size: font_size_xs
+                    color: muted_foreground_color
+                    size_hint_y: None
+                    height: self.texture_size[1]
+                    halign: 'left'
+                    text_size: self.width, None
+
+                Button:
+                    text: 'buildozer appclean'
+                    size_hint_y: None
+                    height: dp(36)
+                    font_size: font_size_sm
+                    background_color: destructive_color
+                    color: destructive_foreground_color
+                    on_release: root.app_clean()

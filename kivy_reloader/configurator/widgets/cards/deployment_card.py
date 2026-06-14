@@ -22,9 +22,12 @@ class DeploymentCard(BoxLayout):
 
     section_name = 'Deployment'
     quick_actions = [
-        {'label': 'Full clean',   'fn': 'clean_all',    'command': '__full_clean__'},
-        {'label': 'Clean recipe', 'fn': 'clean_recipe', 'command': '__clean_recipe__', 'needs_input': 'recipe'},
+        {'label': 'Full clean',                        'fn': 'clean_all',    'command': '__full_clean__',   'display': 'buildozer android clean'},
+        {'label': 'App clean (redownload + rebuild)', 'fn': 'app_clean', 'command': '__app_clean__',   'display': 'buildozer appclean'},
+        {'label': 'Clean recipe',                      'fn': 'clean_recipe', 'command': '__clean_recipe__', 'display': 'rm -rf .buildozer/.../other_builds/<recipe>', 'needs_input': 'recipe'},
     ]
+
+
 
 
     config = DictProperty({
@@ -103,8 +106,6 @@ class DeploymentCard(BoxLayout):
             EventBus.emit('terminal_output', output=msg)
         threading.Thread(target=_clean, daemon=True).start()
 
-
-
     def clean_all(self):
         import subprocess, threading
         from pathlib import Path
@@ -123,6 +124,27 @@ class DeploymentCard(BoxLayout):
             Clock.schedule_once(lambda dt: setattr(self, 'build_status', msg))
             EventBus.emit('terminal_output', output=output)
         threading.Thread(target=_clean, daemon=True).start()
+
+
+    def app_clean(self):
+        import subprocess, threading
+        from pathlib import Path
+        cmd = 'buildozer appclean'
+        self.build_status = 'Running buildozer appclean (re-downloads SDK)...'
+        EventBus.emit('terminal_log', command=cmd)
+        def _clean():
+            r = subprocess.run(
+                ['buildozer', 'appclean'],
+                capture_output=True, text=True, timeout=300,
+                cwd=str(Path.cwd()),
+            )
+            output = (r.stdout + r.stderr).strip() or 'Done'
+            msg = 'Done — full rebuild on next compile' if r.returncode == 0 else f'Failed: {output[-100:]}'
+            from kivy.clock import Clock
+            Clock.schedule_once(lambda dt: setattr(self, 'build_status', msg))
+            EventBus.emit('terminal_output', output=output)
+        threading.Thread(target=_clean, daemon=True).start()
+
 
 
     def list_recipes(self):
