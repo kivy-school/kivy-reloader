@@ -49,7 +49,8 @@ from .base_app import BaseReloaderApp
 from .config import config
 from .delta_transfer import DeltaTransferManager
 from .utils import get_auto_reloader_paths, get_connected_devices, get_kv_files_paths, in_wsl
-from .launcher import _acquire_flightdeck_lock, _should_launch_flightdeck
+from .launcher import _is_flightdeck_running, _should_launch_flightdeck
+
 
 
 # Constants
@@ -107,13 +108,15 @@ class DesktopApp(BaseReloaderApp, KakiApp):
 
     def __init__(self, *args, **kwargs):
         if _should_launch_flightdeck():
-            lock = _acquire_flightdeck_lock(Path.cwd())
+            lock = _is_flightdeck_running(Path.cwd())
             if lock is not None:
                 try:
+                    kr_path = Path(sys.executable).with_name('kivy-reloader')
                     subprocess.run(
-                        [sys.executable, '-m', 'kivy_reloader', 'config'],
+                        [str(kr_path), 'config'],
                         cwd=Path.cwd(),
                     )
+
                 finally:
                     lock.close()
                 sys.exit(0)   # don't start the user's app after FlightDeck closes

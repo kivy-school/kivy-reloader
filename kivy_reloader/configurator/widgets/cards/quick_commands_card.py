@@ -68,9 +68,10 @@ class QuickCommandsCard(BoxLayout):
     def refresh(self):
         days = _PERIODS[self.active_period]
         top = get_top(n=8, days=days)
-        if not top:
-            top = _DEFAULT_COMMANDS
-        self.commands = top
+        history_cmds = {item['command'] for item in top}
+        pinned = [c for c in _DEFAULT_COMMANDS if c['command'] not in history_cmds]
+        self.commands = top + pinned
+
     
     def reset_history(self):
         from kivy_reloader.configurator.command_history import _HISTORY_FILE

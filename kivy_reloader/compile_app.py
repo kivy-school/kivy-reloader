@@ -601,6 +601,7 @@ except FileNotFoundError:
         apk_path = ''
 
 compiler_options = [
+    'Open FlightDeck',
     'Compile, debug and livestream',
     'Debug and livestream',
     'Create aab',
@@ -2145,15 +2146,19 @@ def render_option_menu(current_selection: str) -> None:
     Args:
         current_selection: Currently selected option string
     """
-    #typer.clear()
-    typer.echo('\nSelect one of the 4 options below:\n')
+    typer.echo('\nSelect one of the 5 options below:\n')
 
-    development_options = compiler_options[:2]
-    production_option = compiler_options[2]
-    fix_option = compiler_options[3]
+    flightdeck_option = compiler_options[0]
+    development_options = compiler_options[1:3]
+    production_option = compiler_options[3]
+    fix_option = compiler_options[4]
+
+    # Render FlightDeck section
+    typer.echo(f'🛩️  {yellow}FlightDeck{Style.RESET_ALL} ')
+    highlight_selected_option(flightdeck_option)
 
     # Render Development section
-    typer.echo(f'🛠️  {yellow}Development{Style.RESET_ALL} ')
+    typer.echo(f'\n🛠️  {yellow}Development{Style.RESET_ALL} ')
     for option in development_options:
         highlight_selected_option(option)
 
@@ -2199,20 +2204,15 @@ def update_selected_option(key: str, current_option: str) -> str:
 
     return current_option
 
-
 def execute_selected_option(option: str) -> None:
-    """
-    Executes the action associated with the selected option.
-
-    Args:
-        option: The selected option string
-    """
-    #typer.clear()
+    if option == 'Open FlightDeck':
+        from pathlib import Path
+        from kivy_reloader.configurator.gui import run_gui
+        run_gui(base=Path.cwd(), config_path=Path.cwd() / 'kivy-reloader.toml')
+        return
     print(f'{yellow} Selected option: {green}{option}')
-    option_index = str(compiler_options.index(option) + 1)
-    #typer.clear()
+    option_index = str(compiler_options.index(option))
     select_option(option_index, app_name)
-
 
 def start():
     """

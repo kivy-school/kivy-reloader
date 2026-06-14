@@ -39,3 +39,15 @@ def launch_or_run(app_factory):
         import trio
         app = app_factory()
         trio.run(app.async_run, 'trio')
+
+def _is_flightdeck_running(cwd: Path) -> bool:
+    tag = int(hashlib.md5(str(cwd).encode()).hexdigest()[:4], 16)
+    port = 49152 + (tag % 16383)
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.settimeout(0.1)
+    try:
+        s.connect(('127.0.0.1', port))
+        s.close()
+        return True
+    except OSError:
+        return False

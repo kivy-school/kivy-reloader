@@ -43,9 +43,10 @@ else:
 
     # Platform-specific imports and exports
     if platform != 'android':
-        from .desktop_app import DesktopApp
 
+        from .desktop_app import DesktopApp
         App = DesktopApp
+
     else:
         from .android_app import AndroidApp
 

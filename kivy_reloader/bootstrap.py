@@ -657,12 +657,9 @@ def main():
             from .compile_app import debug_and_livestream
             debug_and_livestream()
         else:
-            # from .configurator.gui import run_gui
-            # project_dir = Path(os.getcwd())
-            # config_path = project_dir / 'kivy-reloader.toml'
-            # run_gui(base=project_dir, config_path=config_path, debug=False)
             from .compile_app import start
             start()
+
 
 
 
