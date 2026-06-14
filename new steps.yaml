@@ -666,7 +666,7 @@ fixed toml required for android even when RELOADER_STATUS='PROD' with 1. searchi
 https://github.com/kivy-school/kivy-reloader/issues/63
 I need to update kivy reloader to integrate with ksproject build def (thye regular kivy way) since it adds a dupe extra kv line (it isn't restarted so the extra build goes through)
 - fixed kivy reloader assumed cwd structure and ksproject site project structure creating 2 widgets (because kivy reloader will unload to its own path on android and duplicate kv)
-- fixed kivy reloader failing and having app collisions when multiple reloader apps are on phone and the previous app holds port 8050
+- fixed kivy reloader failing and having app collisions when multiple reloader apps are on phone and the previous app holds port 8050 (make bapp and capp, bapp gets on phone, launch capp desktop, capp desktop goes to bapp on phone because bapp is listening on port 8050 and is a kivy reloader app. not ok)
 
 kivy reloader config:
 renamed to kivy flightdeck

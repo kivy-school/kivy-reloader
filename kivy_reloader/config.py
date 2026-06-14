@@ -83,20 +83,26 @@ class Config:  # noqa: PLR0904
     ]
 
     def __init__(self, config_path: Union[str, Path] = None):
-        """
-        Initialize configuration manager.
-
-        Args:
-            config_path: Optional path to config file. Defaults to current directory.
-        """
         self.config_file = self._determine_config_path(config_path)
         self.config: Dict[str, Any] = {}
 
-        # Initialize configuration if not in PyInstaller environment
         if not self._is_pyinstaller_environment():
-            self._load_and_validate_config()
+            try:
+                from kivy.utils import platform as _platform
+                on_android = (_platform == 'android')
+            except Exception:
+                on_android = False
+
+            # The toml is a desktop concept — Android receives code updates via zip from
+            # the desktop, so no local config is needed. All properties fall back to their
+            # coded defaults (e.g. RELOADER_PORT=8050), which is correct for Android.
+            if on_android:
+                pass  # use empty defaults — config is desktop-only
+            else:
+                self._load_and_validate_config()
         else:
             self._handle_pyinstaller_environment()
+
 
     @staticmethod
     def _determine_config_path(config_path: Union[str, Path] = None) -> Path:
