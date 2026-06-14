@@ -719,6 +719,8 @@ which does kivy-reloader init then sets up default kivy reloader helloworld proj
 kivy reloader config:
 flightdeck runs automatically when you run the app: uv run python main.py or uv run python -m myapp
 since desktop flow is required for phone dev it's not necessary to run flightdeck from uv run kivy-reloader run
+added a button to kivy flightdeck to delete reloader state
+status page check for phone connection
 flightdeck permanence has a toggle
 added a quick commands tab that tracks  your most used commands
 set quick commands tab as default

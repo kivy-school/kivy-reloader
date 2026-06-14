@@ -161,14 +161,41 @@
                     color: foreground_color
                     on_release: root.save_report()
 
-            Label:
-                text: root.report_status
-                font_size: font_size_xs
-                color: success_color if root.report_status else transparent
+                Button:
+                    text: 'Reset Reloader State'
+                    size_hint_y: None
+                    height: dp(36)
+                    font_size: font_size_sm
+                    background_color: destructive_color
+                    color: destructive_foreground_color
+                    on_release: root.reset_reloader_state()
+
+
+            BoxLayout:
                 size_hint_y: None
-                height: dp(20) if root.report_status else 0
-                halign: 'left'
-                text_size: self.width, self.height
+                height: dp(24) if root.report_status else 0
+                opacity: 1 if root.report_status else 0
+                spacing: dp(6)
+
+                Label:
+                    text: unicode['check-circle']
+                    font_name: icon_font
+                    font_size: font_size_sm
+                    color: success_color
+                    size_hint: None, None
+                    size: dp(20), dp(24)
+                    halign: 'center'
+                    valign: 'middle'
+                    text_size: self.size
+
+                Label:
+                    text: root.report_status
+                    font_size: font_size_xs
+                    color: success_color
+                    halign: 'left'
+                    valign: 'middle'
+                    text_size: self.width, self.height
+
 
             # Connected Devices
             Label:

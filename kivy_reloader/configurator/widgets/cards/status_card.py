@@ -149,6 +149,17 @@ class StatusCard(BoxLayout):
                 row_status=r['row_status'],
             ))
 
+    def reset_reloader_state(self):
+        from pathlib import Path
+        base = self.config_model.config_path.parent if (self.config_model and self.config_model.config_path) else Path.cwd()
+        state_file = base / '.kivy_reloader_state.json'
+        if state_file.exists():
+            state_file.unlink()
+            self.report_status = 'Reloader state reset ✓'
+        else:
+            self.report_status = 'State file not found (already clean)'
+
+
 
 def _icon(status: Status) -> str:
     return {'ok': '✓', 'warn': '⚠', 'fail': '✗', 'skip': '—'}[status.value]

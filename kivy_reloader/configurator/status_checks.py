@@ -248,13 +248,13 @@ def get_connected_devices() -> list[dict]:
             name = model.strip() or serial
         elif state == 'unauthorized':
             dev_status, detail = 'warn', 'unauthorized — tap Allow on phone'
-            name = serial
+            name = 'Unknown (could be old connection)'
         elif state == 'offline':
             dev_status, detail = 'fail', 'offline'
-            name = serial
+            name = 'Unknown (could be old connection)'
         else:
             dev_status, detail = 'warn', state
-            name = serial
+            name = 'Unknown'
         results.append({
             'serial': serial,
             'name': name,
