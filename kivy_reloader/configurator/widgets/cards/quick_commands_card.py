@@ -1,6 +1,6 @@
 import subprocess
 import sys
-from kivy.properties import ListProperty, ObjectProperty, StringProperty
+from kivy.properties import BooleanProperty, ListProperty, ObjectProperty, StringProperty
 from kivy.uix.boxlayout import BoxLayout
 
 from kivy_reloader.configurator.command_history import get_top, record
@@ -54,9 +54,35 @@ class QuickCommandsCard(BoxLayout):
     commands = ListProperty([])
     active_period = StringProperty('1 week')
     config_model = ObjectProperty(None, allownone=True)
+    hot_reload_on_phone = BooleanProperty(True)
+    stream_using = StringProperty('WIFI')
+    target_ip = StringProperty('')
 
     def load_from_model(self):
-        pass
+        if not self.config_model:
+            return
+        self.hot_reload_on_phone = bool(self.config_model.get_value('HOT_RELOAD_ON_PHONE'))
+        self.stream_using = str(self.config_model.get_value('STREAM_USING') or 'WIFI')
+        self.target_ip = str(self.config_model.get_value('TARGET_IP') or '')
+
+    def _save(self, key, value):
+        if self.config_model:
+            self.config_model.set_value(key, value)
+            self.config_model.save(create_backup=False)
+
+    def toggle_hot_reload(self):
+        self.hot_reload_on_phone = not self.hot_reload_on_phone
+        self._save('HOT_RELOAD_ON_PHONE', self.hot_reload_on_phone)
+
+    def set_stream_using(self, value):
+        self.stream_using = value
+        self._save('STREAM_USING', value)
+
+    def set_target_ip(self, text):
+        text = text.strip()
+        if text != self.target_ip:
+            self.target_ip = text
+            self._save('TARGET_IP', text)
 
     def on_kv_post(self, base_widget):
         self.refresh()
