@@ -1,6 +1,8 @@
 name: CI
 
 on:
+  schedule:
+    - cron: "0 3 * * *"
   push:
     branches: [main, macfix_gaimwsl]
   pull_request:
