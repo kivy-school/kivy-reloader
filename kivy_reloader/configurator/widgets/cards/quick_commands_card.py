@@ -1,21 +1,17 @@
 import subprocess
-import sys
 from kivy.properties import BooleanProperty, ListProperty, ObjectProperty, StringProperty
 from kivy.uix.boxlayout import BoxLayout
-
 from kivy_reloader.configurator.command_history import get_top, record
+from kivy_reloader.configurator.event_bus import EventBus
 from kivy_reloader.lang import Builder
 
 Builder.load_file(__file__)
 
 _PERIODS = {'1 day': 1, '1 week': 7, '1 month': 30}
 
-
-_DEFAULT_COMMANDS = [
+_STATIC_COMMANDS = [
     {'label': 'Compile + deploy', 'command': 'uv run kivy-reloader run build'},
     {'label': 'Hot reload', 'command': 'uv run kivy-reloader run'},
-    {'label': 'Full clean', 'command': '__full_clean__'},
-    {'label': 'Clean recipe', 'command': '__clean_recipe__'},
 ]
 
 
@@ -23,17 +19,12 @@ class CommandButton(BoxLayout):
     label = StringProperty('')
     command = StringProperty('')
     count = StringProperty('')
-    command_panel = ObjectProperty(None, allownone=True)
     card_action_handler = ObjectProperty(None, allownone=True)
-
-
 
     def run(self):
         record(self.label, self.command)
-        if self.command_panel:
-            self.command_panel.log(self.command)
-        _CARD_ACTIONS = {'__full_clean__', '__clean_recipe__'}
-        if self.command in _CARD_ACTIONS and self.card_action_handler:
+        EventBus.emit('terminal_log', command=self.command)
+        if self.command.startswith('__') and self.command.endswith('__') and self.card_action_handler:
             self.card_action_handler(self.command)
             return
 
@@ -71,22 +62,7 @@ class QuickCommandsCard(BoxLayout):
     hot_reload_on_phone = BooleanProperty(True)
     stream_using = StringProperty('WIFI')
     target_ip = StringProperty('')
-    command_panel = ObjectProperty(None, allownone=True)
     recipe_name = StringProperty('')
-    full_clean_action = ObjectProperty(None, allownone=True)
-    clean_recipe_action = ObjectProperty(None, allownone=True)
-
-    def _handle_card_action(self, action):
-        if action == '__full_clean__' and self.full_clean_action:
-            self.full_clean_action()
-        elif action == '__clean_recipe__' and self.clean_recipe_action:
-            deployment_recipe = self.recipe_name.strip()
-            if self.clean_recipe_action:
-                self.clean_recipe_action(deployment_recipe)
-
-
-    def on_command_panel(self, instance, value):
-        self.refresh()
 
     def load_from_model(self):
         if not self.config_model:
@@ -115,6 +91,7 @@ class QuickCommandsCard(BoxLayout):
             self._save('TARGET_IP', text)
 
     def on_kv_post(self, base_widget):
+        EventBus.on('card_registered', lambda **kw: self.refresh())
         self.refresh()
 
     def set_period(self, period: str):
@@ -125,10 +102,14 @@ class QuickCommandsCard(BoxLayout):
         days = _PERIODS[self.active_period]
         top = get_top(n=8, days=days)
         history_cmds = {item['command'] for item in top}
-        pinned = [c for c in _DEFAULT_COMMANDS if c['command'] not in history_cmds]
-        self.commands = top + pinned
+        static = [c for c in _STATIC_COMMANDS if c['command'] not in history_cmds]
+        card_actions = []
+        for card in EventBus.get_cards().values():
+            for qa in getattr(card, 'quick_actions', []):
+                if qa['command'] not in history_cmds:
+                    card_actions.append(qa)
+        self.commands = top + static + card_actions
 
-    
     def reset_history(self):
         from kivy_reloader.configurator.command_history import _HISTORY_FILE
         if _HISTORY_FILE.exists():
@@ -145,24 +126,18 @@ class QuickCommandsCard(BoxLayout):
                 label=item['label'],
                 command=item['command'],
                 count=f"×{item['count']}" if item.get('count') else '',
-                command_panel=self.command_panel,
                 card_action_handler=self._handle_card_action,
             )
             lst.add_widget(btn)
 
     def _handle_card_action(self, action):
-        from kivy_reloader.configurator.screens.core import CoreScreen
-        app = App.get_running_app()
-        screen = app.root.get_screen('core') if app and app.root else None
-        deployment_card = None
-        if screen and hasattr(screen, '_section_cards'):
-            deployment_card = screen._section_cards.get('Deployment')
-        if not deployment_card:
-            return
-        if action == '__full_clean__':
-            deployment_card.clean_all()
-        elif action == '__clean_recipe__':
-            deployment_card.recipe_name = self.recipe_name
-            deployment_card.clean_recipe()
-
-
+        for card in EventBus.get_cards().values():
+            for qa in getattr(card, 'quick_actions', []):
+                if qa.get('command') == action:
+                    fn = getattr(card, qa['fn'], None)
+                    if fn:
+                        kwargs = {}
+                        if qa.get('needs_input') == 'recipe':
+                            kwargs['recipe_override'] = self.recipe_name.strip()
+                        fn(**kwargs)
+                    return

@@ -20,6 +20,7 @@ from kivy_reloader.configurator.widgets.command_panel import CommandPanel # noqa
 from kivy_reloader.configurator.widgets.common import ConfirmPopup, HelpPopup
 from kivy_reloader.configurator.widgets.sidebar import SideBar  # noqa: F401
 from kivy_reloader.configurator.widgets.toolbar import Toolbar  # noqa: F401
+from kivy_reloader.configurator.event_bus import EventBus
 from kivy_reloader.lang import Builder
 import io
 
@@ -34,18 +35,18 @@ class SectionBox(BoxLayout):
         )
 
 class _LogCapture(io.StringIO):
-    def __init__(self, panel):
+    def __init__(self):
         super().__init__()
-        self._panel = panel
         self._real = sys.__stdout__
 
     def write(self, text):
         self._real.write(text)
         if text.strip():
-            self._panel.output_log = (self._panel.output_log + '\n' + text.rstrip()).lstrip('\n')
+            EventBus.emit('terminal_output', output=text.rstrip())
 
     def flush(self):
         self._real.flush()
+
 
 
 Builder.load_file(__file__)
@@ -118,7 +119,7 @@ class CoreScreen(Screen):
         self._setup_keyboard_shortcuts()
 
         if self.command_panel:
-            sys.stdout = _LogCapture(self.command_panel)
+            sys.stdout = _LogCapture()
     
     def on_leave(self, *args):
         if isinstance(sys.stdout, _LogCapture):
@@ -126,8 +127,8 @@ class CoreScreen(Screen):
 
 
     def _log(self, command, output=''):
-        if self.command_panel:
-            self.command_panel.log(command, output) 
+        EventBus.emit('terminal_log', command=command, output=output)
+
 
     def update_unsaved_indicator(self):
         """Update the unsaved changes indicator based on model state."""
@@ -245,8 +246,8 @@ class CoreScreen(Screen):
 
     def handle_save(self):
         """Handle Save action"""
-        if self.command_panel:
-            self.command_panel.current_command = 'kivy-reloader config --save'
+        EventBus.emit('terminal_log', command='kivy-reloader config --save')
+
 
         if self.config_model:
             try:
@@ -444,8 +445,6 @@ class CoreScreen(Screen):
             if card is None:
                 continue
             card.config_model = model
-            if hasattr(card, 'command_panel'):
-                card.command_panel = self.command_panel
             card.load_from_model()
 
 

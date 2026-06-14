@@ -11,9 +11,18 @@
         size_hint_y: None
         height: dp(36)
         background_normal: ''
-        background_color: primary_color
+        background_down: ''
+        background_color: 0, 0, 0, 0
         color: primary_foreground_color
         on_release: root.run()
+        canvas.before:
+            Color:
+                rgba: primary_active_color if self.state == 'down' else primary_color
+            SmoothRoundedRectangle:
+                pos: self.pos
+                size: self.size
+                radius: [border_radius_sm]
+
 
 
     Label:

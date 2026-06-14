@@ -9,9 +9,10 @@
         Color:
             rgba: sidebar_primary_color if self.is_selected else transparent
         SmoothRoundedRectangle:
-            pos: self.pos
-            size: self.size
+            pos: self.x + dp(4), self.y + dp(2)
+            size: self.width - dp(8), self.height - dp(4)
             radius: [border_radius_sm]
+
     
     Label:
         text: root.icon

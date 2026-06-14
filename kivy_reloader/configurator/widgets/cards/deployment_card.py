@@ -6,6 +6,7 @@ import threading
 from kivy.properties import DictProperty, ObjectProperty, StringProperty
 from kivy.uix.boxlayout import BoxLayout
 
+from kivy_reloader.configurator.event_bus import EventBus
 from kivy_reloader.configurator.widgets.cards.core_card import BUILTIN_EXCLUSIONS
 from kivy_reloader.lang import Builder
 
@@ -19,6 +20,13 @@ class DeploymentCard(BoxLayout):
     This card provides additional information about built-in exclusions.
     """
 
+    section_name = 'Deployment'
+    quick_actions = [
+        {'label': 'Full clean',   'fn': 'clean_all',    'command': '__full_clean__'},
+        {'label': 'Clean recipe', 'fn': 'clean_recipe', 'command': '__clean_recipe__', 'needs_input': 'recipe'},
+    ]
+
+
     config = DictProperty({
         'FOLDERS_AND_FILES_TO_EXCLUDE_FROM_PHONE': [],
     })
@@ -28,8 +36,6 @@ class DeploymentCard(BoxLayout):
     on_config_change = ObjectProperty(None)
     build_status = StringProperty('')
     recipe_name = StringProperty('')
-    command_panel = ObjectProperty(None, allownone=True)
-
 
 
     # Expose builtin exclusions to KV
@@ -41,6 +47,7 @@ class DeploymentCard(BoxLayout):
 
     def on_kv_post(self, base_widget):
         """Populate widgets with initial configuration values."""
+        EventBus.register_card(self.section_name, self)
         self.ids.exclude_from_phone_input.values = (
             self.config.get('FOLDERS_AND_FILES_TO_EXCLUDE_FROM_PHONE', []) or []
         )
@@ -76,7 +83,6 @@ class DeploymentCard(BoxLayout):
     def clean_recipe(self, recipe_override=''):
         import glob, shutil, threading
         recipe = (recipe_override or self.recipe_name).strip()
-
         if not recipe:
             self.build_status = 'Enter a recipe name first'
             return
@@ -87,20 +93,16 @@ class DeploymentCard(BoxLayout):
             return
         cmd = f'rm -rf {pattern}'
         self.build_status = f'Cleaning {recipe}...'
-        if self.command_panel:
-            self.command_panel.log(cmd)
+        EventBus.emit('terminal_log', command=cmd)
         def _clean():
             for p in paths:
                 shutil.rmtree(p, ignore_errors=True)
             msg = f'Cleaned {recipe} build cache'
             from kivy.clock import Clock
             Clock.schedule_once(lambda dt: setattr(self, 'build_status', msg))
-            if self.command_panel:
-                Clock.schedule_once(lambda dt: setattr(
-                    self.command_panel, 'output_log',
-                    (self.command_panel.output_log + f'\n{msg}').strip()
-                ))
+            EventBus.emit('terminal_output', output=msg)
         threading.Thread(target=_clean, daemon=True).start()
+
 
 
     def clean_all(self):
@@ -108,8 +110,7 @@ class DeploymentCard(BoxLayout):
         from pathlib import Path
         cmd = 'buildozer android clean'
         self.build_status = 'Running buildozer android clean...'
-        if self.command_panel:
-            self.command_panel.log(cmd)
+        EventBus.emit('terminal_log', command=cmd)
         def _clean():
             r = subprocess.run(
                 ['buildozer', 'android', 'clean'],
@@ -120,11 +121,7 @@ class DeploymentCard(BoxLayout):
             msg = 'Done — platform rebuilt, downloads preserved' if r.returncode == 0 else f'Failed: {output[-100:]}'
             from kivy.clock import Clock
             Clock.schedule_once(lambda dt: setattr(self, 'build_status', msg))
-            if self.command_panel:
-                Clock.schedule_once(lambda dt: setattr(
-                    self.command_panel, 'output_log',
-                    (self.command_panel.output_log + f'\n{output}').strip()
-                ))
+            EventBus.emit('terminal_output', output=output)
         threading.Thread(target=_clean, daemon=True).start()
 
 
