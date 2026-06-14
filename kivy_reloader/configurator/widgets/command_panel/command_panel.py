@@ -1,3 +1,4 @@
+from datetime import datetime
 from kivy.properties import BooleanProperty, StringProperty
 from kivy.uix.boxlayout import BoxLayout
 from kivy_reloader.configurator.event_bus import EventBus
@@ -24,7 +25,8 @@ class CommandPanel(BoxLayout):
 
     def log(self, command, output=''):
         self.current_command = command
-        entry = f'$ {command}'
+        ts = datetime.now().strftime('%H:%M:%S')
+        entry = f'[{ts}] $ {command}'
         if output:
             entry += f'\n{output}'
         self.output_log = (self.output_log + '\n' + entry).strip()
