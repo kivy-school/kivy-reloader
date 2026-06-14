@@ -32,7 +32,32 @@ make wsl firewall rule
 
 ???
 -0--0-0- REMINDER -0-0-0-0-0-
+=-=-==************ FINAL TEST + ksproject ************=-=-=-==
+FINAL TEST:
+SETUPS:
 
+A
+win10
+win11
+mac
+android emulator
+
+B 
+buildozer
+ksproject
+
+C
+FOR USB/WIFI
+
+D
+do uninstall sh
+do install sh
+do compile > main
+then reset
+main > compile
+
+
+=-=-==************ FINAL TEST ************=-=-=-==
 =-=-==************ KSPROJECT INTEGRATION ************=-=-=-==
 =--=-=-= WHAT I DID =-=-=-=
 make sure the new trio wheel works
@@ -231,7 +256,6 @@ uv add trio
 uv sync
 uv add "kivy>=2.3.1" "git+https://github.com/kivy-school/kivy-reloader@macfix_gaimwsl"
 uv add --dev "kivy-reloader[desktop]"
-
 uv run kivy-reloader init project
 
 7. Run on desktop
@@ -501,32 +525,7 @@ Then reinstall as usual. uv caches built wheels from local projects by content h
 This is another instance of the same --target problem: because ksproject just runs uv pip install --target with no --reinstall flag, it silently skips rebuilding if it finds a cached wheel that looks valid.
 
 =-=-==************ KSPROJECT INTEGRATION ************=-=-=-==
-=-=-==************ FINAL TEST + ksproject ************=-=-=-==
-FINAL TEST:
-SETUPS:
 
-A
-win10
-win11
-mac
-android emulator
-
-B 
-buildozer
-ksproject
-
-C
-FOR USB/WIFI
-
-D
-do uninstall sh
-do install sh
-do compile > main
-then reset
-main > compile
-
-
-=-=-==************ FINAL TEST ************=-=-=-==
 ✔️ command to init basic project (uv run kivy-reloader init project)
 ✔️ update kivyschool command to use basic project instead of using install to do it
    
@@ -667,6 +666,18 @@ https://github.com/kivy-school/kivy-reloader/issues/63
 I need to update kivy reloader to integrate with ksproject build def (thye regular kivy way) since it adds a dupe extra kv line (it isn't restarted so the extra build goes through)
 - fixed kivy reloader assumed cwd structure and ksproject site project structure creating 2 widgets (because kivy reloader will unload to its own path on android and duplicate kv)
 - fixed kivy reloader failing and having app collisions when multiple reloader apps are on phone and the previous app holds port 8050 (make bapp and capp, bapp gets on phone, launch capp desktop, capp desktop goes to bapp on phone because bapp is listening on port 8050 and is a kivy reloader app. not ok)
+TODO: make github runner test for this nightly
+update bapp and capp with latest kivy reloader
+(uv lock --upgrade-package kivy-reloader)
+put bapp on phone then check if update works (text: bapp)
+run capp and attempt and update > gets rejected (GOOD)
+put capp on phone and check if update DOES NOT COLLIDE (text: capp) (ALSO GOOD)
+test if bapp desktop gets on capp android FAILS (GOOD IF IT FAILS)
+
+created install scripts for ksproject + kivy-reloader on linux/mac/wsl/ win10
+
+kivy reloader respects prod env var
+kivy reloader on android doesnt crash looking for kivy reloader toml on android anymore
 
 kivy reloader config:
 renamed to kivy flightdeck

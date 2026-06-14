@@ -67,13 +67,18 @@ def create_settings_file():
     # if 'kivy-reloader.toml' in files_in_base_dir:
     if (Path(base_dir) / 'kivy-reloader.toml').exists():
     # if 'kivy-reloader.toml' in files_in_base_dir:
-        klprint(
-            'kivy-reloader.toml already exists, creating kivy-reloader-template.toml'
-        )
-        shutil.copyfile(
-            os.path.join(current_file_dir, 'kivy-reloader.toml'),
-            os.path.join(base_dir, 'kivy-reloader-template.toml'),
-        )
+        template_path = Path(base_dir) / 'kivy-reloader-template.toml'
+        if template_path.exists():
+            klprint('kivy-reloader-template.toml already exists, skipping')
+        else:
+            klprint(
+                'kivy-reloader.toml already exists, creating kivy-reloader-template.toml'
+            )
+            shutil.copyfile(
+                os.path.join(current_file_dir, 'kivy-reloader.toml'),
+                os.path.join(base_dir, 'kivy-reloader-template.toml'),
+            )
+
     else:
         klprint(
             'kivy-reloader.toml not found, creating it on current working directory'
