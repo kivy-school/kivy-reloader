@@ -87,7 +87,8 @@ def _read_stream_using(config_path: Path | None = None) -> str | None:
     try:
         import tomlkit
         data = tomlkit.loads(t.read_text())
-        return tomlkit.loads(t.read_text()).get('kivy_reloader', {}).get('STREAM_USING')
+        val = data.get('kivy_reloader', {}).get('STREAM_USING')
+        return str(val) if val is not None else None
     except Exception:
         return None
 
