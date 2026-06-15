@@ -44,6 +44,8 @@ jobs:
           KIVY_SMOKE_TEST: "1"
           KIVY_NO_ENV_CONFIG: "1"
           KIVY_LOG_MODE: PYTHON
+          KIVY_WINDOW: headless
+          USE_OPENGL_MOCK: "1"
       - name: Run smoke test (macOS / Windows)
         if: runner.os != 'Linux'
         run: uv run python tests/test_smoke.py
@@ -52,7 +54,8 @@ jobs:
           KIVY_SMOKE_TEST: "1"
           KIVY_NO_ENV_CONFIG: "1"
           KIVY_LOG_MODE: PYTHON
-
+          KIVY_WINDOW: headless
+          USE_OPENGL_MOCK: "1"
   hot-reload:
     name: Hot-reload (Linux)
     runs-on: ubuntu-latest

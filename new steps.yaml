@@ -682,29 +682,71 @@ AMAZING DANCE STAR
 =-=-==************ FINISHED LIST FIXED LIST ************=-=-=-==
 FINAL TEST:
 
-- ✅ checked win 10 desktop only reloading
-- "how to run kivy-reloader default buildozer test"
 SETUPS:
 
 A
 win10
 win11
 mac
-android emulator
+android emulator (skipped)
 
 B 
 buildozer
 ksproject
 
 C
-FOR USB/WIFI
+FOR USB(TURN OFF PHONE WIFI)/WIFI
 
 D
 do uninstall sh
 do install sh
-do compile > main
+DA: uv run kivy-reloader run > uv run main.py
 then reset
-main > compile
+DB: uv run main.py > uv run kivy-reloader run 
+
+- ✅ checked win 10 desktop only reloading
+- ✅ "how to run kivy-reloader default buildozer test"
+
+- ❌ ksproject will be tested later
+- ❌ skipped all CLI tests, focused on flightdeck
+
+- 📋 TEST USED: "how to run kivy-reloader default buildozer test"
+win10 buildozer flightdeck USB(TURN OFF PHONE WIFI) uv run kivy-reloader run > uv run main.py
+win10 buildozer flightdeck USB(TURN OFF PHONE WIFI) uv run main.py > uv run kivy-reloader run 
+win10 buildozer flightdeck WIFI uv run kivy-reloader run > uv run main.py
+win10 buildozer flightdeck WIFI uv run main.py > uv run kivy-reloader run 
+
+- 📋 TEST USED: "how to run kivy-reloader default ksproject test with fixed trio wheel from psychowasp"
+win10 ksproject flightdeck USB(TURN OFF PHONE WIFI) uv run kivy-reloader run > uv run main.py
+win10 ksproject flightdeck USB(TURN OFF PHONE WIFI) uv run main.py > uv run kivy-reloader run 
+win10 ksproject flightdeck WIFI uv run kivy-reloader run > uv run main.py
+win10 ksproject flightdeck WIFI uv run main.py > uv run kivy-reloader run 
+
+- 📋 TEST USED: "how to run kivy-reloader default buildozer test"
+win11 buildozer flightdeck USB(TURN OFF PHONE WIFI) uv run kivy-reloader run > uv run main.py
+win11 buildozer flightdeck USB(TURN OFF PHONE WIFI) uv run main.py > uv run kivy-reloader run 
+win11 buildozer flightdeck WIFI uv run kivy-reloader run > uv run main.py
+win11 buildozer flightdeck WIFI uv run main.py > uv run kivy-reloader run 
+
+- 📋 TEST USED: "how to run kivy-reloader default ksproject test with fixed trio wheel from psychowasp"
+win11 ksproject USB(TURN OFF PHONE WIFI) uv run kivy-reloader run > uv run main.py
+win11 ksproject USB(TURN OFF PHONE WIFI) uv run main.py > uv run kivy-reloader run 
+win11 ksproject WIFI uv run kivy-reloader run > uv run main.py
+win11 ksproject WIFI uv run main.py > uv run kivy-reloader run 
+
+- 📋 TEST USED: "how to run kivy-reloader default buildozer test"
+mac buildozer USB(TURN OFF PHONE WIFI) uv run kivy-reloader run > uv run main.py
+mac buildozer USB(TURN OFF PHONE WIFI) uv run main.py > uv run kivy-reloader run 
+mac buildozer WIFI uv run kivy-reloader run > uv run main.py
+mac buildozer WIFI uv run main.py > uv run kivy-reloader run 
+
+- 📋 TEST USED: "how to run kivy-reloader default ksproject test with fixed trio wheel from psychowasp"
+mac ksproject USB(TURN OFF PHONE WIFI) uv run kivy-reloader run > uv run main.py
+mac ksproject USB(TURN OFF PHONE WIFI) uv run main.py > uv run kivy-reloader run 
+mac ksproject WIFI uv run kivy-reloader run > uv run main.py
+mac ksproject WIFI uv run main.py > uv run kivy-reloader run 
+
+
 
 kivyschool:
 - updated kivyschool uninstall scripts
@@ -813,6 +855,8 @@ how to run kivy-reloader default buildozer test
 ```
 cd ~
 mkdir reloadtest && cd reloadtest
+
+
 uv init --python 3.13
 uv add "kivy>=2.3.1"
 git clone --branch macfix_gaimwsl https://github.com/kivy-school/kivy-reloader
@@ -830,7 +874,6 @@ this works with uv run kivy-reloader run or uv run python main.py but if phoneap
 ```
 
 how to run kivy-reloader development in buildozer when set as an editable install with uv:
-
 ```
 mkdir myapp
 cd myapp 

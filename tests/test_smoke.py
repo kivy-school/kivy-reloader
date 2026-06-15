@@ -9,6 +9,7 @@ import subprocess
 import sys
 import tempfile
 import time
+from pathlib import Path
 
 TARGET = "HELLO_WORLD_STARTED"
 TIMEOUT = 30
@@ -29,6 +30,25 @@ def main():
         if not os.path.exists(os.path.join(tmpdir, "main.py")):
             print("SMOKE TEST FAILED: bootstrap did not create main.py")
             return 1
+        
+        # Patch app.py to print the sentinel and self-stop
+        import textwrap
+        (Path(tmpdir) / "hello_world" / "app.py").write_text(textwrap.dedent("""\
+            from kivy_reloader.app import App
+            from hello_world.screens.main_screen import MainScreen
+
+            class HelloWorldApp(App):
+                def build(self):
+                    return MainScreen()
+                def on_start(self):
+                    print("HELLO_WORLD_STARTED", flush=True)
+                    from kivy.clock import Clock
+                    Clock.schedule_once(lambda dt: self.stop(), 1.0)
+
+            def main():
+                HelloWorldApp().run()
+        """))
+
 
         print("Bootstrap OK, running app...")
 
