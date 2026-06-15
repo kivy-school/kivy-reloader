@@ -28,26 +28,3 @@ def _acquire_flightdeck_lock(cwd: Path) -> socket.socket | None:
     except OSError:
         s.close()
         return None
-
-
-def launch_or_run(app_factory):
-    """Read PERSISTENT_FLIGHTDECK from toml; open FlightDeck or run the app."""
-    if _should_launch_flightdeck():
-        from kivy_reloader.configurator.gui import run_gui
-        run_gui(base=Path.cwd(), config_path=Path.cwd() / 'kivy-reloader.toml')
-    else:
-        import trio
-        app = app_factory()
-        trio.run(app.async_run, 'trio')
-
-def _is_flightdeck_running(cwd: Path) -> bool:
-    tag = int(hashlib.md5(str(cwd).encode()).hexdigest()[:4], 16)
-    port = 49152 + (tag % 16383)
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.settimeout(0.1)
-    try:
-        s.connect(('127.0.0.1', port))
-        s.close()
-        return True
-    except OSError:
-        return False

@@ -838,6 +838,8 @@ in radio_button.py
 
 MANUAL STEPS FOR LATER REFERENCE:
 
+- ```uv lock --upgrade-package kivy-reloader && uv sync ```
+
 how to run kivy-reloader default smoke test to test for py changes
 ```
 cd ~

@@ -50,9 +50,6 @@ from .base_app import BaseReloaderApp
 from .config import config
 from .delta_transfer import DeltaTransferManager
 from .utils import get_auto_reloader_paths, get_connected_devices, get_kv_files_paths, in_wsl
-from .launcher import _is_flightdeck_running, _should_launch_flightdeck
-
-
 
 # Constants
 F5_KEYCODE = 286
@@ -108,13 +105,6 @@ class DesktopApp(BaseReloaderApp, KakiApp):
     # ==================== INITIALIZATION ====================
 
     def __init__(self, *args, **kwargs):
-        if _should_launch_flightdeck():
-            if _is_flightdeck_running(Path.cwd()):
-                kr_path = Path(sys.executable).with_name('kivy-reloader')
-                subprocess.run(
-                    [str(kr_path), 'config'],
-                    cwd=Path.cwd(),
-                )
     
         super().__init__(*args, **kwargs)
         Logger.info(f'Reloader: Kivy Reloader v{__version__}')
