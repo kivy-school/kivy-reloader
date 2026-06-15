@@ -2,13 +2,17 @@ import json
 import time
 from pathlib import Path
 
-_HISTORY_FILE = Path.home() / '.kivy-reloader-history.json'
+
+def _history_file() -> Path:
+    return Path.cwd() / '.kivy-reloader' / 'history.json'
 
 
 def record(label: str, command: str):
+    f = _history_file()
+    f.parent.mkdir(exist_ok=True)
     entries = _load()
     entries.append({'label': label, 'command': command, 'ts': time.time()})
-    _HISTORY_FILE.write_text(json.dumps(entries, indent=2))
+    f.write_text(json.dumps(entries, indent=2))
 
 
 def get_top(n: int = 5, days: float | None = None) -> list[dict]:
@@ -26,9 +30,10 @@ def get_top(n: int = 5, days: float | None = None) -> list[dict]:
 
 
 def _load() -> list[dict]:
-    if not _HISTORY_FILE.exists():
+    f = _history_file()
+    if not f.exists():
         return []
     try:
-        return json.loads(_HISTORY_FILE.read_text())
+        return json.loads(f.read_text())
     except Exception:
         return []

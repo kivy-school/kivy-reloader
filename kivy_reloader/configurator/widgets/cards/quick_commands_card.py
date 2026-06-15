@@ -149,10 +149,12 @@ class QuickCommandsCard(BoxLayout):
         self.commands = top + static + card_actions
 
     def reset_history(self):
-        from kivy_reloader.configurator.command_history import _HISTORY_FILE
-        if _HISTORY_FILE.exists():
-            _HISTORY_FILE.unlink()
+        from kivy_reloader.configurator.command_history import _history_file
+        f = _history_file()
+        if f.exists():
+            f.unlink()
         self.refresh()
+
 
     def on_commands(self, instance, commands):
         lst = self.ids.get('command_list')

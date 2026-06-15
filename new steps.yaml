@@ -717,6 +717,7 @@ win10 buildozer flightdeck USB(TURN OFF PHONE WIFI) uv run kivy-reloader run > u
 win10 buildozer flightdeck USB(TURN OFF PHONE WIFI) uv run main.py > uv run kivy-reloader run 
 win10 buildozer flightdeck WIFI uv run kivy-reloader run > uv run main.py
 win10 buildozer flightdeck WIFI uv run main.py > uv run kivy-reloader run 
+- CHECKED STATUS SCREEN ON WIN 10 WSL2
 
 - 📋 TEST USED: "how to run kivy-reloader default ksproject test with fixed trio wheel from psychowasp"
 win10 ksproject flightdeck USB(TURN OFF PHONE WIFI) uv run kivy-reloader run > uv run main.py
@@ -729,6 +730,7 @@ win11 buildozer flightdeck USB(TURN OFF PHONE WIFI) uv run kivy-reloader run > u
 win11 buildozer flightdeck USB(TURN OFF PHONE WIFI) uv run main.py > uv run kivy-reloader run 
 win11 buildozer flightdeck WIFI uv run kivy-reloader run > uv run main.py
 win11 buildozer flightdeck WIFI uv run main.py > uv run kivy-reloader run 
+- CHECKED STATUS SCREEN ON WIN 11 WSL2
 
 - 📋 TEST USED: "how to run kivy-reloader default ksproject test with fixed trio wheel from psychowasp"
 win11 ksproject USB(TURN OFF PHONE WIFI) uv run kivy-reloader run > uv run main.py
@@ -747,6 +749,7 @@ mac ksproject USB(TURN OFF PHONE WIFI) uv run kivy-reloader run > uv run main.py
 mac ksproject USB(TURN OFF PHONE WIFI) uv run main.py > uv run kivy-reloader run 
 mac ksproject WIFI uv run kivy-reloader run > uv run main.py
 mac ksproject WIFI uv run main.py > uv run kivy-reloader run 
+- CHECKED STATUS SCREEN ON MAC
 
 
 
@@ -838,7 +841,21 @@ in radio_button.py
 
 MANUAL STEPS FOR LATER REFERENCE:
 
+kivy reloader only as editable install
+- ``` cd kivy-reloader 
+git fetch origin 
+git merge origin macfix_gaimwsl
+ ```
 - ```uv lock --upgrade-package kivy-reloader && uv sync ```
+OR:
+```git -C ~/krt/kivy-reloader pull```
+
+
+in ksproject
+- ```uv lock --upgrade-package kivy-reloader && uv sync ```
+
+
+
 
 how to run kivy-reloader default smoke test to test for py changes
 ```
