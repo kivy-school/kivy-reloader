@@ -688,7 +688,8 @@ class DesktopApp(BaseReloaderApp, KakiApp):
         script_directory = os.path.dirname(current_file_path)
         send_app_script = os.path.join(script_directory, 'send_app_to_phone.py')
 
-        completed = subprocess.run(['python', send_app_script], check=False)
+        completed = subprocess.run([sys.executable, send_app_script], check=False)
+
         return completed.returncode
 
     def _filename_to_module(self, filename: str):
