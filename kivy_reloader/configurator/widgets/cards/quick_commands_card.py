@@ -39,6 +39,14 @@ class CommandButton(BoxLayout):
             self.card_action_handler(self.command)
             return
 
+        # Config setter (recorded as SET:KEY:VALUE)
+        if self.command.startswith('SET:'):
+            parts = self.command.split(':', 2)
+            if len(parts) == 3:
+                EventBus.emit('set_config', key=parts[1], value=parts[2])
+            return
+
+
         import threading
         from kivy_reloader.compile_app import select_option
         from kivy_reloader import config
@@ -102,6 +110,7 @@ class QuickCommandsCard(BoxLayout):
     def set_stream_using(self, value):
         self.stream_using = value
         self._save('STREAM_USING', value)
+        record(f'Stream: {value}', f'SET:STREAM_USING:{value}')
 
     def set_screen_size(self, value):
         self.screen_size = value
@@ -119,7 +128,9 @@ class QuickCommandsCard(BoxLayout):
 
     def on_kv_post(self, base_widget):
         EventBus.on('card_registered', lambda **kw: self.refresh())
+        EventBus.on('set_config', self._on_set_config)
         self.refresh()
+
 
     def set_period(self, period: str):
         self.active_period = period
@@ -171,3 +182,12 @@ class QuickCommandsCard(BoxLayout):
                             kwargs['recipe_override'] = self.recipe_name.strip()
                         fn(**kwargs)
                     return
+
+    def _on_set_config(self, key, value, **kwargs):
+        # normalize booleans stored as strings
+        if value in ('True', 'true'): value = True
+        elif value in ('False', 'false'): value = False
+        prop = key.lower()
+        if hasattr(self, prop):
+            setattr(self, prop, prop_val := value)
+        self._save(key, value)
