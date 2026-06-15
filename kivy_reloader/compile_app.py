@@ -10,7 +10,7 @@ from pathlib import Path
 
 import time
 from contextlib import suppress
-from multiprocessing import Process, Event
+from multiprocessing import Process, Event, get_context
 from sys import platform as _sys_platform
 from threading import Thread
 import trio
@@ -1078,8 +1078,6 @@ def compile_app(buildozer_compiled: Event = None):
 
     buildozer_compiled.set()
 
-
-
 def debug_and_livestream(buildozer_compiled: Event = None) -> None:
     """
     Executes `adb logcat` and `scrcpy` in parallel.
@@ -1104,14 +1102,20 @@ def debug_and_livestream(buildozer_compiled: Event = None) -> None:
 
     try:
         logging.info(f"DEBUG RAN!!")
-        adb_logcat_ready = Event()
-        adb_logcat = Process(target=debug, args=(adb_logcat_ready,))
+        # adb_logcat_ready = Event()
+
+        # adb_logcat = Process(target=debug, args=(adb_logcat_ready,))
+        # logging.info(f"LIVESTREAM RAN!!")
+        # scrcpy = Process(target=livestream, args=(adb_logcat_ready,))
+
+        _ctx = get_context('spawn')
+        adb_logcat_ready = _ctx.Event()
+        adb_logcat = _ctx.Process(target=debug, args=(adb_logcat_ready,))
         logging.info(f"LIVESTREAM RAN!!")
-        scrcpy = Process(target=livestream, args=(adb_logcat_ready,))
+        scrcpy = _ctx.Process(target=livestream, args=(adb_logcat_ready,))
 
         adb_logcat.start()
         scrcpy.start()
-        # Wait for processes and handle termination
         try:
             adb_logcat.join()
             scrcpy.join()
@@ -1741,6 +1745,12 @@ def handle_logcat_connection(ip: str) -> None:
         print(
             f'{red}Please, install `scrcpy`: {yellow}https://github.com/Genymobile/scrcpy{Fore.RESET}'
         )
+    except Exception as e:
+        import traceback
+        error_traceback = traceback.format_exc()
+        
+        # Now you can print it or handle it as a string
+        print(f"An error occurred:\n{error_traceback}")
 
 
 def build_logcat_command(ip: str = None) -> list:
@@ -1827,44 +1837,132 @@ def start_logcat_processes(logcat_cmd: list, filter_cmd: list) -> tuple:
         return None, None
 
 
+# def run_logcat(IP=None, adb_logcat_ready: Event = None, *args):
+#     """
+#     Orchestrates logcat execution with connection, command building,
+#     and process management.
+
+#     Args:
+#         IP: Optional IP address for WiFi debugging
+#         *args: Additional arguments (unused but kept for compatibility)
+#     """
+#     logging.info('Preparing to run logcat')
+
+#     # Step 1: Handle connection if IP is provided
+#     if IP:
+#         handle_logcat_connection(IP)
+
+#     # Step 2: Build logcat command
+#     logcat_cmd = build_logcat_command(IP)
+#     if not logcat_cmd:
+#         return
+
+#     # Step 3: Build filter command
+#     filter_cmd = build_filter_command()
+
+#     # Step 4: Start processes
+#     # logging.info('Starting logcat')
+#     # start_logcat_processes(logcat_cmd, filter_cmd)
+#     # adb_logcat_ready.set()
+#     logging.info('Starting logcat')
+#     logcat_proc, filter_proc = start_logcat_processes(logcat_cmd, filter_cmd)
+
+#     # Signal ready BEFORE blocking on wait
+#     if adb_logcat_ready is not None:
+#         adb_logcat_ready.set()
+
+#     # Now block waiting for processes
+#     if logcat_proc:
+#         logcat_proc.wait()
+
+# def run_logcat(IP=None, adb_logcat_ready: Event = None, *args):
+#     logging.info('Preparing to run logcat')
+
+#     if IP:
+#         handle_logcat_connection(IP)
+
+#     logcat_cmd = build_logcat_command(IP)
+#     if not logcat_cmd:
+#         return
+
+#     filter_cmd = build_filter_command()
+#     logging.info('Starting logcat')
+
+#     if platform == 'win':
+#         logcat_proc = subprocess.Popen(logcat_cmd + filter_cmd)
+#         if adb_logcat_ready is not None:
+#             adb_logcat_ready.set()
+#         logcat_proc.wait()
+#         return
+
+#     import re
+#     pattern = re.compile(filter_cmd[-1]) if filter_cmd else None
+
+#     logcat_proc = subprocess.Popen(
+#         logcat_cmd,
+#         stdout=subprocess.PIPE,
+#         text=True,
+#         encoding='utf-8',
+#         errors='replace',
+#     )
+
+#     if adb_logcat_ready is not None:
+#         adb_logcat_ready.set()
+
+#     for line in logcat_proc.stdout:
+#         if pattern is None or pattern.search(line):
+#             print(line, end='', flush=True)
+
+
 def run_logcat(IP=None, adb_logcat_ready: Event = None, *args):
-    """
-    Orchestrates logcat execution with connection, command building,
-    and process management.
-
-    Args:
-        IP: Optional IP address for WiFi debugging
-        *args: Additional arguments (unused but kept for compatibility)
-    """
     logging.info('Preparing to run logcat')
+    logging.info(f'[logcat] sys.stdout={sys.stdout!r}  sys.__stdout__={sys.__stdout__!r}')
 
-    # Step 1: Handle connection if IP is provided
     if IP:
         handle_logcat_connection(IP)
 
-    # Step 2: Build logcat command
     logcat_cmd = build_logcat_command(IP)
+    logging.info(f'[logcat] logcat_cmd={logcat_cmd!r}')
     if not logcat_cmd:
+        logging.warning('[logcat] build_logcat_command returned empty/None — aborting')
         return
 
-    # Step 3: Build filter command
     filter_cmd = build_filter_command()
-
-    # Step 4: Start processes
-    # logging.info('Starting logcat')
-    # start_logcat_processes(logcat_cmd, filter_cmd)
-    # adb_logcat_ready.set()
+    logging.info(f'[logcat] filter_cmd={filter_cmd!r}  platform={platform!r}')
     logging.info('Starting logcat')
-    logcat_proc, filter_proc = start_logcat_processes(logcat_cmd, filter_cmd)
 
-    # Signal ready BEFORE blocking on wait
+    if platform == 'win':
+        logging.info('[logcat] taking win branch (no Python filtering)')
+        logcat_proc = subprocess.Popen(logcat_cmd + filter_cmd)
+        if adb_logcat_ready is not None:
+            adb_logcat_ready.set()
+        logcat_proc.wait()
+        return
+
+    import re
+    pattern = re.compile(filter_cmd[-1]) if filter_cmd else None
+    logging.info(f'[logcat] pattern={pattern!r}')
+
+    logcat_proc = subprocess.Popen(
+        logcat_cmd,
+        stdout=subprocess.PIPE,
+        text=True,
+        encoding='utf-8',
+        errors='replace',
+    )
+    logging.info(f'[logcat] process started pid={logcat_proc.pid}')
+
     if adb_logcat_ready is not None:
         adb_logcat_ready.set()
 
-    # Now block waiting for processes
-    if logcat_proc:
-        logcat_proc.wait()
-
+    line_count = 0
+    for line in logcat_proc.stdout:
+        if pattern is None or pattern.search(line):
+            line_count += 1
+            if line_count <= 3:
+                logging.info(f'[logcat] printing line #{line_count}: {line[:80]!r}')
+            print(line, end='', flush=True)
+    # os.write(2, b'[logcat] run_logcat entered\n')
 
 def livestream(adb_logcat_ready: Event = None):
     """

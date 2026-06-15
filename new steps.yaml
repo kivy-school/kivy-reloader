@@ -728,7 +728,7 @@ kivy reloader flightdeck (renamed from ConfigGUI):
 - added buttons to: buildozer android clean, buildozer appclean, and target delete a recipe to quick commands and deployment screen
 - flightdeck lets you check common mobile screen sizes to stress test your app design + you can just type in what size you want (window.size trick): just update on flightdeck and press f5 to force window to reload
 - added button for scrcpy to match your phone display
-- flighdeck reads logcat logs now that it's kinda replaced CLI
+- flighdeck logcat logs output to actual terminal instead of being invisible
 
 github CI/CD:
 - setup nightly builds + alerts if tests fail

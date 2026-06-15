@@ -1,7 +1,7 @@
 <CommandPanel>:
     orientation: 'vertical'
     size_hint_y: None
-    height: dp(220) if self.is_expanded else dp(36)
+    height: dp(196) if self.is_expanded else dp(36)
 
     canvas.before:
         Color:
@@ -28,8 +28,7 @@
             Rectangle:
                 pos: self.pos
                 size: self.size
- 
-        # Chevron collapse (click only this to toggle) 
+
         Label:
             text: unicode['chevron-up'] if root.is_expanded else unicode['chevron-down']
             font_name: icon_font
@@ -43,32 +42,20 @@
             on_touch_down:
                 if self.collide_point(*args[1].pos): root.toggle()
 
-        Button:
-            text: 'Terminal'
+        Label:
+            text: 'Terminal Output'
             size_hint_x: None
-            width: dp(72)
-            font_size: font_size_xs
-            background_color: primary_color if root.active_tab == 'terminal' else muted_color
+            width: self.texture_size[0] + dp(8)
+            font_size: font_size_sm
             color: foreground_color
-            on_release: root.switch_tab('terminal')
-
-        Button:
-            text: 'Logcat Output'
-            size_hint_x: None
-            width: dp(84)
-            font_size: font_size_xs
-            background_color: primary_color if root.active_tab == 'Logcat Output' else muted_color
-            color: foreground_color
-            on_release: root.switch_tab('logcat')
-
-
+            bold: True
 
         Widget:
 
         Button:
-            text: 'Copy'
+            text: 'Copy log'
             size_hint_x: None
-            width: dp(52)
+            width: dp(64)
             font_size: font_size_xs
             background_color: muted_color
             color: foreground_color
@@ -87,73 +74,47 @@
                 pos: self.pos
                 size: self.size
 
-        # Terminal tab
         BoxLayout:
-            orientation: 'vertical'
+            size_hint_y: None
+            height: dp(26)
             spacing: dp(4)
-            size_hint_y: 1 if root.active_tab == 'terminal' else None
-            height: 0
-            opacity: 1 if root.active_tab == 'terminal' else 0
-
-            BoxLayout:
-                size_hint_y: None
-                height: dp(26)
-                spacing: dp(4)
-
-                Label:
-                    text: ('$ ' + root.current_command) if root.current_command else '$ (no command yet)'
-                    font_size: font_size_xs
-                    color: success_color if root.current_command else muted_foreground_color
-                    halign: 'left'
-                    valign: 'middle'
-                    text_size: self.width, dp(26)
-                    padding: [dp(4), 0]
-
-                    canvas.before:
-                        Color:
-                            rgba: muted_color
-                        RoundedRectangle:
-                            pos: self.pos
-                            size: self.size
-                            radius: [border_radius_sm]
-
-                Button:
-                    text: 'Copy cmd'
-                    size_hint_x: None
-                    width: dp(68)
-                    font_size: font_size_xs
-                    background_color: muted_color
-                    color: foreground_color
-                    disabled: not root.current_command
-                    on_release: root.copy_command()
-
-            ScrollView:
-                do_scroll_x: False
-
-                Label:
-                    text: root.output_log if root.output_log else 'Output will appear here...'
-                    size_hint_y: None
-                    height: self.texture_size[1]
-                    font_size: dp(11)
-                    color: foreground_color if root.output_log else muted_foreground_color
-                    halign: 'left'
-                    valign: 'top'
-                    text_size: self.width, None
-                    padding: [dp(4), dp(4)]
-
-        # Logcat tab
-        ScrollView:
-            do_scroll_x: False
-            size_hint_y: 1 if root.active_tab == 'logcat' else None
-            height: 0
-            opacity: 1 if root.active_tab == 'logcat' else 0
 
             Label:
-                text: root.logcat_log if root.logcat_log else 'No logcat output yet — start a debug session.'
+                text: ('$ ' + root.current_command) if root.current_command else '$ (no command yet)'
+                font_size: font_size_xs
+                color: success_color if root.current_command else muted_foreground_color
+                halign: 'left'
+                valign: 'middle'
+                text_size: self.width, dp(26)
+                padding: [dp(4), 0]
+
+                canvas.before:
+                    Color:
+                        rgba: muted_color
+                    RoundedRectangle:
+                        pos: self.pos
+                        size: self.size
+                        radius: [border_radius_sm]
+
+            Button:
+                text: 'Copy cmd'
+                size_hint_x: None
+                width: dp(68)
+                font_size: font_size_xs
+                background_color: muted_color
+                color: foreground_color
+                disabled: not root.current_command
+                on_release: root.copy_command()
+
+        ScrollView:
+            do_scroll_x: False
+
+            Label:
+                text: root.output_log if root.output_log else 'Output will appear here...'
                 size_hint_y: None
                 height: self.texture_size[1]
-                font_size: dp(10)
-                color: foreground_color if root.logcat_log else muted_foreground_color
+                font_size: dp(11)
+                color: foreground_color if root.output_log else muted_foreground_color
                 halign: 'left'
                 valign: 'top'
                 text_size: self.width, None
