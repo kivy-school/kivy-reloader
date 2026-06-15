@@ -109,17 +109,12 @@ class DesktopApp(BaseReloaderApp, KakiApp):
 
     def __init__(self, *args, **kwargs):
         if _should_launch_flightdeck():
-            lock = _is_flightdeck_running(Path.cwd())
-            if lock is not None:
-                try:
-                    kr_path = Path(sys.executable).with_name('kivy-reloader')
-                    subprocess.run(
-                        [str(kr_path), 'config'],
-                        cwd=Path.cwd(),
-                    )
-
-                finally:
-                    lock.close()
+            if _is_flightdeck_running(Path.cwd()):
+                kr_path = Path(sys.executable).with_name('kivy-reloader')
+                subprocess.run(
+                    [str(kr_path), 'config'],
+                    cwd=Path.cwd(),
+                )
                 sys.exit(0)   # don't start the user's app after FlightDeck closes
     
         super().__init__(*args, **kwargs)

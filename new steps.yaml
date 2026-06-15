@@ -680,6 +680,31 @@ AMAZING DANCE STAR
 
 
 =-=-==************ FINISHED LIST FIXED LIST ************=-=-=-==
+FINAL TEST:
+
+✅ checked win 10 desktop only reloading
+SETUPS:
+
+A
+win10
+win11
+mac
+android emulator
+
+B 
+buildozer
+ksproject
+
+C
+FOR USB/WIFI
+
+D
+do uninstall sh
+do install sh
+do compile > main
+then reset
+main > compile
+
 kivyschool:
 - updated kivyschool uninstall scripts
 - created install scripts for ksproject + kivy-reloader on linux/mac/wsl/ win10
@@ -789,7 +814,8 @@ cd ~
 mkdir reloadtest && cd reloadtest
 uv init --python 3.13
 uv add "kivy>=2.3.1"
-uv add --editable "/home/pengin/kivyschool-hello/kivy-reloader[desktop]"
+git clone --branch macfix_gaimwsl https://github.com/kivy-school/kivy-reloader
+uv add --editable "./kivy-reloader[desktop]"
 uv run kivy-reloader init project
 
 Then run the app:
