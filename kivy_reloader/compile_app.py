@@ -22,6 +22,9 @@ from colorama import Fore, Style, init
 from .config import config
 from .utils import get_connected_devices, get_wifi_ip, in_wsl, is_adb_listening, extract_ip, get_wsl_nameservers, get_adb_windows_path, adb_has_forward, adb_forward
 
+_debug_proc: "Process | None" = None
+_scrcpy_proc: "Process | None" = None
+
 
 def is_ci_environment() -> bool:
     """
@@ -251,7 +254,7 @@ def wait_for_authorization(timeout=30):
                             stderr=subprocess.DEVNULL, timeout=2
                         ).decode().strip()
                         authorized_hardware_serials.add(hw_serial)
-                    except:
+                    except Exception:
                         continue
                 else:
                     authorized_hardware_serials.add(serial)  # ← USB serial is authorized directly
@@ -571,18 +574,21 @@ def safe_exit(exit_code: int = 0) -> None:
     """
     logging.info('Shutting down application...')
 
-    # Clean up global processes
-    cleanup_processes(logcat_proc, filter_proc)
-
     # Restore terminal state
     _restore_terminal()
+
+    # clear debug logcat printer and scrcpy now that they're multiprocess
+    global _debug_proc, _scrcpy_proc
+    for _p in (_debug_proc, _scrcpy_proc):
+        if _p is not None and _p.is_alive():
+            _p.terminate()
+    _debug_proc = None
+    _scrcpy_proc = None
+
 
     logging.info('Application shutdown complete')
     sys.exit(exit_code)
 
-
-logcat_proc: subprocess.Popen | None = None
-filter_proc: subprocess.Popen | None = None
 
 app = typer.Typer()
 try:
@@ -1116,6 +1122,10 @@ def debug_and_livestream(buildozer_compiled: Event = None) -> None:
 
         adb_logcat.start()
         scrcpy.start()
+
+        global _debug_proc, _scrcpy_proc
+        _debug_proc = adb_logcat
+        _scrcpy_proc = scrcpy
         try:
             adb_logcat.join()
             scrcpy.join()
@@ -1803,40 +1813,6 @@ def build_filter_command() -> list:
 
 
 
-def start_logcat_processes(logcat_cmd: list, filter_cmd: list) -> tuple:
-    """
-    Starts logcat and filter processes based on platform.
-
-    Args:
-        logcat_cmd: Command array for logcat
-        filter_cmd: Command array for filtering
-
-    Returns:
-        tuple: (logcat_process, filter_process) - filter_process may be None on Windows
-
-    Raises:
-        subprocess.CalledProcessError: If process creation fails
-    """
-    global logcat_proc, filter_proc
-
-    try:
-        if platform == 'win':
-            logcat_proc = subprocess.Popen(logcat_cmd + filter_cmd)
-            filter_proc = None
-        else:
-            logcat_proc = subprocess.Popen(logcat_cmd, stdout=subprocess.PIPE)
-            filter_proc = subprocess.Popen(filter_cmd, stdin=logcat_proc.stdout)
-
-        return logcat_proc, filter_proc
-
-    except FileNotFoundError:
-        logging.error('adb not found')
-        print(
-            f'{red}Please, install `scrcpy`: {yellow}https://github.com/Genymobile/scrcpy{Fore.RESET}'
-        )
-        return None, None
-
-
 # def run_logcat(IP=None, adb_logcat_ready: Event = None, *args):
 #     """
 #     Orchestrates logcat execution with connection, command building,
@@ -2179,7 +2155,7 @@ def start_scrcpy():
     try:
         scrcpy_proc = execute_scrcpy_process(scrcpy_cmd)
     finally:
-        cleanup_processes(filter_proc, logcat_proc, scrcpy_proc)
+        cleanup_processes(scrcpy_proc)
 
 
 def create_aab():

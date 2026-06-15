@@ -711,7 +711,7 @@ def get_wsl_nameservers():
             pass
             
         return ["127.0.0.1"] # Absolute fallback
-    except:
+    except Exception:
         return "NAMESERVERS FAILED"
 
 def get_adb_host_ip() -> str:

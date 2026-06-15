@@ -1,7 +1,9 @@
 """Deployment exclusions settings card widget."""
 
 import os
+import subprocess
 import threading
+from pathlib import Path
 
 from kivy.properties import DictProperty, ObjectProperty, StringProperty
 from kivy.uix.boxlayout import BoxLayout
@@ -46,6 +48,7 @@ class DeploymentCard(BoxLayout):
 
     def __init__(self, **kwargs):
         self.config_model = None
+        self._active_procs: list[subprocess.Popen] = []
         super().__init__(**kwargs)
 
     def on_kv_post(self, base_widget):
@@ -57,15 +60,46 @@ class DeploymentCard(BoxLayout):
         self.ids.exclude_from_phone_input.bind(
             values=lambda instance, values: self.on_exclusions_change(values)
         )
+        from kivy.app import App
+        app = App.get_running_app()
+        if app:
+            app.bind(on_stop=self._on_app_stop)
+
+    def _on_app_stop(self, *args):
+        for proc in list(self._active_procs):
+            try:
+                proc.terminate()
+            except Exception:
+                pass
+        self._active_procs.clear()
+
+    def _run(self, cmd_list, *, timeout, success_msg, fail_prefix):
+        proc = subprocess.Popen(
+            cmd_list,
+            stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+            text=True, cwd=str(Path.cwd()),
+        )
+        self._active_procs.append(proc)
+        try:
+            output, _ = proc.communicate(timeout=timeout)
+            output = output.strip() or 'Done'
+            msg = success_msg if proc.returncode == 0 else f'{fail_prefix}: {output[-100:]}'
+        except subprocess.TimeoutExpired:
+            proc.terminate()
+            output = msg = 'Timed out'
+        finally:
+            if proc in self._active_procs:
+                self._active_procs.remove(proc)
+        from kivy.clock import Clock
+        Clock.schedule_once(lambda dt: setattr(self, 'build_status', msg))
+        EventBus.emit('terminal_output', output=output)
 
     def load_from_model(self):
         """Sync UI controls from the backing config model."""
         if not self.config_model:
             return
 
-        new_config = {}
-        for key in self.config.keys():
-            new_config[key] = self.config_model.get_value(key)
+        new_config = {k: self.config_model.get_value(k) for k in self.config}
         self.config = new_config
 
         self.ids.exclude_from_phone_input.values = (
@@ -84,7 +118,7 @@ class DeploymentCard(BoxLayout):
             self.on_config_change(self.config)
 
     def clean_recipe(self, recipe_override=''):
-        import glob, shutil, threading
+        import glob, shutil
         recipe = (recipe_override or self.recipe_name).strip()
         if not recipe:
             self.build_status = 'Enter a recipe name first'
@@ -94,9 +128,8 @@ class DeploymentCard(BoxLayout):
         if not paths:
             self.build_status = f'No cache found for: {recipe}'
             return
-        cmd = f'rm -rf {pattern}'
         self.build_status = f'Cleaning {recipe}...'
-        EventBus.emit('terminal_log', command=cmd)
+        EventBus.emit('terminal_log', command=f'rm -rf {pattern}')
         def _clean():
             for p in paths:
                 shutil.rmtree(p, ignore_errors=True)
@@ -107,59 +140,35 @@ class DeploymentCard(BoxLayout):
         threading.Thread(target=_clean, daemon=True).start()
 
     def clean_all(self):
-        import subprocess, threading
-        from pathlib import Path
-        cmd = 'buildozer android clean'
         self.build_status = 'Running buildozer android clean...'
-        EventBus.emit('terminal_log', command=cmd)
-        def _clean():
-            r = subprocess.run(
-                ['buildozer', 'android', 'clean'],
-                capture_output=True, text=True, timeout=120,
-                cwd=str(Path.cwd()),
-            )
-            output = (r.stdout + r.stderr).strip() or 'Done'
-            msg = 'Done — platform rebuilt, downloads preserved' if r.returncode == 0 else f'Failed: {output[-100:]}'
-            from kivy.clock import Clock
-            Clock.schedule_once(lambda dt: setattr(self, 'build_status', msg))
-            EventBus.emit('terminal_output', output=output)
-        threading.Thread(target=_clean, daemon=True).start()
+        EventBus.emit('terminal_log', command='buildozer android clean')
+        threading.Thread(
+            target=self._run,
+            args=(['buildozer', 'android', 'clean'],),
+            kwargs={'timeout': 120, 'success_msg': 'Done — platform rebuilt, downloads preserved', 'fail_prefix': 'Failed'},
+            daemon=True,
+        ).start()
 
 
     def app_clean(self):
-        import subprocess, threading
-        from pathlib import Path
-        cmd = 'buildozer appclean'
         self.build_status = 'Running buildozer appclean (re-downloads SDK)...'
-        EventBus.emit('terminal_log', command=cmd)
-        def _clean():
-            r = subprocess.run(
-                ['buildozer', 'appclean'],
-                capture_output=True, text=True, timeout=300,
-                cwd=str(Path.cwd()),
-            )
-            output = (r.stdout + r.stderr).strip() or 'Done'
-            msg = 'Done — full rebuild on next compile' if r.returncode == 0 else f'Failed: {output[-100:]}'
-            from kivy.clock import Clock
-            Clock.schedule_once(lambda dt: setattr(self, 'build_status', msg))
-            EventBus.emit('terminal_output', output=output)
-        threading.Thread(target=_clean, daemon=True).start()
+        EventBus.emit('terminal_log', command='buildozer appclean')
+        threading.Thread(
+            target=self._run,
+            args=(['buildozer', 'appclean'],),
+            kwargs={'timeout': 300, 'success_msg': 'Done — full rebuild on next compile', 'fail_prefix': 'Failed'},
+            daemon=True,
+        ).start()
 
 
 
     def list_recipes(self):
-        import subprocess, threading
-        from pathlib import Path
         self.build_status = 'Fetching recipes...'
         def _list():
-            r = subprocess.run(
+            self._run(
                 ['buildozer', 'android', 'p4a', '--', 'recipes'],
-                capture_output=True, text=True, timeout=30,
-                cwd=str(Path.cwd()),
+                timeout=30, success_msg='', fail_prefix='Failed',
             )
-            output = (r.stdout + r.stderr).strip()[:300] or 'No output'
-            from kivy.clock import Clock
-            Clock.schedule_once(lambda dt: setattr(self, 'build_status', output))
         threading.Thread(target=_list, daemon=True).start()
 
 
