@@ -709,6 +709,8 @@ DB: uv run main.py > uv run kivy-reloader run
 
 - ❌ ksproject will be tested later
 - ❌ skipped all CLI tests, focused on flightdeck
+- RESET COMMAND FOR LINUX: find ~/krt -mindepth 1 -delete
+
 
 - 📋 TEST USED: "how to run kivy-reloader default buildozer test"
 win10 buildozer flightdeck USB(TURN OFF PHONE WIFI) uv run kivy-reloader run > uv run main.py
@@ -751,6 +753,9 @@ mac ksproject WIFI uv run main.py > uv run kivy-reloader run
 kivyschool:
 - updated kivyschool uninstall scripts
 - created install scripts for ksproject + kivy-reloader on linux/mac/wsl/ win10
+
+buildozer (monkeypatched on kivy-reloader side):
+- fixed buildozer not pulling in setuptools when python > 3.1
 
 kivy-reloader:
 - added kivy-reloader init project that does kivy-reloader init + project scaffolds basic hello world for buildozer (kivy-reloader default) or ksproject (ksproject takes priority over buildozer)
@@ -855,7 +860,6 @@ how to run kivy-reloader default buildozer test
 ```
 cd ~
 mkdir reloadtest && cd reloadtest
-
 
 uv init --python 3.13
 uv add "kivy>=2.3.1"

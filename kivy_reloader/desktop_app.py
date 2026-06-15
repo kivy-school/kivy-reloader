@@ -115,7 +115,6 @@ class DesktopApp(BaseReloaderApp, KakiApp):
                     [str(kr_path), 'config'],
                     cwd=Path.cwd(),
                 )
-                sys.exit(0)   # don't start the user's app after FlightDeck closes
     
         super().__init__(*args, **kwargs)
         Logger.info(f'Reloader: Kivy Reloader v{__version__}')
