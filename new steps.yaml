@@ -730,7 +730,7 @@ adb logcat *:S python:D
 - 📋 TEST USED: "how to run kivy-reloader default buildozer test"
 - ✅ CHECKED STATUS SCREEN ON WIN 10 WSL2
 - ✅ win10 buildozer flightdeck USB(TURN OFF PHONE WIFI) uv run kivy-reloader run > uv run main.py
-- win10 buildozer flightdeck USB(TURN OFF PHONE WIFI) uv run main.py > uv run kivy-reloader run 
+- ✅ win10 buildozer flightdeck USB(TURN OFF PHONE WIFI) uv run main.py > uv run kivy-reloader run 
 - win10 buildozer flightdeck WIFI uv run kivy-reloader run > uv run main.py
 - win10 buildozer flightdeck WIFI uv run main.py > uv run kivy-reloader run 
 

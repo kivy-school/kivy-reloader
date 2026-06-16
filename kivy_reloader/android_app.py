@@ -72,16 +72,17 @@ class AndroidApp(BaseReloaderApp, KivyApp):
         self._update_lock = trio.Lock()
         
     def _get_app_root(self):
-        """Package apps live in site-packages; use that as the hot-reload root
-        so extraction overwrites bundled files in-place instead of duplicating them."""
-        module_name = self.__class__.__module__
-        if module_name == '__main__':
-            return os.getcwd()
-        top_package = module_name.split('.')[0]
-        pkg = sys.modules.get(top_package)
-        if pkg and getattr(pkg, '__file__', None):
-            return str(pathlib.Path(pkg.__file__).parent.resolve())
+        """The project root is wherever the actual entry point (__main__)
+        lives — ask Python directly via sys.modules. This works for both
+        buildozer (executes main.py at the project root) and ksproject
+        (runs `python -m <package>`, landing on the package dir itself),
+        since each backend's entry point sits exactly at the boundary its
+        own zip-extraction layout expects."""
+        main_mod = sys.modules.get('__main__')
+        if main_mod and getattr(main_mod, '__file__', None):
+            return str(pathlib.Path(main_mod.__file__).resolve().parent)
         return os.getcwd()
+
 
     @contextlib.contextmanager
     def _app_root_cwd(self):
