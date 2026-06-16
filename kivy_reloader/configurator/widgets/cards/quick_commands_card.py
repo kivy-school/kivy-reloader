@@ -64,17 +64,25 @@ class CommandButton(BoxLayout):
                 daemon=True,
             ).start()
         else:
-            proc = subprocess.Popen(
-                self.command.split(),
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                stdin=subprocess.DEVNULL,
-                start_new_session=True,
-                text=True,
-                encoding='utf-8',
-                errors='replace',
-            )
+            try:
+                proc = subprocess.Popen(
+                    self.command.split(),
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    stdin=subprocess.DEVNULL,
+                    start_new_session=True,
+                    text=True,
+                    encoding='utf-8',
+                    errors='replace',
+                )
+            except OSError as e:
+                EventBus.emit(
+                    'terminal_output',
+                    output=f"doesn't work, dev must fix: {self.command!r} ({e})",
+                )
+                return
             threading.Thread(target=_stream_proc_output, args=(proc,), daemon=True).start()
+
 
 
 class QuickCommandsCard(BoxLayout):

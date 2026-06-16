@@ -255,8 +255,9 @@ class CoreScreen(Screen):
                 for fs in self.config_model.unsaved_states():
                     record(
                         label=f'Set {fs.field.key}',
-                        command=f'{fs.field.key} = {fs.value}',
+                        command=f'SET:{fs.field.key}:{fs.value}',
                     )
+
                 self.config_model.save()
                 self.update_unsaved_indicator()
                 msg = f'Saved to {self.config_model.config_path}'
