@@ -606,14 +606,6 @@ def safe_exit(exit_code: int = 0) -> None:
     # clear debug logcat printer and scrcpy now that they're multiprocess
     cleanup_background_processes()
 
-    global _debug_proc, _scrcpy_proc
-    for _p in (_debug_proc, _scrcpy_proc):
-        if _p is not None and _p.is_alive():
-            _p.terminate()
-    _debug_proc = None
-    _scrcpy_proc = None
-
-
     logging.info('Application shutdown complete')
     sys.exit(exit_code)
 
