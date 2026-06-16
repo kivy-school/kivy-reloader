@@ -24,7 +24,7 @@ class DeploymentCard(BoxLayout):
 
     section_name = 'Deployment'
     quick_actions = [
-        {'label': 'Full clean',                        'fn': 'clean_all',    'command': '__full_clean__',   'display': 'buildozer android clean'},
+        {'label': 'Full clean (keep downloads)',                        'fn': 'clean_all',    'command': '__full_clean__',   'display': 'buildozer android clean'},
         {'label': 'App clean (redownload + rebuild)', 'fn': 'app_clean', 'command': '__app_clean__',   'display': 'buildozer appclean'},
         {'label': 'Clean recipe',                      'fn': 'clean_recipe', 'command': '__clean_recipe__', 'display': 'rm -rf .buildozer/.../other_builds/<recipe>', 'needs_input': 'recipe'},
     ]

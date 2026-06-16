@@ -805,6 +805,7 @@ kivy reloader flightdeck (renamed from ConfigGUI):
 - flightdeck lets you check common mobile screen sizes to stress test your app design + you can just type in what size you want (window.size trick): just update on flightdeck and press f5 to force window to reload
 - added button for scrcpy to match your phone display
 - flighdeck logcat logs output to actual terminal instead of being invisible
+- fixed flightdeck buttons in quick commands making a CTD error
 
 github CI/CD:
 - setup nightly builds + alerts if tests fail
@@ -842,13 +843,13 @@ in radio_button.py
 MANUAL STEPS FOR LATER REFERENCE:
 
 kivy reloader only as editable install
-- ``` cd kivy-reloader 
+cd kivy-reloader 
 git fetch origin 
 git merge origin macfix_gaimwsl
- ```
-- ```uv lock --upgrade-package kivy-reloader && uv sync ```
+
+uv lock --upgrade-package kivy-reloader && uv sync 
 OR:
-```git -C ~/krt/kivy-reloader pull```
+git -C ~/krt/kivy-reloader pull
 
 
 in ksproject
@@ -885,6 +886,9 @@ uv add "kivy>=2.3.1"
 git clone --branch macfix_gaimwsl https://github.com/kivy-school/kivy-reloader
 uv add --editable "./kivy-reloader[desktop]"
 uv run kivy-reloader init project
+
+#HERE ADD KIVY RELOADER IN REQUIREMENTS SPEC
+in requirements: git+file:///home/pengin/kivyschool-hello/kivy-reloader
 
 Then run the app:
 
