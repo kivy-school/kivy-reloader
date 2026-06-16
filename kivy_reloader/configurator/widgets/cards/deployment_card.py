@@ -1,6 +1,7 @@
 """Deployment exclusions settings card widget."""
 
 import os
+import shutil
 import subprocess
 import threading
 from pathlib import Path
@@ -8,11 +9,23 @@ from pathlib import Path
 from kivy.properties import DictProperty, ObjectProperty, StringProperty
 from kivy.uix.boxlayout import BoxLayout
 
+from kivy_reloader.configurator.backend_detect import detect_backend 
 from kivy_reloader.configurator.event_bus import EventBus
 from kivy_reloader.configurator.widgets.cards.core_card import BUILTIN_EXCLUSIONS
 from kivy_reloader.lang import Builder
 
 Builder.load_file(__file__)
+
+
+_QUICK_ACTIONS_BUILDOZER = [
+  {'label': 'Full clean (keep downloads)', 'fn': 'clean_all', 'command': '__full_clean__', 'display': 'buildozer android clean'},
+  {'label': 'App clean (redownload + rebuild)', 'fn': 'app_clean', 'command': '__app_clean__', 'display': 'buildozer appclean'},
+  {'label': 'Clean recipe', 'fn': 'clean_recipe', 'command': '__clean_recipe__', 'display': 'rm -rf .buildozer/.../other_builds/<recipe>', 'needs_input': 'recipe'},
+]
+_QUICK_ACTIONS_KSPROJECT = [
+  {'label': 'Full clean (keep downloads)', 'fn': 'clean_all', 'command': '__full_clean__', 'display': 'clear ksproject site-packages cache + gradle clean'},
+  {'label': 'App clean (rebuild gradle project)', 'fn': 'app_clean', 'command': '__app_clean__', 'display': 'rm -rf project_dist/gradle'},
+]
 
 
 class DeploymentCard(BoxLayout):
@@ -23,15 +36,6 @@ class DeploymentCard(BoxLayout):
     """
 
     section_name = 'Deployment'
-    quick_actions = [
-        {'label': 'Full clean (keep downloads)',                        'fn': 'clean_all',    'command': '__full_clean__',   'display': 'buildozer android clean'},
-        {'label': 'App clean (redownload + rebuild)', 'fn': 'app_clean', 'command': '__app_clean__',   'display': 'buildozer appclean'},
-        {'label': 'Clean recipe',                      'fn': 'clean_recipe', 'command': '__clean_recipe__', 'display': 'rm -rf .buildozer/.../other_builds/<recipe>', 'needs_input': 'recipe'},
-    ]
-
-
-
-
     config = DictProperty({
         'FOLDERS_AND_FILES_TO_EXCLUDE_FROM_PHONE': [],
     })
@@ -41,15 +45,23 @@ class DeploymentCard(BoxLayout):
     on_config_change = ObjectProperty(None)
     build_status = StringProperty('')
     recipe_name = StringProperty('')
+    backend = StringProperty('buildozer')
+
 
 
     # Expose builtin exclusions to KV
     builtin_exclusions = BUILTIN_EXCLUSIONS
 
+
     def __init__(self, **kwargs):
         self.config_model = None
         self._active_procs: list[subprocess.Popen] = []
+        self.backend = detect_backend()
+        self.quick_actions = (
+            _QUICK_ACTIONS_KSPROJECT if self.backend == 'ksproject' else _QUICK_ACTIONS_BUILDOZER
+        )
         super().__init__(**kwargs)
+
 
     def on_kv_post(self, base_widget):
         """Populate widgets with initial configuration values."""
@@ -140,6 +152,11 @@ class DeploymentCard(BoxLayout):
         threading.Thread(target=_clean, daemon=True).start()
 
     def clean_all(self):
+        if self.backend == 'ksproject':
+            self.build_status = 'Clearing ksproject site-packages cache + gradle clean...'
+            EventBus.emit('terminal_log', command='ksproject full clean (site-packages + gradlew clean)')
+            threading.Thread(target=self._ksproject_clean_all, daemon=True).start()
+            return
         self.build_status = 'Running buildozer android clean...'
         EventBus.emit('terminal_log', command='buildozer android clean')
         threading.Thread(
@@ -149,8 +166,24 @@ class DeploymentCard(BoxLayout):
             daemon=True,
         ).start()
 
+    def _ksproject_clean_all(self):
+        from kivy_reloader.compile_app import _clear_ksproject_cache, _gradle_clean
+        try:
+            _clear_ksproject_cache()
+            _gradle_clean()
+            msg = 'Done — site-packages cache cleared, gradle cleaned'
+        except Exception as exc:
+            msg = f'Failed: {exc}'
+        from kivy.clock import Clock
+        Clock.schedule_once(lambda dt: setattr(self, 'build_status', msg))
+        EventBus.emit('terminal_output', output=msg)
 
     def app_clean(self):
+        if self.backend == 'ksproject':
+            self.build_status = 'Removing project_dist/gradle (full rebuild on next compile)...'
+            EventBus.emit('terminal_log', command='rm -rf project_dist/gradle')
+            threading.Thread(target=self._ksproject_app_clean, daemon=True).start()
+            return
         self.build_status = 'Running buildozer appclean (re-downloads SDK)...'
         EventBus.emit('terminal_log', command='buildozer appclean')
         threading.Thread(
@@ -159,6 +192,17 @@ class DeploymentCard(BoxLayout):
             kwargs={'timeout': 300, 'success_msg': 'Done — full rebuild on next compile', 'fail_prefix': 'Failed'},
             daemon=True,
         ).start()
+
+    def _ksproject_app_clean(self):
+        try:
+            shutil.rmtree('project_dist/gradle', ignore_errors=True)
+            msg = 'Done — project_dist/gradle removed, will regenerate on next compile'
+        except Exception as exc:
+            msg = f'Failed: {exc}'
+        from kivy.clock import Clock
+        Clock.schedule_once(lambda dt: setattr(self, 'build_status', msg))
+        EventBus.emit('terminal_output', output=msg)
+
 
 
 

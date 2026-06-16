@@ -151,20 +151,24 @@
                     halign: 'left'
                     text_size: self.width, self.height
 
-                # Clean single recipe
+                # Clean single recipe (buildozer only — no p4a-recipe equivalent in ksproject)
                 Label:
                     text: 'Clean single recipe'
                     font_size: font_size_sm
                     bold: True
                     color: foreground_color
                     size_hint_y: None
-                    height: dp(28)
+                    height: dp(28) if root.backend == 'buildozer' else 0
+                    opacity: 1 if root.backend == 'buildozer' else 0
+                    disabled: root.backend != 'buildozer'
                     halign: 'left'
                     text_size: self.width, self.height
 
                 BoxLayout:
                     size_hint_y: None
-                    height: dp(36)
+                    height: dp(36) if root.backend == 'buildozer' else 0
+                    opacity: 1 if root.backend == 'buildozer' else 0
+                    disabled: root.backend != 'buildozer'
                     spacing: dp(8)
 
                     TextInput:
@@ -200,15 +204,21 @@
                     font_size: font_size_xs
                     color: muted_foreground_color
                     size_hint_y: None
-                    height: dp(18)
+                    height: dp(18) if root.backend == 'buildozer' else 0
+                    opacity: 1 if root.backend == 'buildozer' else 0
+                    disabled: root.backend != 'buildozer'
                     halign: 'left'
                     text_size: self.width, self.height
 
                 Separator:
+                    size_hint_y: None
+                    height: dp(1) if root.backend == 'buildozer' else 0
+                    opacity: 1 if root.backend == 'buildozer' else 0
+
 
                 # Full clean
                 Label:
-                    text: 'Android clean (keeps downloads)'
+                    text: 'Android clean (keeps downloads)' if root.backend == 'buildozer' else 'Full clean (keeps downloads)'
                     font_size: font_size_sm
                     bold: True
                     color: foreground_color
@@ -218,7 +228,7 @@
                     text_size: self.width, self.height
 
                 Label:
-                    text: 'Deletes compiled platform artifacts. Downloaded tarballs are preserved so re-downloads are skipped.'
+                    text: 'Deletes compiled platform artifacts. Downloaded tarballs are preserved so re-downloads are skipped.' if root.backend == 'buildozer' else 'Clears the ksproject site-packages cache and runs gradlew clean. SDK/Gradle downloads are preserved.'
                     font_size: font_size_xs
                     color: muted_foreground_color
                     size_hint_y: None
@@ -227,7 +237,7 @@
                     text_size: self.width, None
 
                 Button:
-                    text: 'buildozer android clean'
+                    text: 'buildozer android clean' if root.backend == 'buildozer' else 'clear cache + gradle clean'
                     size_hint_y: None
                     height: dp(36)
                     font_size: font_size_sm
@@ -239,7 +249,7 @@
 
                 # App clean
                 Label:
-                    text: 'App clean (re-downloads everything)'
+                    text: 'App clean (re-downloads everything)' if root.backend == 'buildozer' else 'App clean (rebuild gradle project)'
                     font_size: font_size_sm
                     bold: True
                     color: foreground_color
@@ -249,7 +259,7 @@
                     text_size: self.width, self.height
 
                 Label:
-                    text: 'Wipes the full .buildozer folder including downloads. Forces a complete SDK re-download on next build.'
+                    text: 'Wipes the full .buildozer folder including downloads. Forces a complete SDK re-download on next build.' if root.backend == 'buildozer' else 'Removes project_dist/gradle entirely. It will be regenerated from scratch on next compile (no signing keys are stored there).'
                     font_size: font_size_xs
                     color: muted_foreground_color
                     size_hint_y: None
@@ -258,10 +268,11 @@
                     text_size: self.width, None
 
                 Button:
-                    text: 'buildozer appclean'
+                    text: 'buildozer appclean' if root.backend == 'buildozer' else 'rm -rf project_dist/gradle'
                     size_hint_y: None
                     height: dp(36)
                     font_size: font_size_sm
                     background_color: destructive_color
                     color: destructive_foreground_color
                     on_release: root.app_clean()
+
