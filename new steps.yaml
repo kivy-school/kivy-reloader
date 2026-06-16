@@ -729,42 +729,43 @@ adb logcat *:S python:D
 
 - 📋 TEST USED: "how to run kivy-reloader default buildozer test"
 - ✅ CHECKED STATUS SCREEN ON WIN 10 WSL2
-- ✅ win10 buildozer flightdeck USB(TURN OFF PHONE WIFI) uv run kivy-reloader run > uv run main.py
+- ✅ win10 buildozer flightdeck USB(TURN OFF PHONE WIFI) uv run kivy-reloader run > uv run main.py (should wait for timeout depending on hot reload value in kivy reloader toml)
 - ✅ win10 buildozer flightdeck USB(TURN OFF PHONE WIFI) uv run main.py > uv run kivy-reloader run 
-- win10 buildozer flightdeck WIFI uv run kivy-reloader run > uv run main.py
-- win10 buildozer flightdeck WIFI uv run main.py > uv run kivy-reloader run 
+(rebuilt here ~39e0d2647d9eeaae)
+- ✅ win10 buildozer flightdeck WIFI uv run kivy-reloader run > uv run main.py
+- ✅ win10 buildozer flightdeck WIFI uv run main.py > uv run kivy-reloader run (should wait for timeout depending on hot reload value in kivy reloader toml)
 
 - 📋 TEST USED: "how to run kivy-reloader default ksproject test with fixed trio wheel from psychowasp"
 - win10 ksproject flightdeck USB(TURN OFF PHONE WIFI) uv run kivy-reloader run > uv run main.py
-- win10 ksproject flightdeck USB(TURN OFF PHONE WIFI) uv run main.py > uv run kivy-reloader run 
+- win10 ksproject flightdeck USB(TURN OFF PHONE WIFI) uv run main.py > uv run kivy-reloader run (should wait for timeout depending on hot reload value in kivy reloader toml)
 - win10 ksproject flightdeck WIFI uv run kivy-reloader run > uv run main.py
-- win10 ksproject flightdeck WIFI uv run main.py > uv run kivy-reloader run 
+- win10 ksproject flightdeck WIFI uv run main.py > uv run kivy-reloader run (should wait for timeout depending on hot reload value in kivy reloader toml)
 
 - 📋 TEST USED: "how to run kivy-reloader default buildozer test"
 - CHECKED STATUS SCREEN ON WIN 11 WSL2
 - win11 buildozer flightdeck USB(TURN OFF PHONE WIFI) uv run kivy-reloader run > uv run main.py
-- win11 buildozer flightdeck USB(TURN OFF PHONE WIFI) uv run main.py > uv run kivy-reloader run 
+- win11 buildozer flightdeck USB(TURN OFF PHONE WIFI) uv run main.py > uv run kivy-reloader run (should wait for timeout depending on hot reload value in kivy reloader toml)
 - win11 buildozer flightdeck WIFI uv run kivy-reloader run > uv run main.py
-- win11 buildozer flightdeck WIFI uv run main.py > uv run kivy-reloader run 
+- win11 buildozer flightdeck WIFI uv run main.py > uv run kivy-reloader run (should wait for timeout depending on hot reload value in kivy reloader toml)
 
 - 📋 TEST USED: "how to run kivy-reloader default ksproject test with fixed trio wheel from psychowasp"
 - win11 ksproject USB(TURN OFF PHONE WIFI) uv run kivy-reloader run > uv run main.py
-- win11 ksproject USB(TURN OFF PHONE WIFI) uv run main.py > uv run kivy-reloader run 
+- win11 ksproject USB(TURN OFF PHONE WIFI) uv run main.py > uv run kivy-reloader run (should wait for timeout depending on hot reload value in kivy reloader toml)
 - win11 ksproject WIFI uv run kivy-reloader run > uv run main.py
-- win11 ksproject WIFI uv run main.py > uv run kivy-reloader run 
+- win11 ksproject WIFI uv run main.py > uv run kivy-reloader run (should wait for timeout depending on hot reload value in kivy reloader toml)
 
 - 📋 TEST USED: "how to run kivy-reloader default buildozer test"
 - CHECKED STATUS SCREEN ON MAC
 - mac buildozer USB(TURN OFF PHONE WIFI) uv run kivy-reloader run > uv run main.py
-- mac buildozer USB(TURN OFF PHONE WIFI) uv run main.py > uv run kivy-reloader run 
+- mac buildozer USB(TURN OFF PHONE WIFI) uv run main.py > uv run kivy-reloader run (should wait for timeout depending on hot reload value in kivy reloader toml)
 - mac buildozer WIFI uv run kivy-reloader run > uv run main.py
-- mac buildozer WIFI uv run main.py > uv run kivy-reloader run 
+- mac buildozer WIFI uv run main.py > uv run kivy-reloader run (should wait for timeout depending on hot reload value in kivy reloader toml)
 
 - 📋 TEST USED: "how to run kivy-reloader default ksproject test with fixed trio wheel from psychowasp"
 - mac ksproject USB(TURN OFF PHONE WIFI) uv run kivy-reloader run > uv run main.py
-- mac ksproject USB(TURN OFF PHONE WIFI) uv run main.py > uv run kivy-reloader run 
+- mac ksproject USB(TURN OFF PHONE WIFI) uv run main.py > uv run kivy-reloader run (should wait for timeout depending on hot reload value in kivy reloader toml)
 - mac ksproject WIFI uv run kivy-reloader run > uv run main.py
-- mac ksproject WIFI uv run main.py > uv run kivy-reloader run 
+- mac ksproject WIFI uv run main.py > uv run kivy-reloader run (should wait for timeout depending on hot reload value in kivy reloader toml)
 
 
 
@@ -803,6 +804,7 @@ kivy-reloader:
     Need a clean slate after something breaks badly
 - added exit option to cli
 - made sure scrcpy daemon actually terminates on cli/flightdeck exit
+- made android app more robust by asking sys .__main__ instead of assuming main since ksproject uses app and some -m construction to run their apps
 
 kivy reloader flightdeck (renamed from ConfigGUI):
 - flightdeck auto spawn on CLI open has a toggle on main screen
