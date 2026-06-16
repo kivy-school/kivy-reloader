@@ -123,7 +123,6 @@ class DesktopApp(BaseReloaderApp, KakiApp):
     def _setup_autoreloader(self):
         """Configure autoreloader paths and settings"""
         self.AUTORELOADER_PATHS = get_auto_reloader_paths()
-        self.HOT_RELOAD_ON_PHONE = config.HOT_RELOAD_ON_PHONE
         self.KV_FILES = get_kv_files_paths()
         self._watched_directories = _extract_watched_directories_from_paths(
             self.AUTORELOADER_PATHS
@@ -438,7 +437,8 @@ class DesktopApp(BaseReloaderApp, KakiApp):
 
     def _handle_android_reload(self):
         """Handle Android hot reload if configured and available."""
-        if not self.HOT_RELOAD_ON_PHONE:
+        if not config.HOT_RELOAD_ON_PHONE:
+
             return
         
         # Check if any devices are connected before processing

@@ -729,42 +729,42 @@ adb logcat *:S python:D
 
 - 📋 TEST USED: "how to run kivy-reloader default buildozer test"
 - ✅ CHECKED STATUS SCREEN ON WIN 10 WSL2
-win10 buildozer flightdeck USB(TURN OFF PHONE WIFI) uv run kivy-reloader run > uv run main.py
-win10 buildozer flightdeck USB(TURN OFF PHONE WIFI) uv run main.py > uv run kivy-reloader run 
-win10 buildozer flightdeck WIFI uv run kivy-reloader run > uv run main.py
-win10 buildozer flightdeck WIFI uv run main.py > uv run kivy-reloader run 
+- ✅ win10 buildozer flightdeck USB(TURN OFF PHONE WIFI) uv run kivy-reloader run > uv run main.py
+- win10 buildozer flightdeck USB(TURN OFF PHONE WIFI) uv run main.py > uv run kivy-reloader run 
+- win10 buildozer flightdeck WIFI uv run kivy-reloader run > uv run main.py
+- win10 buildozer flightdeck WIFI uv run main.py > uv run kivy-reloader run 
 
 - 📋 TEST USED: "how to run kivy-reloader default ksproject test with fixed trio wheel from psychowasp"
-win10 ksproject flightdeck USB(TURN OFF PHONE WIFI) uv run kivy-reloader run > uv run main.py
-win10 ksproject flightdeck USB(TURN OFF PHONE WIFI) uv run main.py > uv run kivy-reloader run 
-win10 ksproject flightdeck WIFI uv run kivy-reloader run > uv run main.py
-win10 ksproject flightdeck WIFI uv run main.py > uv run kivy-reloader run 
+- win10 ksproject flightdeck USB(TURN OFF PHONE WIFI) uv run kivy-reloader run > uv run main.py
+- win10 ksproject flightdeck USB(TURN OFF PHONE WIFI) uv run main.py > uv run kivy-reloader run 
+- win10 ksproject flightdeck WIFI uv run kivy-reloader run > uv run main.py
+- win10 ksproject flightdeck WIFI uv run main.py > uv run kivy-reloader run 
 
 - 📋 TEST USED: "how to run kivy-reloader default buildozer test"
 - CHECKED STATUS SCREEN ON WIN 11 WSL2
-win11 buildozer flightdeck USB(TURN OFF PHONE WIFI) uv run kivy-reloader run > uv run main.py
-win11 buildozer flightdeck USB(TURN OFF PHONE WIFI) uv run main.py > uv run kivy-reloader run 
-win11 buildozer flightdeck WIFI uv run kivy-reloader run > uv run main.py
-win11 buildozer flightdeck WIFI uv run main.py > uv run kivy-reloader run 
+- win11 buildozer flightdeck USB(TURN OFF PHONE WIFI) uv run kivy-reloader run > uv run main.py
+- win11 buildozer flightdeck USB(TURN OFF PHONE WIFI) uv run main.py > uv run kivy-reloader run 
+- win11 buildozer flightdeck WIFI uv run kivy-reloader run > uv run main.py
+- win11 buildozer flightdeck WIFI uv run main.py > uv run kivy-reloader run 
 
 - 📋 TEST USED: "how to run kivy-reloader default ksproject test with fixed trio wheel from psychowasp"
-win11 ksproject USB(TURN OFF PHONE WIFI) uv run kivy-reloader run > uv run main.py
-win11 ksproject USB(TURN OFF PHONE WIFI) uv run main.py > uv run kivy-reloader run 
-win11 ksproject WIFI uv run kivy-reloader run > uv run main.py
-win11 ksproject WIFI uv run main.py > uv run kivy-reloader run 
+- win11 ksproject USB(TURN OFF PHONE WIFI) uv run kivy-reloader run > uv run main.py
+- win11 ksproject USB(TURN OFF PHONE WIFI) uv run main.py > uv run kivy-reloader run 
+- win11 ksproject WIFI uv run kivy-reloader run > uv run main.py
+- win11 ksproject WIFI uv run main.py > uv run kivy-reloader run 
 
 - 📋 TEST USED: "how to run kivy-reloader default buildozer test"
 - CHECKED STATUS SCREEN ON MAC
-mac buildozer USB(TURN OFF PHONE WIFI) uv run kivy-reloader run > uv run main.py
-mac buildozer USB(TURN OFF PHONE WIFI) uv run main.py > uv run kivy-reloader run 
-mac buildozer WIFI uv run kivy-reloader run > uv run main.py
-mac buildozer WIFI uv run main.py > uv run kivy-reloader run 
+- mac buildozer USB(TURN OFF PHONE WIFI) uv run kivy-reloader run > uv run main.py
+- mac buildozer USB(TURN OFF PHONE WIFI) uv run main.py > uv run kivy-reloader run 
+- mac buildozer WIFI uv run kivy-reloader run > uv run main.py
+- mac buildozer WIFI uv run main.py > uv run kivy-reloader run 
 
 - 📋 TEST USED: "how to run kivy-reloader default ksproject test with fixed trio wheel from psychowasp"
-mac ksproject USB(TURN OFF PHONE WIFI) uv run kivy-reloader run > uv run main.py
-mac ksproject USB(TURN OFF PHONE WIFI) uv run main.py > uv run kivy-reloader run 
-mac ksproject WIFI uv run kivy-reloader run > uv run main.py
-mac ksproject WIFI uv run main.py > uv run kivy-reloader run 
+- mac ksproject USB(TURN OFF PHONE WIFI) uv run kivy-reloader run > uv run main.py
+- mac ksproject USB(TURN OFF PHONE WIFI) uv run main.py > uv run kivy-reloader run 
+- mac ksproject WIFI uv run kivy-reloader run > uv run main.py
+- mac ksproject WIFI uv run main.py > uv run kivy-reloader run 
 
 
 
@@ -779,7 +779,7 @@ kivy-reloader:
 - added kivy-reloader init project that does kivy-reloader init + project scaffolds basic hello world for buildozer (kivy-reloader default) or ksproject (ksproject takes priority over buildozer)
 - fixed typer.clear() failing on newest typer
 - kivy-reloader usb option now is full usb, no wifi required BUT you might need admin perms for windows/wsl2 setup
-- 
+- desktop app live reloads toml changes now. BUG: it doesnt respect a changed toml (hot reload to phone true/false)
 - added uv run kivy-reloader init project to give you a fresh hello world project
 - fixed bug in kivy-reloader init where the default toml was beautifulapp
 - PROJECT FAILS ON WATCHING "." BUT WORKED WHEN WATCHING "HELLO-WORLD" (so totally diff from testing if reloading itself works)
