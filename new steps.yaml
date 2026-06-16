@@ -704,20 +704,30 @@ DA: uv run kivy-reloader run > uv run main.py
 then reset
 DB: uv run main.py > uv run kivy-reloader run 
 
-- checked win 10 desktop only reloading
-- "how to run kivy-reloader default buildozer test"
+- ✅ checked win 10 desktop only reloading
+- ✅ "how to run kivy-reloader default buildozer test"
 
 - ❌ ksproject win10 will be tested later
 - ❌ skipped all CLI tests, focused on flightdeck
-- RESET COMMAND FOR LINUX: find ~/krt -mindepth 1 -delete
+
+- RESET COMMAND FOR LINUX: 
+find ~/krt -mindepth 1 -delete
+update kivy-reloader as editable install in root proj folder:
+git -C ./kivy-reloader pull
 
 manual commands because buildozer adb cannot talk to phone through wsl net in win10
 adb install -r bin/gardentest-0.1-arm64-v8a-debug.apk
 adb shell am start -n org.test.gardentest/org.kivy.android.PythonActivity
 adb logcat *:S python:D
+=-=-=
+adb install -r bin/kivy_reloader-0.1-arm64-v8a-debug.apk
+adb shell am start -n org.example.kivy_reloader/org.kivy.android.PythonActivity
+adb logcat *:S python:D
+
+
 
 - 📋 TEST USED: "how to run kivy-reloader default buildozer test"
-- CHECKED STATUS SCREEN ON WIN 10 WSL2
+- ✅ CHECKED STATUS SCREEN ON WIN 10 WSL2
 win10 buildozer flightdeck USB(TURN OFF PHONE WIFI) uv run kivy-reloader run > uv run main.py
 win10 buildozer flightdeck USB(TURN OFF PHONE WIFI) uv run main.py > uv run kivy-reloader run 
 win10 buildozer flightdeck WIFI uv run kivy-reloader run > uv run main.py
@@ -876,10 +886,11 @@ git merge origin macfix_gaimwsl
 uv lock --upgrade-package kivy-reloader && uv sync 
 OR:
 git -C ~/krt/kivy-reloader pull
+git -C ./kivy-reloader pull
 
 
 in ksproject
-- ```uv lock --upgrade-package kivy-reloader && uv sync ```
+- ``` uv lock --upgrade-package kivy-reloader && uv sync ```
 
 how to run kivy-reloader default buildozer test
 ```
@@ -893,7 +904,8 @@ uv add --editable "./kivy-reloader[desktop]"
 uv run kivy-reloader init project
 
 #HERE ADD KIVY RELOADER IN REQUIREMENTS SPEC
-in requirements: git+file:///home/pengin/kivyschool-hello/kivy-reloader
+in requirements: 
+git+file:///home/pengin/kivyschool-hello/kivy-reloader
 
 Then run the app:
 

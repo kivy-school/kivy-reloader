@@ -641,8 +641,10 @@ class DesktopApp(BaseReloaderApp, KakiApp):
         else:
             _delta_root = os.path.realpath(os.path.join(_cwd, _first))
         # Initialize delta transfer manager — zip always lands at CWD for send_app_to_phone.py
-        delta_manager = DeltaTransferManager(_delta_root, zip_root=_cwd)
-
+        delta_manager = DeltaTransferManager(
+            _delta_root, zip_root=_cwd,
+            source_package=self.__class__.__module__.split('.')[0],
+        )
 
         # Apply only exclusions (include everything else)
         exclude_patterns = config.FOLDERS_AND_FILES_TO_EXCLUDE_FROM_PHONE
