@@ -11,7 +11,7 @@ _PERIODS = {'1 day': 1, '1 week': 7, '1 month': 30}
 
 _STATIC_COMMANDS = [
     {'label': 'Compile + deploy', 'command': 'uv run kivy-reloader run build'},
-    {'label': 'Hot reload', 'command': 'uv run kivy-reloader run'},
+    {'label': 'Hot reload (debug+livestream)', 'command': 'uv run kivy-reloader run'},
 ]
 
 def _stream_proc_output(proc):
@@ -81,6 +81,7 @@ class QuickCommandsCard(BoxLayout):
     commands = ListProperty([])
     active_period = StringProperty('1 week')
     config_model = ObjectProperty(None, allownone=True)
+    on_config_change = ObjectProperty(None, allownone=True)
     hot_reload_on_phone = BooleanProperty(True)
     stream_using = StringProperty('WIFI')
     target_ip = StringProperty('')
@@ -97,11 +98,12 @@ class QuickCommandsCard(BoxLayout):
         self.screen_size = str(self.config_model.get_value('SCREEN_SIZE') or '')
         self.screen_dpi = str(self.config_model.get_value('SCREEN_DPI') or '')
 
-
     def _save(self, key, value):
         if self.config_model:
             self.config_model.set_value(key, value)
             self.config_model.save(create_backup=False)
+        if self.on_config_change:
+            self.on_config_change(key)
 
     def toggle_hot_reload(self):
         self.hot_reload_on_phone = not self.hot_reload_on_phone

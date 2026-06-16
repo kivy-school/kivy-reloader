@@ -423,6 +423,11 @@ class CoreScreen(Screen):
         # Wire up config change callbacks to update unsaved indicator
         def on_any_config_change(config):
             self.update_unsaved_indicator()
+            for name in ('Core', 'Quick Commands'):
+                card = self._section_cards.get(name)
+                if card is not None:
+                    card.load_from_model()
+
 
         non_core_cards = {k: v for k, v in cards.items() if k != 'Core'}
         for name, card in non_core_cards.items():

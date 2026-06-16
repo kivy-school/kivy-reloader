@@ -545,9 +545,25 @@ def wait_for_ip_authorization(ip_with_port: str, timeout=30) -> bool:
     return False
 
 
+def _kill_process_tree(pid: int) -> None:
+    """Kill all descendant processes of `pid` (e.g. `adb logcat`, `scrcpy`)."""
+    try:
+        import psutil
+        for child in psutil.Process(pid).children(recursive=True):
+            try:
+                child.kill()
+            except psutil.NoSuchProcess:
+                pass
+    except ImportError:
+        pass
+    except psutil.NoSuchProcess:
+        pass
+
+
 def terminate_processes(*processes) -> None:
     """
-    Safely terminates multiple processes with timeout handling.
+    Safely terminates multiple processes — and any subprocesses they spawned
+    (e.g. `adb logcat`, `scrcpy`) — with timeout handling.
 
     Args:
         *processes: Variable number of Process objects to terminate
@@ -555,6 +571,7 @@ def terminate_processes(*processes) -> None:
     for proc in processes:
         if proc and proc.is_alive():
             logging.info(f'Terminating process {proc.name}')
+            _kill_process_tree(proc.pid)
             proc.terminate()
 
             # Give process time to terminate gracefully
@@ -563,6 +580,15 @@ def terminate_processes(*processes) -> None:
             except Exception:
                 logging.warning(f'Force killing process {proc.name}')
                 proc.kill()
+
+def cleanup_background_processes() -> None:
+    """Terminate any in-flight debug/livestream processes, including their subprocess trees."""
+    global _debug_proc, _scrcpy_proc
+    terminate_processes(_debug_proc, _scrcpy_proc)
+    _debug_proc = None
+    _scrcpy_proc = None
+
+
 
 
 def safe_exit(exit_code: int = 0) -> None:
@@ -578,6 +604,8 @@ def safe_exit(exit_code: int = 0) -> None:
     _restore_terminal()
 
     # clear debug logcat printer and scrcpy now that they're multiprocess
+    cleanup_background_processes()
+
     global _debug_proc, _scrcpy_proc
     for _p in (_debug_proc, _scrcpy_proc):
         if _p is not None and _p.is_alive():

@@ -105,7 +105,10 @@ def run_gui(
         app = ConfiguratorGUI()
         trio.run(app.async_run, 'trio')
     finally:
+        from kivy_reloader.compile_app import cleanup_background_processes
+        cleanup_background_processes()
         lock.close()
+
 
 
 if __name__ == '__main__':

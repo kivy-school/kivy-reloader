@@ -802,6 +802,7 @@ kivy-reloader:
 
     Need a clean slate after something breaks badly
 - added exit option to cli
+- made sure scrcpy daemon actually terminates on cli/flightdeck exit
 
 kivy reloader flightdeck (renamed from ConfigGUI):
 - flightdeck auto spawn on CLI open has a toggle on main screen
