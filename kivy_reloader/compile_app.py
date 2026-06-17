@@ -865,7 +865,11 @@ def deploy_app_to_devices(target_devices, apk_file_path, package_name, activity_
                     ['adb', '-s', device['serial'], 'shell', 'am', 'start',
                      '-n', f'{package_name}/{activity_class}']
                 )
-                subprocess.run(am_cmd, timeout=60)
+                result_start = subprocess.run(am_cmd, timeout=60, capture_output=True, text=True)
+                logging.info(f'am start stdout: {result_start.stdout.strip()!r}')
+                logging.info(f'am start stderr: {result_start.stderr.strip()!r}')
+                logging.info(f'am start returncode: {result_start.returncode}')
+
                 print(f"\n{green}[kivy-reloader] APK installed. Next run: 'uv run kivy-reloader run' (hot-reload, no recompile).{Style.RESET_ALL}") 
                 print(f"{green}                Recompile only when: Python deps change · native/gradle config changes · clean slate needed.{Style.RESET_ALL}\n")
             except subprocess.TimeoutExpired:
