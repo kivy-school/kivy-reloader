@@ -856,18 +856,20 @@ def deploy_app_to_devices(target_devices, apk_file_path, package_name, activity_
 
             logging.info(f'Starting app on {device["model"]} | ({device["serial"]})')
             try:
-                subprocess.run([
-                    'adb', '-s', device['serial'], 'shell', 'am', 'start',
-                    '-n', f'{package_name}/{activity_class}',
-                ], timeout=60)
+                am_cmd = (
+                    ['cmd.exe', '/c', win_path, '-s', device['serial'], 'shell', 'am', 'start',
+                     '-n', f'{package_name}/{activity_class}']
+                    if win_path else
+                    ['adb', '-s', device['serial'], 'shell', 'am', 'start',
+                     '-n', f'{package_name}/{activity_class}']
+                )
+                subprocess.run(am_cmd, timeout=60)
                 print(f"\n{green}[kivy-reloader] APK installed. Next run: 'uv run kivy-reloader run' (hot-reload, no recompile).{Style.RESET_ALL}") 
                 print(f"{green}                Recompile only when: Python deps change · native/gradle config changes · clean slate needed.{Style.RESET_ALL}\n")
             except subprocess.TimeoutExpired:
                 logging.warning('am start timed out - app may still have launched, continuing...')
-
-
         except subprocess.TimeoutExpired:
-            logging.error(f'adb install TIMED OUT after 120s for {device["serial"]}')
+            logging.error(f'adb deploy step TIMED OUT for {device["serial"]} (install, uninstall, or port-wait)')
             return
         except subprocess.CalledProcessError as e:
             logging.error(f'adb install FAILED: {e.stderr}')
