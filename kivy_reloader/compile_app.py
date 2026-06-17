@@ -1606,7 +1606,7 @@ def enable_tcpip_for_devices(usb_devices: list) -> list:
         subprocess.run(tcpip_command, check=True)
 
         # Wait for ADB to restart after tcpip
-        if not wait_for_adb_online(usb_serial):
+        if not wait_for_adb_online(usb_serial, timeout=60):
             logging.error(f"ADB did not come back online after tcpip for {usb_serial}")
             return []
         logging.info(f"wait_for_adb_online passed, {usb_serial}")
