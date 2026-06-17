@@ -739,7 +739,7 @@ NOTE: I always test if desktop edits push through the instant I run desktop app.
 - ✅ win10 ksproject flightdeck USB(TURN OFF PHONE WIFI) uv run kivy-reloader run > uv run main.py
 - ✅ win10 ksproject flightdeck USB(TURN OFF PHONE WIFI) uv run main.py > uv run kivy-reloader run (should wait for timeout depending on hot reload value in kivy reloader toml)
 - ✅ win10 ksproject flightdeck WIFI uv run kivy-reloader run > uv run main.py
--  win10 ksproject flightdeck WIFI uv run main.py > uv run kivy-reloader run (should wait for timeout depending on hot reload value in kivy reloader toml)
+- ✅ win10 ksproject flightdeck WIFI uv run main.py > uv run kivy-reloader run (should wait for timeout depending on hot reload value in kivy reloader toml)
 
 - 📋 TEST USED: "how to run kivy-reloader default buildozer test"
 - CHECKED STATUS SCREEN ON WIN 11 WSL2
