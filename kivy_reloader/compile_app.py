@@ -806,12 +806,14 @@ def deploy_app_to_devices(target_devices, apk_file_path, package_name, activity_
         try:
             print("in wsl or not?", in_wsl())
             if is_ksproject:
-                # Force-stop old process so it releases port 8050 before new APK installs
                 logging.info(f'Force-stopping old app on {device["model"]} | ({device["serial"]})')
-                subprocess.run(
-                    ['adb', '-s', device['serial'], 'shell', 'am', 'force-stop', package_name],
-                    timeout=10
-                )
+                try:
+                    subprocess.run(
+                        ['adb', '-s', device['serial'], 'shell', 'am', 'force-stop', package_name],
+                        timeout=15
+                    )
+                except subprocess.TimeoutExpired:
+                    logging.warning('force-stop timed out, continuing with install...')
                 # # Uninstall first to clear extracted Python asset cache on Android
                 # subprocess.run(
                 #     ['adb', '-s', device['serial'], 'uninstall', package_name],
@@ -858,6 +860,8 @@ def deploy_app_to_devices(target_devices, apk_file_path, package_name, activity_
                     'adb', '-s', device['serial'], 'shell', 'am', 'start',
                     '-n', f'{package_name}/{activity_class}',
                 ], timeout=60)
+                print(f"\n{green}[kivy-reloader] APK installed. Next run: 'uv run kivy-reloader run' (hot-reload, no recompile).{Style.RESET_ALL}") 
+                print(f"{green}                Recompile only when: Python deps change · native/gradle config changes · clean slate needed.{Style.RESET_ALL}\n")
             except subprocess.TimeoutExpired:
                 logging.warning('am start timed out - app may still have launched, continuing...')
 
@@ -1098,8 +1102,7 @@ def compile_app(buildozer_compiled: Event = None):
         activity_class='.MainActivity' if _is_ksp else 'org.kivy.android.PythonActivity',
         is_ksproject=_is_ksp,
     )
-    print(f"\n{green}[kivy-reloader] APK installed. Next run: 'uv run kivy-reloader run' (hot-reload, no recompile).{Style.RESET_ALL}")
-    print(f"{green}                Recompile only when: Python deps change · native/gradle config changes · clean slate needed.{Style.RESET_ALL}\n")
+
 
 
     buildozer_compiled.set()
