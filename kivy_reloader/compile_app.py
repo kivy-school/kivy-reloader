@@ -854,7 +854,9 @@ def deploy_app_to_devices(target_devices, apk_file_path, package_name, activity_
                 logging.error(f'Install failed: {result.stdout} {result.stderr}')
                 return
 
+            time.sleep(2)  # let Android finish post-install package registration before am start
             logging.info(f'Starting app on {device["model"]} | ({device["serial"]})')
+
             try:
                 am_cmd = (
                     ['cmd.exe', '/c', win_path, '-s', device['serial'], 'shell', 'am', 'start',

@@ -805,6 +805,7 @@ kivy-reloader:
 - added exit option to cli
 - made sure scrcpy daemon actually terminates on cli/flightdeck exit
 - made android app more robust by asking sys .__main__ instead of assuming main since ksproject uses app and some -m construction to run their apps
+- fixed kivy-reloader with ksproject failing to launch the pythonactivity a 2nd time on 2nd run of build+deploy
 
 kivy reloader flightdeck (renamed from ConfigGUI):
 - flightdeck auto spawn on CLI open has a toggle on main screen
