@@ -733,25 +733,29 @@ NOTE: I always test if desktop edits push through the instant I run desktop app.
 - ✅ win10 buildozer flightdeck USB(TURN OFF PHONE WIFI) uv run main.py > uv run kivy-reloader run 
 (rebuilt here ~39e0d2647d9eeaae)
 - ✅ win10 buildozer flightdeck WIFI uv run kivy-reloader run > uv run main.py
+(turn off phone app here)
 - ✅ win10 buildozer flightdeck WIFI uv run main.py > uv run kivy-reloader run (should wait for timeout depending on hot reload value in kivy reloader toml)
 
 - 📋 TEST USED: "how to run kivy-reloader default ksproject test with fixed trio wheel from psychowasp"
 - ✅ win10 ksproject flightdeck USB(TURN OFF PHONE WIFI) uv run kivy-reloader run > uv run main.py
 - ✅ win10 ksproject flightdeck USB(TURN OFF PHONE WIFI) uv run main.py > uv run kivy-reloader run (should wait for timeout depending on hot reload value in kivy reloader toml)
 - ✅ win10 ksproject flightdeck WIFI uv run kivy-reloader run > uv run main.py
+(turn off phone app here)
 - ✅ win10 ksproject flightdeck WIFI uv run main.py > uv run kivy-reloader run (should wait for timeout depending on hot reload value in kivy reloader toml)
 
 - 📋 TEST USED: "how to run kivy-reloader default buildozer test"
 - CHECKED STATUS SCREEN ON WIN 11 WSL2
-- win11 buildozer flightdeck USB(TURN OFF PHONE WIFI) uv run kivy-reloader run > uv run main.py
-- win11 buildozer flightdeck USB(TURN OFF PHONE WIFI) uv run main.py > uv run kivy-reloader run (should wait for timeout depending on hot reload value in kivy reloader toml)
-- win11 buildozer flightdeck WIFI uv run kivy-reloader run > uv run main.py
-- win11 buildozer flightdeck WIFI uv run main.py > uv run kivy-reloader run (should wait for timeout depending on hot reload value in kivy reloader toml)
+- ✅ win11 buildozer flightdeck USB(TURN OFF PHONE WIFI) uv run kivy-reloader run > uv run main.py
+- ✅ win11 buildozer flightdeck USB(TURN OFF PHONE WIFI) uv run main.py > uv run kivy-reloader run (should wait for timeout depending on hot reload value in kivy reloader toml)
+- ✅ win11 buildozer flightdeck WIFI uv run kivy-reloader run > uv run main.py
+(turn off phone app here)
+- ✅ win11 buildozer flightdeck WIFI uv run main.py > uv run kivy-reloader run (should wait for timeout depending on hot reload value in kivy reloader toml)
 
 - 📋 TEST USED: "how to run kivy-reloader default ksproject test with fixed trio wheel from psychowasp"
 - win11 ksproject USB(TURN OFF PHONE WIFI) uv run kivy-reloader run > uv run main.py
 - win11 ksproject USB(TURN OFF PHONE WIFI) uv run main.py > uv run kivy-reloader run (should wait for timeout depending on hot reload value in kivy reloader toml)
 - win11 ksproject WIFI uv run kivy-reloader run > uv run main.py
+(turn off phone app here)
 - win11 ksproject WIFI uv run main.py > uv run kivy-reloader run (should wait for timeout depending on hot reload value in kivy reloader toml)
 
 - 📋 TEST USED: "how to run kivy-reloader default buildozer test"
@@ -759,11 +763,13 @@ NOTE: I always test if desktop edits push through the instant I run desktop app.
 - mac buildozer USB(TURN OFF PHONE WIFI) uv run kivy-reloader run > uv run main.py
 - mac buildozer USB(TURN OFF PHONE WIFI) uv run main.py > uv run kivy-reloader run (should wait for timeout depending on hot reload value in kivy reloader toml)
 - mac buildozer WIFI uv run kivy-reloader run > uv run main.py
+(turn off phone app here)
 - mac buildozer WIFI uv run main.py > uv run kivy-reloader run (should wait for timeout depending on hot reload value in kivy reloader toml)
 
 - 📋 TEST USED: "how to run kivy-reloader default ksproject test with fixed trio wheel from psychowasp"
 - mac ksproject USB(TURN OFF PHONE WIFI) uv run kivy-reloader run > uv run main.py
 - mac ksproject USB(TURN OFF PHONE WIFI) uv run main.py > uv run kivy-reloader run (should wait for timeout depending on hot reload value in kivy reloader toml)
+(turn off phone app here)
 - mac ksproject WIFI uv run kivy-reloader run > uv run main.py
 - mac ksproject WIFI uv run main.py > uv run kivy-reloader run (should wait for timeout depending on hot reload value in kivy reloader toml)
 
