@@ -752,11 +752,11 @@ NOTE: I always test if desktop edits push through the instant I run desktop app.
 - ✅ win11 buildozer flightdeck WIFI uv run main.py > uv run kivy-reloader run (should wait for timeout depending on hot reload value in kivy reloader toml)
 
 - 📋 TEST USED: "how to run kivy-reloader default ksproject test with fixed trio wheel from psychowasp"
-- win11 ksproject USB(TURN OFF PHONE WIFI) uv run kivy-reloader run > uv run main.py
-- win11 ksproject USB(TURN OFF PHONE WIFI) uv run main.py > uv run kivy-reloader run (should wait for timeout depending on hot reload value in kivy reloader toml)
-- win11 ksproject WIFI uv run kivy-reloader run > uv run main.py
+- ✅ win11 ksproject USB(TURN OFF PHONE WIFI) uv run kivy-reloader run > uv run main.py
+- ✅ win11 ksproject USB(TURN OFF PHONE WIFI) uv run main.py > uv run kivy-reloader run (should wait for timeout depending on hot reload value in kivy reloader toml)
+- ✅ win11 ksproject WIFI uv run kivy-reloader run > uv run main.py
 (turn off phone app here)
-- win11 ksproject WIFI uv run main.py > uv run kivy-reloader run (should wait for timeout depending on hot reload value in kivy reloader toml)
+- ✅ win11 ksproject WIFI uv run main.py > uv run kivy-reloader run (should wait for timeout depending on hot reload value in kivy reloader toml)
 
 - 📋 TEST USED: "how to run kivy-reloader default buildozer test"
 - CHECKED STATUS SCREEN ON MAC
@@ -989,6 +989,13 @@ uv sync
 uv add "kivy>=2.3.1" "git+https://github.com/kivy-school/kivy-reloader@macfix_gaimwsl"
 uv add --dev "kivy-reloader[desktop]"
 uv run kivy-reloader init project
+
+# TO ADD AS EDITABLE INSTALL
+git clone --branch macfix_gaimwsl https://github.com/kivy-school/kivy-reloader myapp/kivy-reloader
+uv add "kivy>=2.3.1"
+uv add --dev --editable "./myapp/kivy-reloader[desktop]"
+uv run kivy-reloader init project
+
 
 7. Run on desktop
 
