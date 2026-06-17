@@ -760,18 +760,18 @@ NOTE: I always test if desktop edits push through the instant I run desktop app.
 
 - 📋 TEST USED: "how to run kivy-reloader default buildozer test"
 - CHECKED STATUS SCREEN ON MAC
-- mac buildozer USB(TURN OFF PHONE WIFI) uv run kivy-reloader run > uv run main.py
-- mac buildozer USB(TURN OFF PHONE WIFI) uv run main.py > uv run kivy-reloader run (should wait for timeout depending on hot reload value in kivy reloader toml)
-- mac buildozer WIFI uv run kivy-reloader run > uv run main.py
+- ✅ mac buildozer USB(TURN OFF PHONE WIFI) uv run kivy-reloader run > uv run main.py
+- ✅ mac buildozer USB(TURN OFF PHONE WIFI) uv run main.py > uv run kivy-reloader run (should wait for timeout depending on hot reload value in kivy reloader toml)
+- ✅ mac buildozer WIFI uv run kivy-reloader run > uv run main.py
 (turn off phone app here)
-- mac buildozer WIFI uv run main.py > uv run kivy-reloader run (should wait for timeout depending on hot reload value in kivy reloader toml)
+- ✅ mac buildozer WIFI uv run main.py > uv run kivy-reloader run (should wait for timeout depending on hot reload value in kivy reloader toml)
 
 - 📋 TEST USED: "how to run kivy-reloader default ksproject test with fixed trio wheel from psychowasp"
-- mac ksproject USB(TURN OFF PHONE WIFI) uv run kivy-reloader run > uv run main.py
-- mac ksproject USB(TURN OFF PHONE WIFI) uv run main.py > uv run kivy-reloader run (should wait for timeout depending on hot reload value in kivy reloader toml)
+- ✅ mac ksproject USB(TURN OFF PHONE WIFI) uv run kivy-reloader run > uv run main.py
+- ✅ mac ksproject USB(TURN OFF PHONE WIFI) uv run main.py > uv run kivy-reloader run (should wait for timeout depending on hot reload value in kivy reloader toml)
 (turn off phone app here)
-- mac ksproject WIFI uv run kivy-reloader run > uv run main.py
-- mac ksproject WIFI uv run main.py > uv run kivy-reloader run (should wait for timeout depending on hot reload value in kivy reloader toml)
+- ✅ mac ksproject WIFI uv run kivy-reloader run > uv run main.py
+- ✅ mac ksproject WIFI uv run main.py > uv run kivy-reloader run (should wait for timeout depending on hot reload value in kivy reloader toml)
 
 
 
