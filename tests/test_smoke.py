@@ -8,8 +8,11 @@ import os
 import subprocess
 import sys
 import tempfile
+import textwrap
 import time
 from pathlib import Path
+
+from kivy_reloader.bootstrap import scaffold_hello_world
 
 TARGET = "HELLO_WORLD_STARTED"
 TIMEOUT = 30
@@ -22,7 +25,6 @@ def main():
         original_dir = os.getcwd()
         os.chdir(tmpdir)
         try:
-            from kivy_reloader.bootstrap import scaffold_hello_world
             scaffold_hello_world()
         finally:
             os.chdir(original_dir)
@@ -32,7 +34,6 @@ def main():
             return 1
 
         # Patch app.py to print the sentinel and self-stop
-        import textwrap
         (Path(tmpdir) / "hello_world" / "app.py").write_text(textwrap.dedent("""\
             from kivy_reloader.app import App
             from hello_world.screens.main_screen import MainScreen

@@ -315,9 +315,9 @@ class CoreScreen(Screen):
             if sys.platform == 'win32':
                 os.startfile(folder)
             elif sys.platform == 'darwin':
-                subprocess.run(['open', folder])
+                subprocess.run(['open', folder], check=False)
             else:
-                subprocess.run(['xdg-open', folder])
+                subprocess.run(['xdg-open', folder], check=False)
 
         popup = ConfirmPopup(
             title='Export Successful',

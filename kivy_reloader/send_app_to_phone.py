@@ -36,7 +36,7 @@ async def connect_to_server(IP):
         try:
             # print(f'Connecting to IP: {green}{IP}{white} and PORT: {green}{PORT}')
             # Attempt the connection with a 5s window
-            with trio.move_on_after(5) as cancel_scope:
+            with trio.move_on_after(5):
                 client_socket = await trio.open_tcp_stream(IP, PORT)
                 print(f' {green}connected!')
                 return client_socket  # SUCCESS: Return the socket
@@ -230,7 +230,7 @@ def check_adb_context():
         print(f"ADB check failed: {e}")
 
 
-async def send_app():
+async def send_app():  # noqa:PLR0914
     print('*' * 50)
     print(green + 'Connecting to smartphone...')
 

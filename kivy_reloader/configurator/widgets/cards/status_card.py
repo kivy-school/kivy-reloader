@@ -126,7 +126,7 @@ class StatusCard(BoxLayout):
         from kivy_reloader.configurator.status_checks import format_report
         if text is None:
             text = format_report(self._last_results, self._last_config_path)
-        from kivy_reloader.configurator.status_checks import (
+        from kivy_reloader.configurator.status_checks import (  # noqa: PLC2701
             _get_windows_home,
             detect_os,
         )

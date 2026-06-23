@@ -12,13 +12,15 @@ import tempfile
 import time
 from pathlib import Path
 
+from kivy_reloader.bootstrap import scaffold_hello_world
+
 STARTUP_MARKER = "Starting Async Kivy app"
 RELOAD_MARKER = "Rebuilding the application"
 TIMEOUT_STARTUP = 30
 TIMEOUT_RELOAD = 20
 
 
-def main():
+def main():  # noqa: PLR0915
     with tempfile.TemporaryDirectory(prefix="kivy_hot_reload_") as tmpdir:
         tmppath = Path(tmpdir)
         print(f"Scaffolding in {tmpdir}...")
@@ -26,7 +28,6 @@ def main():
         original_dir = os.getcwd()
         os.chdir(tmpdir)
         try:
-            from kivy_reloader.bootstrap import scaffold_hello_world
             scaffold_hello_world()
         finally:
             os.chdir(original_dir)
@@ -51,7 +52,7 @@ def main():
         # Phase 1: wait for startup
         started = False
         deadline = time.monotonic() + TIMEOUT_STARTUP
-        try:
+        try:  # noqa: PLW0717
             while time.monotonic() < deadline:
                 if proc.poll() is not None:
                     break
@@ -67,7 +68,7 @@ def main():
         if not started:
             proc.terminate()
             proc.wait(timeout=5)
-            print(f"\nHOT-RELOAD TEST FAILED: '{STARTUP_MARKER}' not found within {TIMEOUT_STARTUP}s")
+            print(f"\nHOT-RELOAD TEST FAILED: '{STARTUP_MARKER}' not found within {TIMEOUT_STARTUP}s")  # noqa: E501
             return 1
 
         # Give watchdog a moment to register file watches
@@ -102,7 +103,7 @@ def main():
         print(f"\nHOT-RELOAD TEST PASSED: detected '{RELOAD_MARKER}'")
         return 0
 
-    print(f"\nHOT-RELOAD TEST FAILED: '{RELOAD_MARKER}' not found within {TIMEOUT_RELOAD}s")
+    print(f"\nHOT-RELOAD TEST FAILED: '{RELOAD_MARKER}' not found within {TIMEOUT_RELOAD}s")  # noqa: E501
     return 1
 
 

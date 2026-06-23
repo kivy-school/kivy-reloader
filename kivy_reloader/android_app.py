@@ -750,7 +750,7 @@ class AndroidApp(BaseReloaderApp, KivyApp):
         Logger.info('Reloader: CHANGE IS LIVE FOR TESTING USB CONNECTION')
         Logger.info('Reloader: ************** SERVER **************')
         Logger.info('Reloader: Server started: receiving data from computer...')
-        try:
+        try:  # noqa: PLR1702
             # Wrap everything in an extra try/except specifically for stream issues
             async with data_stream:
                 Logger.info('Reloader: Server started: receiving data...')

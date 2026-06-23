@@ -14,13 +14,13 @@ if '-m' in sys.argv:
         sys.argv.pop(_m_idx + 1)
         sys.argv.pop(_m_idx)
 
-import json
-import re
-from datetime import datetime
+import json  # noqa:E402
+import re  # noqa:E402
+from datetime import datetime  # noqa:E402
 
-from colorama import Fore, init
+from colorama import Fore, init  # noqa:E402
 
-from . import __version__ as _kl_version
+from . import __version__ as _kl_version  # noqa:E402
 
 yellow = Fore.YELLOW
 green = Fore.GREEN
@@ -67,7 +67,7 @@ def create_settings_file():
 
     # if 'kivy-reloader.toml' in files_in_base_dir:
     if (Path(base_dir) / 'kivy-reloader.toml').exists():
-    # if 'kivy-reloader.toml' in files_in_base_dir:
+        # if 'kivy-reloader.toml' in files_in_base_dir:
         template_path = Path(base_dir) / 'kivy-reloader-template.toml'
         if template_path.exists():
             klprint('kivy-reloader-template.toml already exists, skipping')
@@ -205,7 +205,7 @@ def _detect_ksproject():
         return False, None
 
 
-def _scaffold_hello_world_ksproject(module_name: str):
+def _scaffold_hello_world_ksproject(module_name: str):  # noqa:PLR0914
     """
     Scaffold kivy-reloader hello world into an existing ksproject project.
     Targets src/<module_name>/ instead of hello_world/.
@@ -242,7 +242,7 @@ class MainScreen(BoxLayout):
     orientation: 'vertical'
     padding: dp(24)
     spacing: dp(20)
-    
+
     # Background Canvas
     canvas.before:
         Color:
@@ -256,7 +256,7 @@ class MainScreen(BoxLayout):
         orientation: 'vertical'
         size_hint_y: 0.3
         spacing: dp(8)
-        
+
         Label:
             text: "Welcome to Kivy"
             font_size: '28sp'
@@ -264,7 +264,7 @@ class MainScreen(BoxLayout):
             color: (1, 1, 1, 1)
             halign: 'center'
             valign: 'middle'
-            
+
         Label:
             id: subtitle_label
             text: "Your journey into cross-platform UI begins here."
@@ -310,7 +310,6 @@ class MainScreen(BoxLayout):
         size_hint_y: 0.3
         gravity: 'center'
         padding: [0, dp(40), 0, 0]
-        
         Button:
             id: action_btn
             text: "Get Started"
@@ -321,7 +320,6 @@ class MainScreen(BoxLayout):
             background_color: (0, 0, 0, 0) # Remove default background to style with canvas
             color: (1, 1, 1, 1)
             on_press: root.on_button_click()
-            
             canvas.before:
                 Color:
                     rgba: (0.29, 0.69, 0.31, 1) if self.state == 'normal' else (0.22, 0.53, 0.24, 1)

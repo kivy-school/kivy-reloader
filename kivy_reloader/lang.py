@@ -92,7 +92,7 @@ def load_kv_path(path: str, encoding='utf8', **kwargs):
     # If no exact match, the KV may have been loaded from a different root
     # (e.g. site-packages on Android while hot reload delivers to CWD).
     # Use sys.modules to find the module that owns this KV and unload its copy.
-    if not unloaded:
+    if not unloaded:  # noqa: PLR1702
         try:
             base_resolved = str(pathlib.Path(base_dir).resolve())
             rel_kv = str(pathlib.Path(kv_path).relative_to(base_resolved))

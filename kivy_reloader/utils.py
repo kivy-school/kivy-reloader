@@ -110,7 +110,7 @@ def get_auto_reloader_paths():
     else:
         recursive_tuples = create_path_tuples(recursive_paths, True)
 
-    from kivy.utils import platform
+    from kivy.utils import platform  # noqa: PLC0415
 
     if platform == 'win':
         return create_path_tuples(non_recursive_paths, False) + recursive_tuples
@@ -370,8 +370,8 @@ def _parse_ip_output(output: str, serial: str) -> Optional[str]:
     current_interface = None
     current_flags = ''
 
-    for line in lines:
-        line = line.strip()
+    for raw_line in lines:
+        line = raw_line.strip()
 
         # Match interface definition line (e.g., "34: wlan1: <BROADCAST,MULTICAST,UP,LOWER_UP>")
         interface_match = re.match(r'\d+:\s+(\S+):\s+<([^>]*)>', line)
@@ -603,7 +603,7 @@ def adb_forward(port: int, serial: str = None) -> int:
         cmd = ["adb", "forward", f"tcp:{port}", f"tcp:{port}"]
     logging.info(" ".join(cmd))
     try:
-        result = subprocess.run(cmd, timeout=10)
+        result = subprocess.run(cmd, timeout=10, check=False)
         return result.returncode
     except subprocess.TimeoutExpired:
         logging.warning("adb forward timed out after 10s")
@@ -621,6 +621,7 @@ def adb_has_forward(port: int) -> bool:
             capture_output=True,
             text=True,
             timeout=5,
+            check=False,
         )
 
         for line in result.stdout.lower().splitlines():
@@ -644,12 +645,12 @@ def is_adb_listening(host="127.0.0.1", timeout=10.0) -> bool:
     """
     if in_wsl():
         try:
-            adb_path = get_adb_windows_path()  # your existing helper
             result = subprocess.run(
                 ["cmd.exe", "/c", "adb.exe", "start-server"],
                 capture_output=True,
                 text=True,
                 timeout=10,
+                check=False
             )
             return result.returncode == 0
         except (subprocess.TimeoutExpired, FileNotFoundError):
@@ -691,7 +692,7 @@ def get_wsl_nameservers():
     Returns the Windows Host IP by checking the default route.
     Fallback to /etc/resolv.conf if routing table is unavailable.
     """
-    try:
+    try:  # noqa: PLR1702
         if not in_wsl():
             return []
         # Method 1: Get IP from the default gateway (Best for WSL2)
@@ -708,7 +709,7 @@ def get_wsl_nameservers():
         # Method 2: Fallback to nameserver in resolv.conf
         try:
             if os.path.exists("/etc/resolv.conf"):
-                with open("/etc/resolv.conf", "r") as f:
+                with open("/etc/resolv.conf", "r", encoding="utf-8") as f:
                     for line in f:
                         if line.strip().startswith("nameserver"):
                             return [line.split()[1].strip()]
@@ -749,7 +750,7 @@ def get_adb_windows_path():
     """Extract the adb.exe path from the bash alias in .bashrc"""
     bashrc = os.path.expanduser("~/.bashrc")
     try:
-        with open(bashrc) as f:
+        with open(bashrc, encoding="utf-8") as f:
             for line in f:
                 # matches: alias adb='/mnt/c/.../adb.exe'
                 match = re.search(r"alias adb=['\"](.+?)['\"]", line)
@@ -850,7 +851,7 @@ async def fix_wsl():
     print(f"{green}Tunnel reset complete.")
 
 
-async def run_wsl_firewall_fix(port=8055):
+async def run_wsl_firewall_fix(port=8055):  # noqa: PLR0914
     try:
         # 1. Get the IP and convert to /20 subnet range
         ip_data = subprocess.check_output(["ip", "-o", "-4", "addr", "show", "eth0"]).decode()
@@ -921,7 +922,7 @@ async def run_wsl_firewall_fix(port=8055):
             )
         ]
 
-        check_result = subprocess.run(check_cmd, capture_output=True, text=True)
+        check_result = subprocess.run(check_cmd, capture_output=True, text=True, check=False)
         output = check_result.stdout.strip()
         print(f"RAW OUTPUT: {repr(output)}")
 
@@ -930,7 +931,7 @@ async def run_wsl_firewall_fix(port=8055):
 
         proxy_result = subprocess.run(
             ["netsh.exe", "interface", "portproxy", "show", "v4tov4"],
-            capture_output=True, text=True
+            capture_output=True, text=True, check=False
         )
         portproxy_exists = any(
             gateway in line and str(port) in line

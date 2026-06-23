@@ -31,7 +31,7 @@ def detect_os() -> str:
     if sys.platform == 'win32':
         return 'windows'
     try:
-        version = Path('/proc/version').read_text().lower()
+        version = Path('/proc/version').read_text(encoding='utf-8').lower()
         if 'microsoft' in version:
             return 'wsl2'
     except Exception:
@@ -41,7 +41,7 @@ def detect_os() -> str:
 
 def _run(cmd: list[str], timeout: int = 5) -> tuple[int, str]:
     try:
-        r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, check=False)
         return r.returncode, (r.stdout + r.stderr).strip()
     except Exception as e:
         return -1, str(e)
@@ -157,7 +157,7 @@ def check_wsl2_adb_nodaemon() -> CheckResult:
     try:
         result = subprocess.run(
             ['cmd.exe', '/c', 'wmic process where "name=\'adb.exe\'" get CommandLine'],
-            capture_output=True, text=True, timeout=5,
+            capture_output=True, text=True, timeout=5, check=False
         )
         cmdlines = result.stdout.lower()
         if '-a' in cmdlines and 'nodaemon' in cmdlines and 'server' in cmdlines:
@@ -172,7 +172,7 @@ def check_wsl2_adb_listening() -> CheckResult:
     try:
         result = subprocess.run(
             ['cmd.exe', '/c', 'adb.exe', 'start-server'],
-            capture_output=True, text=True, timeout=10,
+            capture_output=True, text=True, timeout=10, check=False
         )
         if result.returncode == 0:
             return CheckResult('ADB server listening', Status.OK, 'adb.exe start-server OK ✓')
@@ -190,7 +190,7 @@ def check_wsl2_adb_forward(config_path: Path | None = None) -> CheckResult:
     try:
         result = subprocess.run(
             ['cmd.exe', '/c', 'adb.exe', 'forward', '--list'],
-            capture_output=True, text=True, timeout=5,
+            capture_output=True, text=True, timeout=5, check=False,
         )
         for line in result.stdout.lower().splitlines():
             if pattern.search(line):
@@ -217,14 +217,14 @@ def check_adb_device() -> CheckResult:
     rc, out = _run(['adb', 'devices'])
     if rc != 0:
         return CheckResult('ADB device', Status.FAIL, 'adb devices failed')
-    lines = [l for l in out.splitlines()[1:] if l.strip()]
+    lines = [l for l in out.splitlines()[1:] if l.strip()]  # noqa:E741
     if not lines:
         return CheckResult('ADB device', Status.FAIL, 'No devices connected')
-    unauthorized = [l for l in lines if 'unauthorized' in l]
+    unauthorized = [l for l in lines if 'unauthorized' in l]  # noqa:E741
     if unauthorized:
         return CheckResult('ADB device', Status.WARN,
                            f'{len(unauthorized)} device(s) unauthorized — allow USB debugging on phone')
-    devices = [l.split('\t')[0] for l in lines if 'device' in l]
+    devices = [l.split('\t')[0] for l in lines if 'device' in l]  # noqa:E741
     return CheckResult('ADB device', Status.OK, '  '.join(devices))
 
 
@@ -234,8 +234,8 @@ def get_connected_devices() -> list[dict]:
     if rc != 0:
         return []
     results = []
-    for line in out.splitlines()[1:]:
-        line = line.strip()
+    for raw_line in out.splitlines()[1:]:
+        line = raw_line.strip()
         if not line:
             continue
         parts = line.split()
@@ -280,7 +280,7 @@ def check_stream_using(config_path: Path | None = None) -> CheckResult:
     val = _read_stream_using(config_path)
     if val is None:
         return CheckResult('STREAM_USING', Status.WARN, 'toml missing or unreadable')
-    return CheckResult('STREAM_USING', Status.OK if val in ('WIFI', 'USB') else Status.WARN, val)
+    return CheckResult('STREAM_USING', Status.OK if val in {'WIFI', 'USB'} else Status.WARN, val)
 
 
 # ── Connectivity ──────────────────────────────────────────────────────────────

@@ -25,10 +25,10 @@ _STATIC_COMMANDS = [
 def _stream_proc_output(proc):
     from kivy.clock import Clock
     try:
-        for line in proc.stdout:
-            line = line.rstrip('\n')
+        for raw_line in proc.stdout:
+            line = raw_line.rstrip('\n')
             if line:
-                Clock.schedule_once(lambda dt, l=line: EventBus.emit('logcat_line', line=l))
+                Clock.schedule_once(lambda dt, l=line: EventBus.emit('logcat_line', line=l))  # noqa:E741
     except Exception:
         pass
 
@@ -200,9 +200,11 @@ class QuickCommandsCard(BoxLayout):
 
     def _on_set_config(self, key, value, **kwargs):
         # normalize booleans stored as strings
-        if value in ('True', 'true'): value = True
-        elif value in ('False', 'false'): value = False
+        if value in {'True', 'true'}:
+            value = True
+        elif value in {'False', 'false'}:
+            value = False
         prop = key.lower()
         if hasattr(self, prop):
-            setattr(self, prop, prop_val := value)
+            setattr(self, prop, value)
         self._save(key, value)

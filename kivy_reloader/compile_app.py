@@ -542,7 +542,7 @@ def wait_for_ip_authorization(ip_with_port: str, timeout=30) -> bool:
     import time
     start = time.time()
     while time.time() - start < timeout:
-        result = subprocess.run(['adb', 'devices'], capture_output=True, text=True)
+        result = subprocess.run(['adb', 'devices'], capture_output=True, text=True, check=False)
         for line in result.stdout.splitlines():
             if ip_with_port in line and 'device' in line and 'unauthorized' not in line:
                 logging.info(f'{ip_with_port} authorized!')
@@ -593,7 +593,7 @@ def terminate_processes(*processes) -> None:
 
 def cleanup_background_processes() -> None:
     """Terminate any in-flight debug/livestream processes, including their subprocess trees."""
-    global _debug_proc, _scrcpy_proc
+    global _debug_proc, _scrcpy_proc  # noqa:PLW0603
     terminate_processes(_debug_proc, _scrcpy_proc)
     _debug_proc = None
     _scrcpy_proc = None
@@ -805,7 +805,7 @@ def deploy_app_to_devices(target_devices, apk_file_path, package_name, activity_
             if win_path:
                 return subprocess.run(
                     ['cmd.exe', '/c', win_path, '-s', serial, 'install'] + flags + [win_apk_path],
-                    timeout=120, capture_output=True, text=True,
+                    timeout=120, capture_output=True, text=True, check=False
                 )
             return subprocess.run(
                 ['adb', '-s', serial, 'install'] + flags + [apk_file_path],
@@ -819,7 +819,7 @@ def deploy_app_to_devices(target_devices, apk_file_path, package_name, activity_
                 try:
                     subprocess.run(
                         ['adb', '-s', device['serial'], 'shell', 'am', 'force-stop', package_name],
-                        timeout=15
+                        timeout=15, check=False
                     )
                 except subprocess.TimeoutExpired:
                     logging.warning('force-stop timed out, continuing with install...')
@@ -832,7 +832,7 @@ def deploy_app_to_devices(target_devices, apk_file_path, package_name, activity_
                 logging.info(f'Starting adb uninstall for {package_name}...')
                 subprocess.run(
                     ['adb', '-s', device['serial'], 'uninstall', package_name],
-                    timeout=30, capture_output=True
+                    timeout=30, capture_output=True, check=False
                 )
                 logging.info('adb uninstall returned')
                 _sigkill_old_app(device['serial'], package_name)
@@ -853,7 +853,7 @@ def deploy_app_to_devices(target_devices, apk_file_path, package_name, activity_
                 print(f'{yellow}⚠️  Signature mismatch on {device["model"]}. Uninstalling old version...{Style.RESET_ALL}')
                 subprocess.run(
                     ['adb', '-s', device['serial'], 'uninstall', package_name],
-                    timeout=30, capture_output=True
+                    timeout=30, capture_output=True, check=False
                 )
                 result = _do_install(device['serial'], reinstall=False)
                 logging.info(f'Retry stdout: {result.stdout.strip()}')
@@ -874,7 +874,7 @@ def deploy_app_to_devices(target_devices, apk_file_path, package_name, activity_
                     ['adb', '-s', device['serial'], 'shell', 'am', 'start',
                      '-n', f'{package_name}/{activity_class}']
                 )
-                result_start = subprocess.run(am_cmd, timeout=60, capture_output=True, text=True)
+                result_start = subprocess.run(am_cmd, timeout=60, capture_output=True, text=True, check=False)
                 logging.info(f'am start stdout: {result_start.stdout.strip()!r}')
                 logging.info(f'am start stderr: {result_start.stderr.strip()!r}')
                 logging.info(f'am start returncode: {result_start.returncode}')
@@ -931,7 +931,7 @@ def _sigkill_old_app(serial: str, package_name: str) -> None:
     """Find and SIGKILL processes matching package_name via ps -A (no root needed for lookup)."""
     ps = subprocess.run(
         ['adb', '-s', serial, 'shell', 'ps', '-A'],
-        capture_output=True, text=True, timeout=10,
+        capture_output=True, text=True, timeout=10, check=False
     )
     for line in ps.stdout.splitlines():
         if package_name in line:
@@ -940,7 +940,7 @@ def _sigkill_old_app(serial: str, package_name: str) -> None:
                 pid = cols[1]
                 r = subprocess.run(
                     ['adb', '-s', serial, 'shell', 'kill', '-9', pid],
-                    capture_output=True, text=True, timeout=5,
+                    capture_output=True, text=True, timeout=5, check=False
                 )
                 logging.info(f'sigkill {pid} ({package_name}): {r.stdout.strip()!r} {r.stderr.strip()!r}')
 
@@ -955,7 +955,7 @@ def _wait_for_port_free(serial: str, port: int, timeout: int = 90, current_packa
     while time.time() < deadline:
         result = subprocess.run(
             ['adb', '-s', serial, 'shell', 'cat', '/proc/net/tcp6', '/proc/net/tcp'],
-            capture_output=True, text=True,
+            capture_output=True, text=True, check=False
         )
         listening_uids = set()
         for line in result.stdout.splitlines():
@@ -978,7 +978,7 @@ def _wait_for_port_free(serial: str, port: int, timeout: int = 90, current_packa
             pkg_result = subprocess.run(
                 ['adb', '-s', serial, 'shell',
                  f"dumpsys package | awk '/^Packages:$/{{in_pkg=1}} in_pkg && /Package \\[/{{pkg=$0}} in_pkg && /userId={uid}/{{print pkg; exit}}'"],
-                capture_output=True, text=True, timeout=10,
+                capture_output=True, text=True, timeout=10, check=False
             )
             m = _re.search(r'Package \[([^\]]+)\]', pkg_result.stdout)
             conflicting_pkg = m.group(1) if m else f'uid={uid}'
@@ -992,7 +992,7 @@ def _wait_for_port_free(serial: str, port: int, timeout: int = 90, current_packa
                 )
                 subprocess.run(
                     ['adb', '-s', serial, 'shell', 'am', 'force-stop', conflicting_pkg],
-                    timeout=10,
+                    timeout=10, check=False
                 )
                 logging.info(f'Force-stopped {conflicting_pkg} — waiting for port to release...')
                 force_stopped.add(uid)
@@ -1166,7 +1166,7 @@ def debug_and_livestream(buildozer_compiled: Event = None) -> None:
         adb_logcat.start()
         scrcpy.start()
 
-        global _debug_proc, _scrcpy_proc
+        global _debug_proc, _scrcpy_proc  # noqa:PLW0603
         _debug_proc = adb_logcat
         _scrcpy_proc = scrcpy
         try:
@@ -1223,14 +1223,14 @@ def kill_windows_adb():
         return
     result = subprocess.run(
         ["tasklist.exe", "/FI", "IMAGENAME eq adb.exe", "/NH"],
-        capture_output=True, text=True
+        capture_output=True, text=True, check=False
     )
     print(f"[kill_windows_adb] tasklist output: {result.stdout.strip()}")
     if "adb.exe" in result.stdout:
         print("[kill_windows_adb] Found adb.exe, killing...")
         kill_result = subprocess.run(
             ["taskkill.exe", "/F", "/IM", "adb.exe"],
-            capture_output=True, text=True
+            capture_output=True, text=True, check=False
         )
         print(f"[kill_windows_adb] taskkill result: {kill_result.stdout.strip()} {kill_result.stderr.strip()}")
         time.sleep(0.5)
@@ -1266,10 +1266,9 @@ def start_adb_server():
 
 
 def get_wsl_host_ip() -> str:
-    """With mirrored networking, Windows host is localhost. 
+    """With mirrored networking, Windows host is localhost.
     Fall back to nameserver parsing for NAT mode."""
     try:
-        wslconfig_path = "/mnt/c/Users/" + os.environ.get("WINDOWS_USERNAME", "") + "/.wslconfig"
         # Try current user from environment
         import pathlib
         for candidate in pathlib.Path("/mnt/c/Users").iterdir():
@@ -1293,6 +1292,7 @@ def adb_nodaemon_check():
         capture_output=True,
         text=True,
         timeout=5,
+        check=False,
     )
 
     cmdlines = result.stdout.lower()
@@ -1585,7 +1585,7 @@ def wait_for_adb_online(serial: str = None, timeout: float = 10.0) -> bool:
         # This blocks natively until the state is 'device'
         # We use a timeout at the subprocess level to avoid hanging forever
         cmd = ["adb"]
-        if serial != None:
+        if serial is not None:
             cmd += ["-s", serial]
         cmd.append("wait-for-device")
         subprocess.run(
@@ -1663,7 +1663,7 @@ def enable_tcpip_for_devices(usb_devices: list) -> list:
         logging.info(f'Connecting to {ip_with_port}')
 
         try:
-            subprocess.run(['adb', 'connect', ip_with_port])
+            subprocess.run(['adb', 'connect', ip_with_port], check=False)
             logging.info('Please tap Allow on your phone...')
             authorized = wait_for_ip_authorization(ip_with_port, timeout=30)
 
@@ -2355,7 +2355,7 @@ def start():
     This function coordinates menu display, keyboard input processing,
     option navigation, and action execution in a clean event loop.
     """
-    global selected_option
+    global selected_option  # noqa: PLW0603
 
     navigate_compiler_options()
 
