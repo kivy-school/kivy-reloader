@@ -58,6 +58,8 @@ def main():
             "KIVY_SMOKE_TEST": "1",
             "KIVY_NO_ENV_CONFIG": "1",
             "KIVY_LOG_MODE": "PYTHON",
+            "KIVY_WINDOW": "headless",
+            "USE_OPENGL_MOCK": "1",
         }
 
         proc = subprocess.Popen(
