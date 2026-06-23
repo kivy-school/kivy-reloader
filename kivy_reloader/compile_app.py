@@ -284,6 +284,7 @@ def wait_for_authorization(timeout=30):
 
     return False
 
+
 def validate_devices_connected() -> list:
     """
     Validates that devices are connected and returns them.

@@ -1,18 +1,15 @@
 
 
 import argparse
+import json
 import os
+import re
 import shutil
 import sys
+from datetime import datetime
 from pathlib import Path
 
-
-from . import __version__ as _kl_version  # noqa:E402
-
-import json # noqa:E402
-import re # noqa:E402
-from datetime import datetime # noqa:E402
-
+from . import __version__ as _kl_version
 
 _enable_inspector = False
 if '-m' in sys.argv:
@@ -77,7 +74,7 @@ def _log_command_history(command: str) -> None:
     history.append({'command': command, 'timestamp': datetime.now().isoformat()})
     history = history[-1000:]
     history_path.parent.mkdir(parents=True, exist_ok=True)
-    history_path.write_text(json.dumps(history, indent=2)) 
+    history_path.write_text(json.dumps(history, indent=2))
 
 
 def create_settings_file():
@@ -679,7 +676,7 @@ def main():
         except ModuleNotFoundError as exc:
             if exc.name not in _DESKTOP_EXTRA_IMPORTS:
                 raise
-            _raise_missing_desktop_extra(args.command, exc.name) 
+            _raise_missing_desktop_extra(args.command, exc.name)
 
         if getattr(args, 'action', None) == 'build':
             from .compile_app import compile_app, debug_and_livestream
