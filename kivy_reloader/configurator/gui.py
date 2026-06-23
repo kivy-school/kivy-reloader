@@ -5,13 +5,15 @@ with a ConfigModel and launches the configurator interface.
 """
 from __future__ import annotations
 
+import shutil
+import sys
 from pathlib import Path
 
 import trio
-
-from kivy.clock import Clock
-from kivy.core.window import Window 
 from kivy.app import App
+from kivy.clock import Clock
+from kivy.core.window import Window
+
 from kivy_reloader.configurator import config_loader
 from kivy_reloader.configurator.config_loader import merge_with_defaults
 from kivy_reloader.configurator.model import ConfigModel
@@ -20,8 +22,6 @@ from kivy_reloader.configurator.screens.core import CoreScreen
 from kivy_reloader.configurator.theme import load_theme
 from kivy_reloader.launcher import _acquire_flightdeck_lock
 
-import sys
-import shutil
 
 def run_gui(
     base: Path,
@@ -48,7 +48,7 @@ def run_gui(
                 '             Fix: sudo apt install xclip'
             )
         # Load theme colors/fonts into global_idmap
-        load_theme(dark_mode=dark_mode) 
+        load_theme(dark_mode=dark_mode)
 
         # Create backup directory
         backup_dir = base / '.kivy-reloader' / 'backups'
@@ -65,10 +65,12 @@ def run_gui(
         class ConfiguratorGUI(App):
             DEBUG = False
             RAISE_ERROR = True
+
             def __init__(self, **kwargs):
                 super().__init__(**kwargs)
                 self._dark_mode = dark_mode
-                self._base = base 
+                self._base = base
+
             def build(self):
                 config_model = create_config_model()
                 self.core_screen = CoreScreen()
@@ -76,7 +78,7 @@ def run_gui(
                 pyproject = base / 'pyproject.toml'
                 text = pyproject.read_text() if pyproject.exists() else ''
                 backend = 'ksproject' if '[tool.kivy-school]' in text else 'buildozer'
-                self.title = f'Kivy Flightdeck [{backend}]' # 🛩️ for dev, ✈️ for prod
+                self.title = f'Kivy Flightdeck [{backend}]'  # 🛩️ for dev, ✈️ for prod
                 return self.core_screen
 
             def on_start(self):
@@ -84,6 +86,7 @@ def run_gui(
                     lambda dt: setattr(self.core_screen.toolbar, 'is_dark_mode', self._dark_mode),
                     0,
                     )
+
             def toggle_dark_mode(self, current_screen):
                 self._dark_mode = not self._dark_mode
                 model = current_screen.config_model
@@ -100,7 +103,7 @@ def run_gui(
                 Clock.schedule_once(
                     lambda dt: setattr(new_screen.toolbar, 'is_dark_mode', self._dark_mode),
                     0,
-                ) 
+                )
 
         app = ConfiguratorGUI()
         trio.run(app.async_run, 'trio')
@@ -108,7 +111,6 @@ def run_gui(
         from kivy_reloader.compile_app import cleanup_background_processes
         cleanup_background_processes()
         lock.close()
-
 
 
 if __name__ == '__main__':

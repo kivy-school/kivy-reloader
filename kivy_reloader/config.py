@@ -79,7 +79,7 @@ class Config:  # noqa: PLR0904
         'uv.lock',
         'venv',
         'venv.bak',
-        'kivy-reloader', #for development and used as editable install
+        'kivy-reloader',  # for development and used as editable install
     ]
 
     def __init__(self, config_path: Union[str, Path] = None):
@@ -102,7 +102,6 @@ class Config:  # noqa: PLR0904
                 self._load_and_validate_config()
         else:
             self._handle_pyinstaller_environment()
-
 
     @staticmethod
     def _determine_config_path(config_path: Union[str, Path] = None) -> Path:
@@ -134,7 +133,6 @@ class Config:  # noqa: PLR0904
                     if candidate.exists():
                         return candidate
         return cwd_toml
-
 
     @staticmethod
     def _is_pyinstaller_environment() -> bool:
@@ -177,14 +175,13 @@ class Config:  # noqa: PLR0904
             raise ConfigurationError(f'Invalid TOML syntax in config file: {e}') from e
         except Exception as e:
             raise ConfigurationError(f'Failed to read config file: {e}') from e
-        
+
     def reload(self) -> None:
         """Re-read the TOML from disk so live edits (e.g. from FlightDeck) are picked up."""
         try:
             self._load_config()
         except Exception:
             pass
-
 
     def _validate_config(self) -> None:
         """Validate configuration values."""
@@ -385,7 +382,7 @@ class Config:  # noqa: PLR0904
     def SHOW_NOTIFICATIONS(self) -> bool:
         """Enable desktop notifications during compilation and deployment."""
         return self.get('SHOW_NOTIFICATIONS', True)
-    
+
     @property
     def PERSISTENT_FLIGHTDECK(self) -> bool:
         """Open FlightDeck configurator on startup instead of running the app directly."""
@@ -395,12 +392,11 @@ class Config:  # noqa: PLR0904
     def FLIGHTDECK_ALWAYS_ON_TOP(self) -> bool:
         return self.get('FLIGHTDECK_ALWAYS_ON_TOP', False)
 
-
     @property
     def ADB_PORT(self) -> int:
         """ADB TCP/IP port number."""
         return self.get('ADB_PORT', 5555)
-    
+
     @property
     def WIN_ADB_PORT(self) -> int:
         """ADB port on Windows (Win 10 compatibility)."""
@@ -518,7 +514,7 @@ class Config:  # noqa: PLR0904
     def RENDER_DRIVER(self) -> str:
         """SDL render driver. Use 'software' for VMs, or 'opengl'/'direct3d'/'metal'."""
         return self.get('RENDER_DRIVER', '')
-    
+
     @property
     def SCREEN_SIZE(self) -> str:
         """Simulated Android screen size for desktop testing (e.g. '360x780'). Empty = system default."""

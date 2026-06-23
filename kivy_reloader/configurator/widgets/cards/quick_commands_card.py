@@ -1,6 +1,13 @@
 import subprocess
-from kivy.properties import BooleanProperty, ListProperty, ObjectProperty, StringProperty
+
+from kivy.properties import (
+    BooleanProperty,
+    ListProperty,
+    ObjectProperty,
+    StringProperty,
+)
 from kivy.uix.boxlayout import BoxLayout
+
 from kivy_reloader.configurator.command_history import get_top, record
 from kivy_reloader.configurator.event_bus import EventBus
 from kivy_reloader.lang import Builder
@@ -13,6 +20,7 @@ _STATIC_COMMANDS = [
     {'label': 'Compile + deploy', 'command': 'uv run kivy-reloader run build'},
     {'label': 'Hot reload (debug+livestream)', 'command': 'uv run kivy-reloader run'},
 ]
+
 
 def _stream_proc_output(proc):
     from kivy.clock import Clock
@@ -46,10 +54,10 @@ class CommandButton(BoxLayout):
                 EventBus.emit('set_config', key=parts[1], value=parts[2])
             return
 
-
         import threading
-        from kivy_reloader.compile_app import select_option
+
         from kivy_reloader import config
+        from kivy_reloader.compile_app import select_option
 
         _OPTION_MAP = {
             'uv run kivy-reloader run build': '1',
@@ -82,7 +90,6 @@ class CommandButton(BoxLayout):
                 )
                 return
             threading.Thread(target=_stream_proc_output, args=(proc,), daemon=True).start()
-
 
 
 class QuickCommandsCard(BoxLayout):
@@ -141,7 +148,6 @@ class QuickCommandsCard(BoxLayout):
         EventBus.on('set_config', self._on_set_config)
         self.refresh()
 
-
     def set_period(self, period: str):
         self.active_period = period
         self.refresh()
@@ -165,7 +171,6 @@ class QuickCommandsCard(BoxLayout):
             f.unlink()
         self.refresh()
 
-
     def on_commands(self, instance, commands):
         lst = self.ids.get('command_list')
         if not lst:
@@ -180,8 +185,6 @@ class QuickCommandsCard(BoxLayout):
                 card_action_handler=self._handle_card_action,
             )
             lst.add_widget(btn)
-
-
 
     def _handle_card_action(self, action):
         for card in EventBus.get_cards().values():

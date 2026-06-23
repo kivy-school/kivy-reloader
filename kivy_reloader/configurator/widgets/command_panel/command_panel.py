@@ -1,6 +1,8 @@
 from datetime import datetime
+
 from kivy.properties import BooleanProperty, StringProperty
 from kivy.uix.boxlayout import BoxLayout
+
 from kivy_reloader.configurator.event_bus import EventBus
 from kivy_reloader.lang import Builder
 

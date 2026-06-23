@@ -1,28 +1,28 @@
+import io
 import os
 import subprocess
 import sys
 import webbrowser
 
-
 from kivy.animation import Animation
 from kivy.app import App
+from kivy.clock import Clock
 from kivy.core.window import Window
 from kivy.properties import ObjectProperty, StringProperty
-from kivy.clock import Clock
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.screenmanager import Screen
 
+from kivy_reloader.configurator.event_bus import EventBus
 from kivy_reloader.configurator.widgets.cards import (  # noqa: F401
     CoreCard,
     ServicesCard,
 )
-from kivy_reloader.configurator.widgets.command_panel import CommandPanel # noqa: F401 
+from kivy_reloader.configurator.widgets.command_panel import CommandPanel  # noqa: F401
 from kivy_reloader.configurator.widgets.common import ConfirmPopup, HelpPopup
 from kivy_reloader.configurator.widgets.sidebar import SideBar  # noqa: F401
 from kivy_reloader.configurator.widgets.toolbar import Toolbar  # noqa: F401
-from kivy_reloader.configurator.event_bus import EventBus
 from kivy_reloader.lang import Builder
-import io
+
 
 class SectionBox(BoxLayout):
     _height_ev = None
@@ -33,6 +33,7 @@ class SectionBox(BoxLayout):
         self._height_ev = Clock.schedule_once(
             lambda dt: setattr(self, 'height', self.minimum_height), 0
         )
+
 
 class _LogCapture(io.StringIO):
     def __init__(self):
@@ -46,7 +47,6 @@ class _LogCapture(io.StringIO):
 
     def flush(self):
         self._real.flush()
-
 
 
 Builder.load_file(__file__)
@@ -77,7 +77,7 @@ class CoreScreen(Screen):
     section_manager = ObjectProperty(None)
     core_card = ObjectProperty(None)
     services_card = ObjectProperty(None)
-    command_panel = ObjectProperty(None) 
+    command_panel = ObjectProperty(None)
 
     def __init__(self, **kwargs):
         self._section_cards = {}
@@ -101,7 +101,7 @@ class CoreScreen(Screen):
         toolbar.on_import = self.handle_import
         toolbar.on_help = self.handle_help
         toolbar.on_toggle_sidebar = self.toggle_sidebar
-        toolbar.on_toggle_dark_mode = self.handle_toggle_dark_mode 
+        toolbar.on_toggle_dark_mode = self.handle_toggle_dark_mode
         toolbar.on_discord = lambda: webbrowser.open('https://discord.gg/kEEA7gkPvG')
 
         sidebar = self.sidebar
@@ -120,15 +120,13 @@ class CoreScreen(Screen):
 
         if self.command_panel:
             sys.stdout = _LogCapture()
-    
+
     def on_leave(self, *args):
         if isinstance(sys.stdout, _LogCapture):
             sys.stdout = sys.__stdout__
 
-
     def _log(self, command, output=''):
         EventBus.emit('terminal_log', command=command, output=output)
-
 
     def update_unsaved_indicator(self):
         """Update the unsaved changes indicator based on model state."""
@@ -226,7 +224,7 @@ class CoreScreen(Screen):
     def handle_toggle_dark_mode(self):
         app = App.get_running_app()
         if hasattr(app, 'toggle_dark_mode'):
-            app.toggle_dark_mode(self) 
+            app.toggle_dark_mode(self)
 
     def handle_apply_reload(self):
         """Handle Apply & Reload action"""
@@ -248,7 +246,6 @@ class CoreScreen(Screen):
         """Handle Save action"""
         EventBus.emit('terminal_log', command='kivy-reloader config --save')
 
-
         if self.config_model:
             try:
                 from kivy_reloader.configurator.command_history import record
@@ -264,7 +261,7 @@ class CoreScreen(Screen):
                 print(msg)
                 self._log(
                 f'kivy-reloader config --file {self.config_model.config_path}', msg
-                ) 
+                )
             except Exception as e:
                 print(f'Error saving configuration: {e}')
         else:
@@ -429,7 +426,6 @@ class CoreScreen(Screen):
                 if card is not None:
                     card.load_from_model()
 
-
         non_core_cards = {k: v for k, v in cards.items() if k != 'Core'}
         for name, card in non_core_cards.items():
             card.on_config_change = on_any_config_change
@@ -453,7 +449,6 @@ class CoreScreen(Screen):
             card.config_model = model
             card.load_from_model()
 
-
         for card in self._section_cards.values():
             if card is None:
                 continue
@@ -463,7 +458,6 @@ class CoreScreen(Screen):
         # Sync sidebar power switch
         self.sidebar.config_model = model
         self.sidebar.load_from_model()
-
 
         # Update indicator after initial load (should be clean)
         self.update_unsaved_indicator()

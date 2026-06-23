@@ -8,6 +8,7 @@ from kivy_reloader.lang import Builder
 
 Builder.load_file(__file__)
 
+
 class Toolbar(BoxLayout):
     """Top toolbar with action buttons"""
 
@@ -19,12 +20,11 @@ class Toolbar(BoxLayout):
     on_import = ObjectProperty(None)
     on_help = ObjectProperty(None)
     on_toggle_sidebar = ObjectProperty(None)
-    on_toggle_dark_mode = ObjectProperty(None) 
+    on_toggle_dark_mode = ObjectProperty(None)
     is_sidebar_visible = BooleanProperty(True)
     has_unsaved_changes = BooleanProperty(False)
-    is_dark_mode = BooleanProperty(False) 
+    is_dark_mode = BooleanProperty(False)
     on_discord = ObjectProperty(None)
-
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -79,4 +79,4 @@ class Toolbar(BoxLayout):
 
     def handle_toggle_dark_mode(self):
         if self.on_toggle_dark_mode:
-            self.on_toggle_dark_mode() 
+            self.on_toggle_dark_mode()

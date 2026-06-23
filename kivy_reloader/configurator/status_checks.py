@@ -105,7 +105,6 @@ def _read_reloader_port(config_path: Path | None = None) -> int:
         return 8050
 
 
-
 # ── WSL2 environment ──────────────────────────────────────────────────────────
 
 def check_display() -> CheckResult:
@@ -152,6 +151,7 @@ def check_xclip() -> CheckResult:
             return CheckResult('xclip/xsel', Status.OK, p)
     return CheckResult('xclip/xsel', Status.WARN,
                        'Neither found — sudo apt install xclip')
+
 
 def check_wsl2_adb_nodaemon() -> CheckResult:
     try:
@@ -226,6 +226,7 @@ def check_adb_device() -> CheckResult:
                            f'{len(unauthorized)} device(s) unauthorized — allow USB debugging on phone')
     devices = [l.split('\t')[0] for l in lines if 'device' in l]
     return CheckResult('ADB device', Status.OK, '  '.join(devices))
+
 
 def get_connected_devices() -> list[dict]:
     """Return one dict per ADB device with serial, name, connection type and status."""
@@ -373,7 +374,6 @@ def run_all_checks(config_path: Path | None = None) -> list[CheckResult]:
             check_wsl2_adb_forward(config_path),
         ]
     results += [check_adb(), check_adb_device()]
-
 
     # 3. Project config
     results += [check_toml(config_path), check_stream_using(config_path)]

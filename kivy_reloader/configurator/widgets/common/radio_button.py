@@ -88,5 +88,3 @@ class RadioGroup(BoxLayout):
             # self.selected_value = value
             # # Dispatch the event to notify listeners
             # self.dispatch('on_selected_value', value)
-
-        

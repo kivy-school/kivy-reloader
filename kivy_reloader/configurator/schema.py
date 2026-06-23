@@ -432,7 +432,7 @@ FIELD_DEFS: list[FieldDef] = [
         examples=['"1280:720:0:0"'],
         advanced=True,
     ),
-    FieldDef(                           
+    FieldDef(
         'DARK_MODE',
         FieldType.BOOL,
         False,

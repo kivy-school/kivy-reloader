@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Dict, List, Set, Tuple
 
 from kivy.logger import Logger
+
 from kivy_reloader.config import config
 
 from .tree_formatter import format_file_tree
@@ -26,7 +27,6 @@ DELTA_CHANGE_THRESHOLD = 0.3  # Use delta if less than 30% of files changed
 class DeltaTransferManager:
     """Manages delta transfers by tracking file changes and creating minimal updates."""
 
-
     def __init__(self, project_root: str, zip_root: str = None, source_package: str = None):
         self.project_root = Path(project_root)
         self.zip_root = Path(zip_root) if zip_root else self.project_root
@@ -34,7 +34,6 @@ class DeltaTransferManager:
         self.state_file = self.project_root / '.kivy_reloader_state.json'
         self.last_state: Dict[str, str] = {}
         self.load_state()
-
 
     def load_state(self):
         """Load the last known file state from disk."""
@@ -49,7 +48,7 @@ class DeltaTransferManager:
                     f'Current app state has {len(self.last_state)} files',
                 )
                 print_tree = getattr(config, 'PRINT_FILE_TREE', False)
-                if print_tree:  
+                if print_tree:
                     Logger.info(loaded_files_tree)
 
             except (json.JSONDecodeError, OSError) as e:
@@ -338,7 +337,6 @@ class DeltaTransferManager:
 
         # Determine transfer type
         output_path = str(self.zip_root / 'app_copy.zip')
-
 
         if self.should_use_delta(
             added_files, modified_files, deleted_files, len(current_state)

@@ -7,8 +7,6 @@ import fnmatch
 from pathlib import Path
 from typing import List, Set
 
-from kivy_reloader.config import config
-
 
 class SelectionController:
     """Manages file/folder selection state and operations."""

@@ -1,15 +1,16 @@
+import base64
 import ipaddress
 import logging
 import os
+import platform
 import re
+import socket
 import subprocess
+import time
 from fnmatch import fnmatch
 from typing import Optional
-import time
-import platform
+
 import trio
-import base64
-import socket
 
 from kivy_reloader.config import config
 
@@ -61,7 +62,7 @@ def get_auto_reloader_paths():
         Instead of watching '.' recursively, enumerate subdirectories
         and exclude unwanted ones
         """
-        directories_to_watch = []  
+        directories_to_watch = []
 
         # Get all subdirectories in the current directory
         try:
@@ -352,7 +353,7 @@ def get_wifi_ip(serial: str) -> Optional[str]:
                 f'Check: Settings → WiFi → make sure it\'s ON and connected.'
             )
             logging.error(f'ERROR: Could not find WiFi IP on device {serial}.')
-            logging.error(f'Make sure WiFi is enabled and connected on your phone!')
+            logging.error('Make sure WiFi is enabled and connected on your phone!')
         return result
     except subprocess.CalledProcessError as e:
         logging.warning(f'Primary command failed for {serial}: {e}')
@@ -594,6 +595,7 @@ def _validate_wifi_ip_ifconfig(ip: str, interface: str, serial: str) -> Optional
 #     result = subprocess.run(cmd)
 #     return result.returncode
 
+
 def adb_forward(port: int, serial: str = None) -> int:
     if serial:
         cmd = ["adb", "-s", serial, "forward", f"tcp:{port}", f"tcp:{port}"]
@@ -604,8 +606,9 @@ def adb_forward(port: int, serial: str = None) -> int:
         result = subprocess.run(cmd, timeout=10)
         return result.returncode
     except subprocess.TimeoutExpired:
-        logging.warning(f"adb forward timed out after 10s")
+        logging.warning("adb forward timed out after 10s")
         return 1
+
 
 def adb_has_forward(port: int) -> bool:
     if not in_wsl():
@@ -667,6 +670,7 @@ def is_adb_listening(host="127.0.0.1", timeout=10.0) -> bool:
             s.close()
     return False
 
+
 def extract_ip(line):
     match = re.search(r'\b\d+\.\d+\.\d+\.\d+\b', line)
     return match.group(0) if match else None
@@ -681,6 +685,7 @@ def extract_ip(line):
 #                 nameservers.append(line.strip())
 #     return nameservers
 
+
 def get_wsl_nameservers():
     """
     Returns the Windows Host IP by checking the default route.
@@ -692,7 +697,7 @@ def get_wsl_nameservers():
         # Method 1: Get IP from the default gateway (Best for WSL2)
         try:
             # Runs 'ip route show default' and looks for 'via'
-            route_output = subprocess.check_output(['ip', 'route', 'show', 'default'], 
+            route_output = subprocess.check_output(['ip', 'route', 'show', 'default'],
                                                 stderr=subprocess.DEVNULL).decode()
             parts = route_output.split()
             if "via" in parts:
@@ -709,10 +714,11 @@ def get_wsl_nameservers():
                             return [line.split()[1].strip()]
         except Exception:
             pass
-            
-        return ["127.0.0.1"] # Absolute fallback
+
+        return ["127.0.0.1"]  # Absolute fallback
     except Exception:
         return "NAMESERVERS FAILED"
+
 
 def get_adb_host_ip() -> str:
     """In WSL2 mirrored networking mode, localhost works directly."""
@@ -738,6 +744,7 @@ def get_adb_host_ip() -> str:
             pass
     return "127.0.0.1"
 
+
 def get_adb_windows_path():
     """Extract the adb.exe path from the bash alias in .bashrc"""
     bashrc = os.path.expanduser("~/.bashrc")
@@ -750,7 +757,7 @@ def get_adb_windows_path():
                     return match.group(1)
     except FileNotFoundError:
         pass
-    
+
     # Fallback: which adb (catches symlinks/wrappers too)
     try:
         path = subprocess.check_output(["which", "adb"]).decode().strip()
@@ -758,7 +765,7 @@ def get_adb_windows_path():
             return path
     except Exception:
         pass
-    
+
     return "adb"  # last resort
 
 
@@ -767,18 +774,19 @@ def in_wsl():
     # print("WSL:", ans)
     return ans
 
+
 async def fix_wsl():
     PORT = int(config.RELOADER_PORT)
     # 1. Trigger the Firewall Fix (UAC)
     print(f"{yellow}Initial connection blocked. Fixing Windows firewall for WSL2. Waiting for you to approve the UAC prompt...")
-    await run_wsl_firewall_fix(port=PORT) 
-    
+    await run_wsl_firewall_fix(port=PORT)
+
     # Wait up to 30 seconds for the rule to actually appear
     rule_found = await wsl_firewall_check_async(PORT)
     if not rule_found:
         print(f"{red}Firewall rule not detected. Please click 'Yes' on UAC!")
         return
-    
+
     print(f"{green}Tunnel reset. Retrying immediately...")
     # Check ADB separately — it should already be up, but wait briefly if not
     if in_wsl() and config.STREAM_USING == "USB":
@@ -797,7 +805,7 @@ async def fix_wsl():
             subnet_range = f"{parts[0]}.{parts[1]}.0.0/20"
             print(f"[*] Detected WSL IP: {raw_ip} -> Using Subnet: {subnet_range}")
             wsl_ip = f"{parts[0]}.{parts[1]}.0.0"
-            if is_adb_listening(host = wsl_ip):
+            if is_adb_listening(host=wsl_ip):
                 adb_ready = True
                 break
 
@@ -841,6 +849,7 @@ async def fix_wsl():
 
     print(f"{green}Tunnel reset complete.")
 
+
 async def run_wsl_firewall_fix(port=8055):
     try:
         # 1. Get the IP and convert to /20 subnet range
@@ -856,7 +865,6 @@ async def run_wsl_firewall_fix(port=8055):
             text=True
         ).strip()
         print(f"[*] Windows host gateway: {gateway}")
-
 
         rule_name = f"WSL Kivy Surgical {port}"
 
@@ -915,7 +923,7 @@ async def run_wsl_firewall_fix(port=8055):
 
         check_result = subprocess.run(check_cmd, capture_output=True, text=True)
         output = check_result.stdout.strip()
-        print(f"RAW OUTPUT: {repr(output)}") 
+        print(f"RAW OUTPUT: {repr(output)}")
 
         wsl_allowed = "vEthernet (WSL)" in output
         rule_enabled = "RULE:True" in output
@@ -940,7 +948,6 @@ async def run_wsl_firewall_fix(port=8055):
         if wsl_allowed and rule_enabled and portproxy_exists:
             print("[✓] All good — nothing to fix!")
             return
-
 
         # 5. Build a single script covering only what needs fixing
         ps_parts = []
@@ -973,7 +980,6 @@ async def run_wsl_firewall_fix(port=8055):
                 f"Write-Host '[+] Case 3 fixed: Port proxy {gateway}:{port} -> 127.0.0.1:{port} added.'"
             )
 
-
         # 6. Fire single UAC prompt with combined script
         combined_script = " ".join(ps_parts)
         encoded_script = base64.b64encode(combined_script.encode('utf-16-le')).decode('utf-8')
@@ -991,15 +997,16 @@ async def run_wsl_firewall_fix(port=8055):
     except Exception as e:
         print(f"[!] Failed: {e}")
 
+
 async def wsl_firewall_check_async(port):
     timeout = 30
     start_time = time.time()
     rule_found = False
-    
+
     while time.time() - start_time < timeout:
         # Use netsh.exe to check from WSL
         check_cmd = ["netsh.exe", "advfirewall", "firewall", "show", "rule", f"name=WSL Kivy Surgical {port}"]
-        
+
         # Using trio.run_process for a clean async check
         try:
             result = await trio.run_process(check_cmd, capture_stdout=True, capture_stderr=True, check=False)
@@ -1012,11 +1019,12 @@ async def wsl_firewall_check_async(port):
 
         elapsed = int(time.time() - start_time)
         print(f"{yellow}[{elapsed}s] Rule not found yet. Check UAC prompt...")
-        
+
         # This allows other async tasks to run while we wait for the UAC click
         await trio.sleep(1)
-        
+
     return rule_found
+
 
 # Example usage and testing
 if __name__ == '__main__':

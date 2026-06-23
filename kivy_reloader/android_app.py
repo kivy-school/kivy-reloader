@@ -8,20 +8,20 @@ Handles hot reload on Android devices:
 """
 
 # Standard library imports
+import contextlib
 import hashlib
 import importlib
-import pathlib
 import json
 import os
+import pathlib
 import socket
+import socket as _socket
 import sys
 import traceback
 import zipfile
 from fnmatch import fnmatch
 from pathlib import Path
 from uuid import uuid4
-import contextlib
-import socket as _socket
 
 # Third-party imports
 import trio
@@ -56,6 +56,7 @@ MODULE_RELOAD_PASSES = 2
 DNS_SERVER_IP = '8.8.8.8'
 DNS_SERVER_PORT = 80
 
+
 class AndroidApp(BaseReloaderApp, KivyApp):
     """Android hot reload app with TCP server and service management"""
 
@@ -70,7 +71,7 @@ class AndroidApp(BaseReloaderApp, KivyApp):
 
         # Serialize update application to avoid concurrent extract/delete races
         self._update_lock = trio.Lock()
-        
+
     def _get_app_root(self):
         """The project root is wherever the actual entry point (__main__)
         lives — ask Python directly via sys.modules. This works for both
@@ -82,7 +83,6 @@ class AndroidApp(BaseReloaderApp, KivyApp):
         if main_mod and getattr(main_mod, '__file__', None):
             return str(pathlib.Path(main_mod.__file__).resolve().parent)
         return os.getcwd()
-
 
     @contextlib.contextmanager
     def _app_root_cwd(self):
@@ -139,7 +139,7 @@ class AndroidApp(BaseReloaderApp, KivyApp):
 
     def run(self):
         trio.run(self.async_run, 'trio')
-    
+
     async def async_run(self, async_lib='trio'):
         """
         Run the Android app asynchronously with TCP server.
@@ -624,11 +624,6 @@ class AndroidApp(BaseReloaderApp, KivyApp):
                         f'Failed to reload {module} on pass {pass_num + 1}: {e}'
                     )
 
-
-
-
-        
-
     # ==================== NETWORK SERVER ====================
 
     def initialize_server(self):
@@ -638,7 +633,7 @@ class AndroidApp(BaseReloaderApp, KivyApp):
         The server runs in the background to receive file updates from
         the desktop development environment.
         """
-        Logger.info(f'starting async server')
+        Logger.info('starting async server')
         self.nursery.start_soon(self.start_async_server)
 
     async def start_async_server(self):
@@ -757,12 +752,12 @@ class AndroidApp(BaseReloaderApp, KivyApp):
         Logger.info('Reloader: Server started: receiving data from computer...')
         try:
             # Wrap everything in an extra try/except specifically for stream issues
-            async with data_stream: 
+            async with data_stream:
                 Logger.info('Reloader: Server started: receiving data...')
                 Logger.info('Reloader: THE CHANGE IS LIVE')
-                success_path = None 
+                success_path = None
                 zip_size = None
-                
+
                 async with self._update_lock:
                     # THIS WORKED
                     # # Use a small timeout for the header to avoid hanging on ghost connections
@@ -809,7 +804,7 @@ class AndroidApp(BaseReloaderApp, KivyApp):
                     with trio.move_on_after(timeout):
                         zip_file_path = os.path.join(os.getcwd(), f'app_copy_{uuid4().hex}.zip')
                         success_path = await self._receive_zip_file(data_stream, zip_file_path, zip_size=zip_size)
-                        
+
                 # CRITICAL GUARD: Only update if the file actually exists
                 if success_path and os.path.exists(success_path):
                     await data_stream.send_all(b'OK')
@@ -821,14 +816,13 @@ class AndroidApp(BaseReloaderApp, KivyApp):
                     # If the file was partially created, clean it up
                     if success_path and os.path.exists(success_path):
                         os.remove(success_path)
-                    return # Exit cleanly, nursery stays alive!
+                    return  # Exit cleanly, nursery stays alive!
 
         except (trio.BrokenResourceError, trio.ClosedResourceError, Exception) as e:
             # Catch connection resets and "header" exceptions here
             Logger.warning(f'Reloader: Connection dropped or malformed: {e}')
             # IMPORTANT: Do NOT re-raise. Just let the function exit.
             # This keeps the Nursery (and the app) alive.
-
 
     # # THIS WORKED
     # async def data_receiver_WORKED(self, data_stream):
@@ -852,7 +846,7 @@ class AndroidApp(BaseReloaderApp, KivyApp):
     #             # await data_stream.send_all(b"EARLY")
     #             # Logger.info("EARLY ACK SENT")
     #             # await trio.sleep(1)
-                
+
     #             # # Use a unique filename per connection to prevent collisions
     #             # zip_file_path = os.path.join(os.getcwd(), f'app_copy_{uuid4().hex}.zip')
 
@@ -891,7 +885,7 @@ class AndroidApp(BaseReloaderApp, KivyApp):
     #             Logger.info("EARLY ACK SENT")
     #             Logger.info("EARLY ACK SENTZIPFILE ERR?")
     #             await trio.sleep(1)
-                
+
     #             # Use a unique filename per connection to prevent collisions
     #             zip_file_path = os.path.join(os.getcwd(), f'app_copy_{uuid4().hex}.zip')
 
@@ -915,7 +909,7 @@ class AndroidApp(BaseReloaderApp, KivyApp):
     #             #     Logger.info('Reloader: OK FAILED')
 
     #             Logger.info('Reloader: starting app update ????')
-    #             # Close stream 
+    #             # Close stream
     #             await data_stream.aclose()
     #             self.nursery.start_soon(self._process_app_update, zip_file_path)
 
@@ -1084,7 +1078,6 @@ class AndroidApp(BaseReloaderApp, KivyApp):
     #     Logger.info("Reloader: ZIP fully received")
     #     return zip_file_path # Success!
 
-
     async def _receive_zip_file_old(self, data_stream, zip_file_path):
         # 1. Read header until newline
         header = b""
@@ -1121,7 +1114,6 @@ class AndroidApp(BaseReloaderApp, KivyApp):
 
         return zip_file_path
 
-
     # THIS WORKED
     # async def _receive_zip_file(self, data_stream, zip_file_path):
     #     """
@@ -1149,14 +1141,14 @@ class AndroidApp(BaseReloaderApp, KivyApp):
     #             vxy += 1
     #         # 🔥 This line ONLY prints if the loop ends normally (EOF delivered)
     #         Logger.info("Reloader: LOOP ENDED NORMALLY (EOF RECEIVED)")
-        
+
     #     await data_stream.send_all(b"EARLY2")
     #     Logger.info("EARLY ACK SENT2")
 
     #     # # BEFORE returning, send ACK
     #     # await data_stream.send_all(b'OK')
     #     # Logger.info("Reloader: EOF received, exiting receive loop")
-        
+
     #     try:
     #         await data_stream.send_all(b'OK')
     #         Logger.info('Reloader: OK SENT')
@@ -1178,19 +1170,17 @@ class AndroidApp(BaseReloaderApp, KivyApp):
         Args:
             zip_file_path: Path to the received zip file
         """
-        _orig_cwd = os.getcwd() 
+        _orig_cwd = os.getcwd()
         with self._app_root_cwd():
             Logger.info('Reloader: Finished receiving all files from computer')
             Logger.info('Reloader: Processing app update')
-
-
 
             # Log zip file information and extract
             # Check if this is a delta or full transfer
             transfer_type = self._detect_transfer_type(zip_file_path)
 
             # Log transfer metadata
-            if print_file_tree: 
+            if print_file_tree:
                 self._log_transfer_metadata(zip_file_path, transfer_type)
 
             # Reject zips from a different app's desktop reloader
@@ -1232,7 +1222,7 @@ class AndroidApp(BaseReloaderApp, KivyApp):
             # After unpacking, Python's FileFinder has stale directory caches.
             # Must invalidate before any importlib.reload call or spec lookups will fail.
             importlib.invalidate_caches()
-            
+
             # Trigger hot reload
             self.unload_python_files_on_android()
             if self.__module__ != '__main__':
@@ -1368,7 +1358,7 @@ class AndroidApp(BaseReloaderApp, KivyApp):
                     os.remove(full_path)
                     Logger.debug(f'Deleted: {file_path}')
 
-    def _process_full_update(self, zip_file_path,print_file_tree):
+    def _process_full_update(self, zip_file_path, print_file_tree):
         """
         Process a full update by synchronizing Android file system with desktop state.
 
@@ -1383,7 +1373,7 @@ class AndroidApp(BaseReloaderApp, KivyApp):
         # Step 1: Snapshot current Android file system
         files_on_android_before = self._get_current_project_files()
         Logger.info('Full update: Scanning current Android file system')
-        
+
         if print_file_tree:
             Logger.info(
                 tree_formatter.format_file_tree(

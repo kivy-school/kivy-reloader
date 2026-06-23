@@ -64,9 +64,9 @@ def load_kv_path(path: str, encoding='utf8', **kwargs):
     if kv_path is None:
         logging.error(f'failed to load kv path: {path}')
         return
-    
+
     # Resolve to canonical path — avoids symlink/relative mismatches on Android
-    kv_path = str(pathlib.Path(kv_path).resolve())    
+    kv_path = str(pathlib.Path(kv_path).resolve())
 
     # Investigated ksproject vs kivy-reloader .kv loading on Android:
     # - ksproject apps: .kv resolves via pkg.__file__ →
@@ -79,7 +79,6 @@ def load_kv_path(path: str, encoding='utf8', **kwargs):
     # logging.debug(f'[load_kv_path] kv_path={kv_path}')
     # logging.debug(f'[load_kv_path] Builder.files={Builder.files}')
     # logging.debug(f'[load_kv_path] already_loaded={kv_path in Builder.files}')
-
 
     # First try exact match
     unloaded = False
@@ -117,7 +116,6 @@ def load_kv_path(path: str, encoding='utf8', **kwargs):
                             break
                     if unloaded:
                         break
-
 
     if kv_path not in Builder.files:
         filename = resource_find(path) or path

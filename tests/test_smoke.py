@@ -30,7 +30,7 @@ def main():
         if not os.path.exists(os.path.join(tmpdir, "main.py")):
             print("SMOKE TEST FAILED: bootstrap did not create main.py")
             return 1
-        
+
         # Patch app.py to print the sentinel and self-stop
         import textwrap
         (Path(tmpdir) / "hello_world" / "app.py").write_text(textwrap.dedent("""\
@@ -48,7 +48,6 @@ def main():
             def main():
                 HelloWorldApp().run()
         """))
-
 
         print("Bootstrap OK, running app...")
 

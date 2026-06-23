@@ -36,7 +36,6 @@ class SideBar(BoxLayout):
     config_model = ObjectProperty(None, allownone=True)
     flightdeck_always_on_top = BooleanProperty(False)
 
-
     menu_items = ListProperty([
         {'icon': '⚡', 'text': 'Quick Commands'},
         {'icon': '🔥', 'text': 'Core'},
@@ -57,7 +56,6 @@ class SideBar(BoxLayout):
         self.selected_item = None
         self.all_items = []  # Store all menu item widgets
         self.selected_section = 'Quick Commands'
-
 
     def on_kv_post(self, base_widget):
         """Called after KV rules are applied"""
@@ -120,7 +118,7 @@ class SideBar(BoxLayout):
         """Event dispatched when a menu section is selected."""
         # Default handler; can be bound from outside
         return None
-    
+
     def load_from_model(self):
         if self.config_model:
             self.flightdeck_active = bool(self.config_model.get_value('PERSISTENT_FLIGHTDECK'))
@@ -139,4 +137,3 @@ class SideBar(BoxLayout):
         if self.config_model:
             self.config_model.set_value('FLIGHTDECK_ALWAYS_ON_TOP', self.flightdeck_always_on_top)
             self.config_model.save(create_backup=False)
-

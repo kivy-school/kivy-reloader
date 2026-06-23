@@ -9,7 +9,7 @@ from pathlib import Path
 from kivy.properties import DictProperty, ObjectProperty, StringProperty
 from kivy.uix.boxlayout import BoxLayout
 
-from kivy_reloader.configurator.backend_detect import detect_backend 
+from kivy_reloader.configurator.backend_detect import detect_backend
 from kivy_reloader.configurator.event_bus import EventBus
 from kivy_reloader.configurator.widgets.cards.core_card import BUILTIN_EXCLUSIONS
 from kivy_reloader.lang import Builder
@@ -47,11 +47,8 @@ class DeploymentCard(BoxLayout):
     recipe_name = StringProperty('')
     backend = StringProperty('buildozer')
 
-
-
     # Expose builtin exclusions to KV
     builtin_exclusions = BUILTIN_EXCLUSIONS
-
 
     def __init__(self, **kwargs):
         self.config_model = None
@@ -61,7 +58,6 @@ class DeploymentCard(BoxLayout):
             _QUICK_ACTIONS_KSPROJECT if self.backend == 'ksproject' else _QUICK_ACTIONS_BUILDOZER
         )
         super().__init__(**kwargs)
-
 
     def on_kv_post(self, base_widget):
         """Populate widgets with initial configuration values."""
@@ -130,7 +126,8 @@ class DeploymentCard(BoxLayout):
             self.on_config_change(self.config)
 
     def clean_recipe(self, recipe_override=''):
-        import glob, shutil
+        import glob
+        import shutil
         recipe = (recipe_override or self.recipe_name).strip()
         if not recipe:
             self.build_status = 'Enter a recipe name first'
@@ -142,6 +139,7 @@ class DeploymentCard(BoxLayout):
             return
         self.build_status = f'Cleaning {recipe}...'
         EventBus.emit('terminal_log', command=f'rm -rf {pattern}')
+
         def _clean():
             for p in paths:
                 shutil.rmtree(p, ignore_errors=True)
@@ -203,18 +201,15 @@ class DeploymentCard(BoxLayout):
         Clock.schedule_once(lambda dt: setattr(self, 'build_status', msg))
         EventBus.emit('terminal_output', output=msg)
 
-
-
-
     def list_recipes(self):
         self.build_status = 'Fetching recipes...'
+
         def _list():
             self._run(
                 ['buildozer', 'android', 'p4a', '--', 'recipes'],
                 timeout=30, success_msg='', fail_prefix='Failed',
             )
         threading.Thread(target=_list, daemon=True).start()
-
 
     def on_exclusions_change(self, values):
         self.update_config('FOLDERS_AND_FILES_TO_EXCLUDE_FROM_PHONE', values)

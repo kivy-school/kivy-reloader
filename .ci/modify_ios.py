@@ -7,11 +7,13 @@ excludes = [
     "psutil"
 ]
 
+
 def is_excluded(dependency: str) -> bool:
     for exclude in excludes:
         if dependency.startswith(exclude):
             return False
     return True
+
 
 def modify_pyproject_toml():
     with open("pyproject.toml", "r") as f:
@@ -22,7 +24,6 @@ def modify_pyproject_toml():
 
     with open("pyproject.toml", "w") as f:
         toml.dump(pyproject_data, f)
-
 
 
 if __name__ == "__main__":

@@ -3,7 +3,7 @@ import threading
 from kivy.properties import ListProperty, ObjectProperty, StringProperty
 from kivy.uix.boxlayout import BoxLayout
 
-from kivy_reloader.configurator.status_checks import CheckResult, Status, run_all_checks
+from kivy_reloader.configurator.status_checks import Status, run_all_checks
 from kivy_reloader.lang import Builder
 
 Builder.load_file(__file__)
@@ -24,16 +24,18 @@ class DeviceRow(BoxLayout):
     status_detail = StringProperty('')
 
     def recheck(self):
-        from kivy_reloader.configurator.status_checks import _run
-        from kivy.clock import Clock
         import threading
+
+        from kivy.clock import Clock
+
+        from kivy_reloader.configurator.status_checks import _run
+
         def _check():
             rc, out = _run(['adb', '-s', self.serial, 'get-state'], timeout=5)
             state = ('ok', out.strip() or 'device') if rc == 0 else ('fail', out.strip() or 'unreachable')
             Clock.schedule_once(lambda dt: setattr(self, 'device_status', state[0]))
             Clock.schedule_once(lambda dt: setattr(self, 'status_detail', state[1]))
         threading.Thread(target=_check, daemon=True).start()
-
 
 
 class StatusCard(BoxLayout):
@@ -73,6 +75,7 @@ class StatusCard(BoxLayout):
 
     def refresh_devices(self):
         from kivy_reloader.configurator.status_checks import get_connected_devices
+
         def _fetch():
             devs = get_connected_devices()
             from kivy.clock import Clock
@@ -123,7 +126,10 @@ class StatusCard(BoxLayout):
         from kivy_reloader.configurator.status_checks import format_report
         if text is None:
             text = format_report(self._last_results, self._last_config_path)
-        from kivy_reloader.configurator.status_checks import _get_windows_home, detect_os
+        from kivy_reloader.configurator.status_checks import (
+            _get_windows_home,
+            detect_os,
+        )
         save_path = None
         if detect_os() == 'wsl2':
             win_home = _get_windows_home()
@@ -158,7 +164,6 @@ class StatusCard(BoxLayout):
             self.report_status = 'Reloader state reset ✓'
         else:
             self.report_status = 'State file not found (already clean)'
-
 
 
 def _icon(status: Status) -> str:

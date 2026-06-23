@@ -1,21 +1,27 @@
-import sys
+import datetime
 import os
-import logging
+import socket
+import subprocess
+import sys
+
 import trio
 from colorama import Fore, init
-import subprocess
-import datetime
-
-import socket
 
 from kivy_reloader.config import config
-from kivy_reloader.utils import get_connected_devices, in_wsl, fix_wsl, get_adb_host_ip, adb_forward
+from kivy_reloader.utils import (
+    adb_forward,
+    fix_wsl,
+    get_adb_host_ip,
+    get_connected_devices,
+    in_wsl,
+)
 
 red = Fore.RED
 green = Fore.GREEN
 yellow = Fore.YELLOW
 white = Fore.WHITE
 init(autoreset=True)
+
 
 async def connect_to_server(IP):
     PORT = int(config.RELOADER_PORT)
@@ -33,8 +39,8 @@ async def connect_to_server(IP):
             with trio.move_on_after(5) as cancel_scope:
                 client_socket = await trio.open_tcp_stream(IP, PORT)
                 print(f' {green}connected!')
-                return client_socket # SUCCESS: Return the socket
-            
+                return client_socket  # SUCCESS: Return the socket
+
             attempt_count += 1
             print(f'\r{yellow}Connecting to {IP}:{PORT}... attempt {attempt_count}. ', end='', flush=True)
             # If we reached here, the connection timed out
@@ -44,12 +50,12 @@ async def connect_to_server(IP):
                 await fix_wsl()
                 UAC_count += 1
 
-        except Exception as e:
+        except Exception:
             attempt_count += 1
             # print(f'{red}Attempt failed: {e}. Retrying in 2s...')
             print(f'\r{yellow}Connecting to {IP}:{PORT}... attempt {attempt_count}', end='', flush=True)
-        
-        await trio.sleep(2) # Wait before the next full attempt
+
+        await trio.sleep(2)  # Wait before the next full attempt
 
     # print(f"{red}Global timeout reached in {timeout}s. Could not connect to {IP}")
     print(f'\n{red}Could not connect to {IP} after {attempt_count} attempts in  ({timeout}s)')
@@ -95,7 +101,6 @@ def wsl_network_dead(timeout=1.0):
             return True   # Timeout or no route — networking dead
     except Exception:
         return True  # Any failure → treat as dead
-
 
 
 # async def run_wsl_firewall_fix(port=8055):
@@ -175,7 +180,7 @@ def wsl_network_dead(timeout=1.0):
 
 # async def run_wsl_firewall_fix(port=8055):
 #     try:
-#         # 1. Get the IP but convert it to the /20 subnet range 
+#         # 1. Get the IP but convert it to the /20 subnet range
 #         # This matches your working manual command
 #         ip_data = subprocess.check_output(["ip", "-o", "-4", "addr", "show", "eth0"]).decode()
 #         # Extracts '172.28.x.x'
@@ -184,7 +189,7 @@ def wsl_network_dead(timeout=1.0):
 #         # For WSL2 on Win10, the first two octets are usually stable enough
 #         parts = raw_ip.split('.')
 #         subnet_range = f"{parts[0]}.{parts[1]}.0.0/20"
-        
+
 #         print(f"[*] Detected WSL IP: {raw_ip} -> Using Subnet: {subnet_range}")
 
 #         # 2. The PowerShell commands (Note the change to -RemoteAddress)
@@ -201,15 +206,14 @@ def wsl_network_dead(timeout=1.0):
 
 #         # 4. Trigger the UAC Admin prompt
 #         launch_command = f'Start-Process powershell -Verb RunAs -ArgumentList "-NoProfile", "-EncodedCommand", "{encoded_script}"'
-        
+
 #         print(f"[*] Triggering Windows UAC prompt for port {port}...")
 #         subprocess.run(["powershell.exe", "-Command", launch_command], check=True)
-        
+
 #         print("[+] Check your taskbar for the UAC shield!")
 
 #     except Exception as e:
 #         print(f"[!] Failed: {e}")
-
 
 
 def check_adb_context():
@@ -218,10 +222,10 @@ def check_adb_context():
         which_adb = subprocess.check_output(["which", "adb"]).decode().strip()
         # Check the version and path reported by ADB itself
         version_info = subprocess.check_output(["adb", "version"]).decode().strip()
-        print(f"--- ADB DEBUG INFO ---")
+        print("--- ADB DEBUG INFO ---")
         print(f"Python is calling: {which_adb}")
         print(f"{version_info}")
-        print(f"----------------------")
+        print("----------------------")
     except Exception as e:
         print(f"ADB check failed: {e}")
 
@@ -232,7 +236,7 @@ async def send_app():
 
     fetch_wifi = config.STREAM_USING == "WIFI"
     devices = get_connected_devices(fetch_wifi_ip=fetch_wifi)
-    
+
     if not devices:
         print(f'{yellow}No connected devices found.')
         return 1
@@ -280,15 +284,15 @@ async def send_app():
 
         #     # if wsl_network_dead():
         #     #     print(f"{red}WSL2 networking is down. Please run: wsl --shutdown")
-            
+
         #     print(f"{yellow}Initial connection blocked. Fixing Windows firewall for WSL2. Waiting for you to approve the UAC prompt...")
         #     await run_wsl_firewall_fix(port=PORT)
-            
+
         #     # Wait up to 30 seconds for the rule to actually appear
         #     rule_found = await wsl_firewall_check_async(PORT)
 
         #     # rule_found = True
-            
+
         #     if rule_found:
         #         # RETRY the connection now that the gate is open
         #         print(f"{green}Retrying connection to smartphone...")
@@ -296,7 +300,7 @@ async def send_app():
         #     else:
         #         print(f"{red}Timed out waiting for firewall rule. Did you click 'Yes'?")
         #         # Maybe exit or handle failure here
-            
+
         #     continue
 
         if not client_socket:
@@ -407,7 +411,7 @@ async def send_app():
     return 0 if acked_count > 0 else 1
 
 
-#THIS WORKED START
+# THIS WORKED START
 # async def send_app():
 #     print('*' * 50)
 #     print(green + 'Connecting to smartphone...')
@@ -542,7 +546,7 @@ async def send_app():
 #     print('*' * 50)
 
 #     return 0 if acked_count > 0 else 1
-#THIS WORKED END
+# THIS WORKED END
 
 
 # async def send_app():
@@ -670,7 +674,7 @@ async def send_app():
 #                 #         break
 #             # with trio.move_on_after(timeout):  # wait up to timeout seconds for device to process
 #             #     data = await client_socket.receive_some(16)
-                
+
 #             #     import datetime
 
 #             #     # Get current time
@@ -679,7 +683,7 @@ async def send_app():
 #             #     # Format: Month-Day Hour:Minute:Second.Milliseconds
 #             #     formatted_time = now.strftime("%m-%d %H:%M:%S.%f")[:-3]
 #             #     print('WHAT IS THE DATA?', data, formatted_time)
-                
+
 #             #     if data and data.startswith(b'OK'):
 #             #         ack_ok = True
 #         except Exception as e:

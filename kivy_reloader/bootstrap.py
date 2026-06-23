@@ -3,8 +3,9 @@
 import argparse
 import os
 import shutil
-from pathlib import Path
 import sys
+from pathlib import Path
+
 _enable_inspector = False
 if '-m' in sys.argv:
     _m_idx = sys.argv.index('-m')
@@ -13,11 +14,11 @@ if '-m' in sys.argv:
         sys.argv.pop(_m_idx + 1)
         sys.argv.pop(_m_idx)
 
-from colorama import Fore, init
-import re
-
 import json
+import re
 from datetime import datetime
+
+from colorama import Fore, init
 
 from . import __version__ as _kl_version
 
@@ -88,6 +89,7 @@ def create_settings_file():
             os.path.join(base_dir, 'kivy-reloader.toml'),
         )
 
+
 def create_buildozer_spec_file():
     """
     Creates a copy of buildozer.spec in the project folder if it doesn't exist
@@ -109,6 +111,7 @@ def create_buildozer_spec_file():
             os.path.join(current_file_dir, 'buildozer.spec'),
             os.path.join(base_dir, 'buildozer.spec'),
         )
+
 
 UV_INIT_MAIN_PATTERN = re.compile(
     r'^\s*def main\(\):\s*\n\s*print\("Hello from .+?!"\)\s*\n'
@@ -154,7 +157,6 @@ def main():
 """
 
 
-
 def _main_py(module_name: str, class_name: str) -> str:
     return f"""\
 from {module_name}.app import main
@@ -162,7 +164,6 @@ from {module_name}.app import main
 if __name__ == "__main__":
     main()
 """
-
 
 
 def _toml(full_reload_app_path: str) -> str:
@@ -476,7 +477,7 @@ def scaffold_hello_world():
                     path.write_text(content)
                     klprint(f"{red} Replaced uv placeholder: main.py")
                 else:
-                    klprint(f"Skipped main.py")
+                    klprint("Skipped main.py")
             else:
                 klprint(f"Already exists, skipping: {path.relative_to(project_root)}")
                 if path.name == "main.py":
@@ -485,6 +486,7 @@ def scaffold_hello_world():
         else:
             path.write_text(content)
             klprint(f"Created: {path.relative_to(project_root)}")
+
 
 def smoke():
     """Bootstrap a fresh hello world in a temp dir, run headlessly, verify it starts."""
@@ -561,14 +563,13 @@ def smoke():
     return 1
 
 
-
 def main():
     parser = argparse.ArgumentParser(description='Kivy Reloader CLI')
     subparsers = parser.add_subparsers(dest='command')
 
     init_parser = subparsers.add_parser(  # noqa: F841
         'init',
-        help='Create the `kivy-reloader.toml` Create the `kivy-reloader.toml` and `buildozer.spec` config files. Pass `project` to also scaffold a hello-world app in the current directory.', 
+        help='Create the `kivy-reloader.toml` Create the `kivy-reloader.toml` and `buildozer.spec` config files. Pass `project` to also scaffold a hello-world app in the current directory.',
     )
 
     initbare_parser = subparsers.add_parser(  # noqa: F841
@@ -623,12 +624,12 @@ def main():
     klprint(f'Kivy Reloader v{_kl_version}')
 
     if args.command == 'init':
-        is_ksp, _ = _detect_ksproject() 
+        is_ksp, _ = _detect_ksproject()
         if not is_ksp:
-            create_buildozer_spec_file() 
+            create_buildozer_spec_file()
         if getattr(args, 'subcommand', None) == 'project':
             scaffold_hello_world()
-        create_settings_file() # hello world project takes precedence over the default settings file
+        create_settings_file()  # hello world project takes precedence over the default settings file
 
     if args.command == 'initbare':
         # make sure there is an init flag that says 'naked' or smth
@@ -667,9 +668,5 @@ def main():
                 from .compile_app import start
                 start()
 
-
-
-
     elif args.command == 'smoke':
         sys.exit(smoke())
-

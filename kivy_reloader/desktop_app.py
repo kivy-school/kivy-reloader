@@ -17,7 +17,6 @@ import sys
 import time
 import traceback
 from fnmatch import fnmatch
-from pathlib import Path
 
 # Third-party imports
 import trio
@@ -25,10 +24,10 @@ from kaki.app import App as KakiApp
 from kivy.base import EventLoop, async_runTouchApp
 from kivy.clock import Clock, mainthread
 from kivy.core.window import Window
-from kivy.metrics import Metrics
 from kivy.factory import Factory as F
 from kivy.lang import Builder
 from kivy.logger import Logger
+from kivy.metrics import Metrics
 from kivy.utils import platform
 
 # Watchdog imports (optional dependency)
@@ -49,7 +48,11 @@ from . import __version__
 from .base_app import BaseReloaderApp
 from .config import config
 from .delta_transfer import DeltaTransferManager
-from .utils import get_auto_reloader_paths, get_connected_devices, get_kv_files_paths, in_wsl
+from .utils import (
+    get_auto_reloader_paths,
+    get_connected_devices,
+    get_kv_files_paths,
+)
 
 # Constants
 F5_KEYCODE = 286
@@ -105,7 +108,7 @@ class DesktopApp(BaseReloaderApp, KakiApp):
     # ==================== INITIALIZATION ====================
 
     def __init__(self, *args, **kwargs):
-    
+
         super().__init__(*args, **kwargs)
         Logger.info(f'Reloader: Kivy Reloader v{__version__}')
         self._initialize_app_state()
@@ -440,7 +443,7 @@ class DesktopApp(BaseReloaderApp, KakiApp):
         if not config.HOT_RELOAD_ON_PHONE:
 
             return
-        
+
         # Check if any devices are connected before processing
         connected_devices = get_connected_devices()
         if not connected_devices:
