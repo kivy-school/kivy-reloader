@@ -15,3 +15,4 @@ poetry.lock
 uv.lock
 new steps.yaml
 reloader.log
+p4a-recipies
