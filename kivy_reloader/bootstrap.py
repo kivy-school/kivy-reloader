@@ -6,19 +6,7 @@ import shutil
 import sys
 from pathlib import Path
 
-_enable_inspector = False
-if '-m' in sys.argv:
-    _m_idx = sys.argv.index('-m')
-    if _m_idx + 1 < len(sys.argv) and sys.argv[_m_idx + 1] == 'inspector':
-        _enable_inspector = True
-        sys.argv.pop(_m_idx + 1)
-        sys.argv.pop(_m_idx)
-
-import json  # noqa:E402
-import re  # noqa:E402
-from datetime import datetime  # noqa:E402
-
-from colorama import Fore, init  # noqa:E402
+from colorama import Fore, init
 
 from . import __version__ as _kl_version  # noqa:E402
 
@@ -34,25 +22,17 @@ files_in_base_dir = os.listdir(base_dir)
 current_file_path = os.path.abspath(__file__)
 current_file_dir = os.path.dirname(current_file_path)
 
+_DESKTOP_EXTRA_IMPORTS = {'colorama', 'plyer', 'psutil', 'readchar', 'typer'}
+_DESKTOP_EXTRA_HINT = (
+    'This command requires the optional desktop dependencies. '
+    'Install them with `pip install "kivy-reloader[desktop]"` or '
+    '`uv add "kivy-reloader[desktop]"`.'
+)
+
 
 def klprint(string):
     # Kivy Logger
     print(f'{green}[KIVY RELOADER]{Fore.RESET} {string}')
-
-
-def _log_command_history(command: str) -> None:
-    """Log a CLI command invocation to the project-local history file."""
-    history_path = Path(base_dir) / '.kivy-reloader' / 'command_history.json'
-    history = []
-    if history_path.exists():
-        try:
-            history = json.loads(history_path.read_text())
-        except Exception:
-            pass
-    history.append({'command': command, 'timestamp': datetime.now().isoformat()})
-    history = history[-1000:]
-    history_path.parent.mkdir(parents=True, exist_ok=True)
-    history_path.write_text(json.dumps(history, indent=2))
 
 
 def create_settings_file():
@@ -648,6 +628,9 @@ def main():
         run_gui(base=project_dir, config_path=config_path, debug=False)
 
     elif args.command in {'start', 'run', 'compile'}:
+        from .compile_app import debug_and_livestream  # noqa
+        from .compile_app import compile_app, start  # noqa
+
         if getattr(args, 'action', None) == 'build':
             from .compile_app import compile_app, debug_and_livestream
             compile_app()

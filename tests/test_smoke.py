@@ -8,11 +8,15 @@ import os
 import subprocess
 import sys
 import tempfile
+<<<<<<< HEAD
 import textwrap
 import time
 from pathlib import Path
 
 from kivy_reloader.bootstrap import scaffold_hello_world
+=======
+import time
+>>>>>>> main
 
 TARGET = "HELLO_WORLD_STARTED"
 TIMEOUT = 30
@@ -25,6 +29,10 @@ def main():
         original_dir = os.getcwd()
         os.chdir(tmpdir)
         try:
+<<<<<<< HEAD
+=======
+            from kivy_reloader.bootstrap import scaffold_hello_world
+>>>>>>> main
             scaffold_hello_world()
         finally:
             os.chdir(original_dir)
@@ -33,6 +41,7 @@ def main():
             print("SMOKE TEST FAILED: bootstrap did not create main.py")
             return 1
 
+<<<<<<< HEAD
         # Patch app.py to print the sentinel and self-stop
         (Path(tmpdir) / "hello_world" / "app.py").write_text(textwrap.dedent("""\
             from kivy_reloader.app import App
@@ -50,6 +59,8 @@ def main():
                 HelloWorldApp().run()
         """))
 
+=======
+>>>>>>> main
         print("Bootstrap OK, running app...")
 
         env = {
@@ -58,8 +69,11 @@ def main():
             "KIVY_SMOKE_TEST": "1",
             "KIVY_NO_ENV_CONFIG": "1",
             "KIVY_LOG_MODE": "PYTHON",
+<<<<<<< HEAD
             "KIVY_WINDOW": "headless",
             "USE_OPENGL_MOCK": "1",
+=======
+>>>>>>> main
         }
 
         proc = subprocess.Popen(

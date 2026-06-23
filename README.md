@@ -74,7 +74,7 @@ curl -LsSf https://kivyschool.com/kivy-android-wsl2.sh | bash
 mkdir kivyschool-hello
 cd kivyschool-hello
 uv init
-uv add kivy-reloader
+uv add "kivy-reloader[desktop]"
 ```
 
 Project tree:
@@ -113,7 +113,7 @@ trio.run(app.async_run, "trio")
 mkdir -p kivyschool-hello/hello_world/screens
 cd kivyschool-hello
 uv init
-uv add kivy-reloader
+uv add "kivy-reloader[desktop]"
 ```
 
 Project tree:
