@@ -245,14 +245,6 @@ def wait_for_authorization(timeout=30):
 
         authorized_hardware_serials = set()
         for parts in devices:
-            # # In wait_for_authorization(), change the final check to:
-            # for parts in devices:
-            #     if len(parts) < 2:
-            #         continue
-            #     serial, state = parts[0], parts[1]
-            #     if ":" not in serial and state == 'device':  # USB AND authorized state
-            #         print(f"Device {serial} is authorized. Proceeding...")
-            #         return True
             if len(parts) < 2:
                 continue
             serial, state = parts[0], parts[1]
@@ -291,216 +283,6 @@ def wait_for_authorization(timeout=30):
         time.sleep(1)
 
     return False
-
-# PARTIALLY WORKED SCRCPY HANGED/HUNG
-# def wait_for_authorization(timeout=30):
-#     start = time.time()
-#     while time.time() - start < timeout:
-#         output = subprocess.check_output(["adb", "devices"]).decode().strip().splitlines()[1:]
-#         devices = [line.split() for line in output if line.strip()]
-
-#         # 1. Collect all authorized hardware serials
-#         authorized_hardware_serials = set()
-#         for serial, state in devices:
-#             if state == 'device':
-#                 # If it's an IP, get the underlying hardware serial
-#                 if ":" in serial:
-#                     try:
-#                         hw_serial = subprocess.check_output(
-#                             ["adb", "-s", serial, "shell", "getprop", "ro.serialno"],
-#                             stderr=subprocess.DEVNULL, timeout=2
-#                         ).decode().strip()
-#                         authorized_hardware_serials.add(hw_serial)
-#                         print("hw serial list", hw_serial)
-
-#                     except: continue
-#                 else:
-#                     authorized_hardware_serials.add(serial)
-
-#         # 2. Check if our "Target" USB device is already covered
-#         # Even if the USB shows as 'unauthorized', if its serial is in
-#         # authorized_hardware_serials (via IP), we are good to go.
-#         serial_list = []
-#         for serial, state in devices:
-#             if ":" not in serial: # Physical USB
-#                 if serial in authorized_hardware_serials:
-#                     print(f"Device {serial} is authorized (via TCP/IP). Proceeding...")
-#                     return True
-#                 else:
-#                     serial_list.append(serial)
-
-#         adb_devices = subprocess.check_output(
-#                             ["adb", "devices", "-l"],
-#                             stderr=subprocess.DEVNULL, timeout=2
-#                         ).decode().strip()
-#         print("adb devices -l", adb_devices)
-
-
-#         elapsed = time.time() - start
-#         print(f"[+{elapsed:0.2f}s] waiting for authorization on {','.join(serial_list)}...")
-#         time.sleep(1)
-
-#     return False
-
-
-# def wait_for_authorization(timeout=30):
-#     import time, subprocess, logging
-
-#     def adb(cmd):
-#         return subprocess.check_output(["adb"] + cmd).decode().strip()
-
-#     start = time.time()
-#     usb_serial = None
-
-#     while time.time() - start < timeout:
-#         devices_full = adb(["devices", "-l"])
-#         print("\n=== adb devices -l ===")
-#         print(devices_full)
-#         print("======================\n")
-
-#         # FIX: accept any non-header line
-#         lines = [
-#             l for l in devices_full.splitlines()
-#             if l.strip() and not l.startswith("List of devices")
-#         ]
-
-#         if not lines:
-#             print("No devices detected.")
-#             return False
-
-#         parsed = []
-#         for l in lines:
-#             parts = l.split()
-#             serial = parts[0]
-#             state = parts[1]
-#             parsed.append((serial, state))
-
-#         usb_devices = [s for s, st in parsed if ":" not in s]
-
-#         if usb_devices and usb_serial is None:
-#             usb_serial = usb_devices[0]
-#             print(f"Captured USB serial: {usb_serial}")
-
-#         for serial, state in parsed:
-#             if "unauthorized" in state:
-#                 elapsed = time.time() - start
-#                 print(f"[+{elapsed:0.2f}s] waiting for authorization on {serial}...")
-#                 devices_full = adb(["devices", "-l"])
-#                 print("\n=== adb devices -l ===")
-#                 print(devices_full)
-#                 print("======================\n")
-#                 time.sleep(0.5)
-#                 break
-#         else:
-#             for serial, state in parsed:
-#                 if state == "device":
-#                     print(f"Authorized device: {serial}")
-#                     return True
-
-#         time.sleep(0.5)
-
-#     logging.error("Device did not authorize in time.")
-#     print("Please tap 'Allow USB debugging' on your phone.")
-#     return False
-
-
-# def wait_for_authorization(timeout=30):
-#     import time, subprocess, logging
-
-#     def adb(cmd):
-#         return subprocess.check_output(["adb"] + cmd).decode().strip()
-
-#     start = time.time()
-#     usb_serial = None
-
-#     while time.time() - start < timeout:
-#         # Full device list for debugging
-#         devices_full = adb(["devices", "-l"])
-#         print("\n=== adb devices -l ===")
-#         print(devices_full)
-#         print("======================\n")
-
-#         # Parse devices
-#         lines = [l for l in devices_full.splitlines() if "\t" in l]
-
-#         if not lines:
-#             print("No devices detected.")
-#             return False
-
-#         # Extract serial + state
-#         parsed = []
-#         for l in lines:
-#             serial, state = l.split("\t", 1)
-#             parsed.append((serial.strip(), state.strip()))
-
-#         # 1. Capture USB serial FIRST (before TCP/IP)
-#         # USB devices have no ":" in the serial
-#         usb_devices = [s for s, st in parsed if ":" not in s]
-
-#         if usb_devices and usb_serial is None:
-#             usb_serial = usb_devices[0]
-#             print(f"Captured USB serial: {usb_serial}")
-
-#         # 2. Check for unauthorized state
-#         for serial, state in parsed:
-#             if "unauthorized" in state:
-#                 elapsed = time.time() - start
-#                 print(f"[+{elapsed:0.2f}s] waiting for authorization on {serial}...")
-#                 time.sleep(0.5)
-#                 break
-#         else:
-#             # No unauthorized devices → check for authorized
-#             for serial, state in parsed:
-#                 if state == "device":
-#                     print(f"Authorized device: {serial}")
-#                     return True
-
-#         time.sleep(0.5)
-
-#     logging.error("Device did not authorize in time.")
-#     print("Please tap 'Allow USB debugging' on your phone.")
-#     return False
-
-
-# def wait_for_authorization(timeout=30):
-#     import time, subprocess, datetime
-
-#     start = time.time()
-#     while time.time() - start < timeout:
-#         out = subprocess.check_output(["adb", "devices"]).decode().strip()
-
-#         # No devices at all → exit immediately
-#         if "unauthorized" not in out and "device" not in out:
-#             print("No devices detected during authorization wait.")
-#             return False
-#         now = datetime.datetime.now()
-
-#         # print("time timeout!", now)
-#         elapsed = time.time() - start
-#         print(f"[+{elapsed:0.2f}s] waiting for authorization...")
-
-#         for line in out.splitlines():
-#             if "unauthorized" in line:
-#                 # Still waiting for user to tap "Allow"
-#                 time.sleep(0.5)
-#                 break
-
-#             # # Match ANY whitespace before "device"
-#             # if line.strip().endswith("device"):
-#             #     return True
-#             if "device" in line:
-#                 return True
-
-#         time.sleep(0.5)
-#         logging.error(f"Device did not authorize in time. ({elapsed:0.2f}s)")
-#         print("Please tap 'Allow USB debugging' on your phone.")
-#         devices_full = subprocess.check_output(["adb", "devices", "-l"]).decode().strip()
-#         print("\n=== adb devices -l ===")
-#         print(devices_full)
-#         print("======================\n")
-
-#     return False
-
 
 def validate_devices_connected() -> list:
     """
@@ -681,10 +463,6 @@ def select_option(option: str, app_name: str) -> None:
 
     if in_wsl() and config.STREAM_USING == "USB":
         start_nodaemon_adb_server()
-    #     # fix wsl
-    #     trio.run(fix_wsl)
-    #     # check for auth
-    #     wait_for_authorization()
 
     try:
         buildozer_compiled = Event()
@@ -830,11 +608,6 @@ def deploy_app_to_devices(target_devices, apk_file_path, package_name, activity_
                     )
                 except subprocess.TimeoutExpired:
                     logging.warning('force-stop timed out, continuing with install...')
-                # # Uninstall first to clear extracted Python asset cache on Android
-                # subprocess.run(
-                #     ['adb', '-s', device['serial'], 'uninstall', package_name],
-                #     timeout=30, capture_output=True
-                # )
                 # Uninstall first to clear extracted Python asset cache on Android
                 logging.info(f'Starting adb uninstall for {package_name}...')
                 subprocess.run(
@@ -897,42 +670,6 @@ def deploy_app_to_devices(target_devices, apk_file_path, package_name, activity_
             logging.error(f'adb install FAILED: {e.stderr}')
             return
 
-
-# worked? unsure
-# def deploy_app_to_devices(
-#     target_devices: dict, apk_file_path: str, package_name: str
-# ) -> None:
-#     """
-#     Installs APK and starts the application on target devices.
-
-#     Args:
-#         target_devices: Dictionary of filtered target devices
-#         apk_file_path: Path to the APK file to install
-#         package_name: Full package name for the application
-
-#     Raises:
-#         subprocess.CalledProcessError: If ADB commands fail
-#     """
-#     for device in target_devices.values():
-#         logging.info(f'Installing APK on {device["model"]} | ({device["serial"]})')
-#         subprocess.run(
-#             ['adb', '-s', device['serial'], 'install', '-r', apk_file_path], check=True
-#         )
-
-#         logging.info(f'Starting app on {device["model"]} | ({device["serial"]})')
-#         subprocess.run(
-#             [
-#                 'adb',
-#                 '-s',
-#                 device['serial'],
-#                 'shell',
-#                 'am',
-#                 'start',
-#                 '-n',
-#                 f'{package_name}/org.kivy.android.PythonActivity',
-#             ],
-#             check=True,
-#         )
 
 def _sigkill_old_app(serial: str, package_name: str) -> None:
     """Find and SIGKILL processes matching package_name via ps -A (no root needed for lookup)."""
@@ -1158,11 +895,6 @@ def debug_and_livestream(buildozer_compiled: Event = None) -> None:
 
     try:
         logging.info("DEBUG RAN!!")
-        # adb_logcat_ready = Event()
-
-        # adb_logcat = Process(target=debug, args=(adb_logcat_ready,))
-        # logging.info(f"LIVESTREAM RAN!!")
-        # scrcpy = Process(target=livestream, args=(adb_logcat_ready,))
 
         _ctx = get_context('spawn')
         adb_logcat_ready = _ctx.Event()
@@ -1192,21 +924,7 @@ def debug(adb_logcat_ready: Event = None):
     Debugging based on the streaming method.
     """
     logging.info(f"stream using? {config.STREAM_USING}")
-    # clear auth to check again
     if config.STREAM_USING == 'USB':
-        # if is_adb_listening():
-        # Don't restart if server already reachable
-        # if in_wsl():
-        #     # host_ip = extract_ip(get_wsl_nameservers()[0])
-        #     host_ip = get_wsl_host_ip()
-        #     print("what is host ip", host_ip)
-        #     listen_state = is_adb_listening(host=host_ip)
-        # else:
-        #     listen_state = is_adb_listening()
-        # if listen_state:
-        #     pass
-        # else:
-        #     start_adb_server()
         start_adb_server()
         clear_logcat()
         run_logcat(adb_logcat_ready=adb_logcat_ready)
@@ -1303,8 +1021,6 @@ def adb_nodaemon_check():
     )
 
     cmdlines = result.stdout.lower()
-    # logging.info(f"logginf for now{cmdlines}")
-
     # Look for the special flags
     if "-a" in cmdlines and "nodaemon" in cmdlines and "server" in cmdlines:
         answer = True
@@ -1332,15 +1048,6 @@ def start_nodaemon_adb_server():
     if part1 and part2:
         wait_for_authorization()  # wait for auth at the most
         pass
-
-    # if is_adb_listening(host=host_ip):
-    #     logging.info('adb server already running, skipping restart')
-    #     wait_for_authorization()
-    #     return True
-
-    # logging.info('Starting fresh adb server')
-    # kill_adb_server(disconnect=False)
-    # wait_for_authorization()
 
     # now we're NOT in nodaemon and server is off, restart server
     try:
@@ -1371,80 +1078,6 @@ def start_nodaemon_adb_server():
     except FileNotFoundError:
         logging.error('adb not found')
 
-# WORKED ON WIN10
-# def start_nodaemon_adb_server():
-#     # Don't restart if server already reachable
-#     host_ip = extract_ip(get_wsl_nameservers()[0])
-#     print("what is host ip?", host_ip,get_wsl_nameservers(), type(get_wsl_nameservers()))
-#     if is_adb_listening(host=host_ip):
-#         logging.info('adb server already running, skipping restart')
-#         wait_for_authorization()
-#         return True
-#     logging.info('Starting adb server')
-#     kill_adb_server(disconnect = False)
-#     try:
-#         adb_port = getattr(config, "ADB_PORT", 5037)
-#         adb_path = get_adb_windows_path()
-#         # Convert /mnt/c/... to C:\... for cmd.exe
-#         win_path = subprocess.check_output(["wslpath", "-w", adb_path]).decode().strip()
-#         # cmd = ["cmd.exe", "/c", f"{win_path} -a -P {adb_port} nodaemon server"]
-#         # cmd = ["cmd.exe", "/c", "start", f"{win_path} -a -P {adb_port} nodaemon server"]
-#         cmd = ["cmd.exe", "/c", f"{win_path} -a -P {adb_port} nodaemon server"]
-#         subprocess.Popen(
-#             cmd,
-#             stdout=subprocess.DEVNULL,  # don't buffer, just discard
-#             stderr=subprocess.DEVNULL
-#         )
-#         logging.info(f'started new adb server {" ".join(cmd)}')
-
-#         # Wait for it to actually bind
-#         for _ in range(10):
-#             if is_adb_listening(host=host_ip):
-#                 logging.info('adb server is up')
-#                 return True
-#             time.sleep(0.5)
-#     except FileNotFoundError:
-#         logging.error('adb not found')
-#         print(
-#             f'{red}Please, install `scrcpy`: {yellow}https://github.com/Genymobile/scrcpy{Fore.RESET}'
-#         )
-#     # for _ in range(5): # Give it 5 seconds to bind
-#     #     if is_adb_listening(host=host_ip):
-#     #         # logging.info('adb server is up and listening')
-#     #         wait_for_authorization()
-#     #         return True
-#     #     logging.debug("Server not ready yet, retrying...")
-#     #     time.sleep(1)
-#     # else:
-#     #     logging.error('adb server never came up')
-#     #     return False
-
-
-# def start_nodaemon_adb_server():
-#     logging.info('Starting adb server')
-#     kill_adb_server(disconnect = False)
-#     try:
-#         adb_port = getattr(config, "ADB_PORT", 5037)
-#         cmd = ["adb", "-a", "-P", str(adb_port), "nodaemon", "server"]
-#         subprocess.Popen(
-#             cmd,
-#             stdout=subprocess.DEVNULL,  # don't buffer, just discard
-#             stderr=subprocess.DEVNULL
-#         )
-#         logging.info(f'started new adb server {" ".join(cmd)}')
-#     except FileNotFoundError:
-#         logging.error('adb not found')
-#         print(
-#             f'{red}Please, install `scrcpy`: {yellow}https://github.com/Genymobile/scrcpy{Fore.RESET}'
-#         )
-#     host_ip = extract_ip(get_wsl_nameservers()[0])
-#     print("whawwwwwwt", host_ip)
-#     if not is_adb_listening(host = host_ip):
-#         logging.error('adb server never came up')
-#         return False
-#     # logging.info('adb server is up and listening')
-#     wait_for_authorization()
-#     return True
 
 def clear_device_logcat(device: dict) -> None:
     """
@@ -1548,45 +1181,6 @@ def determine_wifi_targets(devices: list) -> tuple[list, list]:
     return target_usb_devices, target_tcpip_ips
 
 
-# def determine_wifi_targets(devices: list) -> tuple[list, list]:
-#     """
-#     Determines target USB devices and TCP/IP IPs based on configuration.
-
-#     Args:
-#         devices: List of connected device dictionaries
-
-#     Returns:
-#         tuple: (target_usb_devices, target_tcpip_ips)
-#     """
-
-#     logging.info(f"device list unfiltered, {str(devices)}")
-
-#     for d in devices:
-#         logging.info(f"RAW DEVICE: {repr(d)} keys={list(d.keys())}")
-
-
-#     if not config.PHONE_IPS:
-#         target_usb_devices = [d for d in devices if d['transport'] == 'usb']
-#         target_tcpip_ips = [
-#             d['wifi_ip'] for d in devices if d['transport'] == 'tcpip' and d['wifi_ip']
-#         ]
-#     else:
-#         target_usb_devices = [
-#             d
-#             for d in devices
-#             if d['transport'] == 'usb' and d['wifi_ip'] in config.PHONE_IPS
-#         ]
-#         target_tcpip_ips = [
-#             ip
-#             for ip in config.PHONE_IPS
-#             if any(d['wifi_ip'] == ip and d['transport'] == 'tcpip' for d in devices)
-#         ]
-
-#     logging.info(f"device list filtered, {str(target_usb_devices)}, {str(target_tcpip_ips)}")
-
-#     return target_usb_devices, target_tcpip_ips
-
-
 def wait_for_adb_online(serial: str = None, timeout: float = 10.0) -> bool:
     try:
         # This blocks natively until the state is 'device'
@@ -1607,29 +1201,6 @@ def wait_for_adb_online(serial: str = None, timeout: float = 10.0) -> bool:
         return False
 
 
-# def wait_for_adb_online(serial: str, timeout: float = 10.0) -> bool:
-#     import subprocess, time
-
-#     start = time.time()
-#     while time.time() - start < timeout:
-#         try:
-#             state = subprocess.check_output(
-#                 ["adb", "-s", serial, "get-state"],
-#                 stderr=subprocess.DEVNULL
-#             ).decode().strip()
-
-#             if state == "device":
-#                 return True
-
-#         except Exception:
-#             pass
-
-#         # tiny wait to avoid hammering adb
-#         time.sleep(0.1)
-
-#     return False
-
-
 def enable_tcpip_for_devices(usb_devices: list) -> list:
     converted_ips = []
 
@@ -1646,16 +1217,6 @@ def enable_tcpip_for_devices(usb_devices: list) -> list:
             logging.error(f"ADB did not come back online after tcpip for {usb_serial}")
             return []
         logging.info(f"wait_for_adb_online passed, {usb_serial}")
-
-        # wait_for_ip_authorization(usb_serial)
-
-        # # Raw check what ip addr returns
-        # raw = subprocess.run(
-        #     ['adb', '-s', usb_serial, 'shell', 'ip', '-f', 'inet', 'addr', 'show'],
-        #     capture_output=True, text=True
-        # )
-        # logging.info(f'Raw ip addr stdout: {repr(raw.stdout[:200])}')
-        # logging.info(f'Raw ip addr stderr: {repr(raw.stderr[:200])}')
 
         # Now it's safe to query WiFi IP
         if not device['wifi_ip']:
@@ -1700,52 +1261,6 @@ def enable_tcpip_for_devices(usb_devices: list) -> list:
             print(f'{red}Please, install `scrcpy`: {yellow}https://github.com/Genymobile/scrcpy{Fore.RESET}')
 
     return converted_ips
-
-
-# def enable_tcpip_for_devices(usb_devices: list) -> list:
-#     """
-#     Enables TCP/IP mode for USB devices and connects to them.
-
-#     Args:
-#         usb_devices: List of USB device dictionaries
-
-#     Returns:
-#         list: IP addresses of devices successfully converted to TCP/IP
-
-#     Raises:
-#         subprocess.CalledProcessError: If ADB commands fail
-#     """
-#     converted_ips = []
-
-#     for device in usb_devices:
-#         logging.info(f'Enabling tcpip mode for {device["model"]} ({device["serial"]})')
-#         tcpip_command = ['adb', '-s', device['serial'], 'tcpip', f'{config.ADB_PORT}']
-#         logging.info(f"Running command: {' '.join(tcpip_command)}")
-#         subprocess.run(
-#             tcpip_command, check=True
-#         )
-
-#         if not device['wifi_ip']:
-#             device['wifi_ip'] = get_wifi_ip(device['serial'])
-
-#         ip_with_port = f'{device["wifi_ip"]}:{config.ADB_PORT}'
-#         logging.info(f'Connecting to {ip_with_port}')
-
-#         try:
-#             subprocess.run(['adb', 'connect', ip_with_port])  # no check=True, auth fails first
-#             logging.info('Please tap Allow on your phone...')
-#             authorized = wait_for_ip_authorization(ip_with_port, timeout=30)
-#             if authorized:
-#                 converted_ips.append(device['wifi_ip'])
-#             else:
-#                 logging.error(f'Failed to authorize {ip_with_port}')
-#         except FileNotFoundError:
-#             logging.error('adb not found')
-#             print(
-#                 f'{red}Please, install `scrcpy`: {yellow}https://github.com/Genymobile/scrcpy{Fore.RESET}'
-#             )
-
-#     return converted_ips
 
 
 def start_logcat_for_ips(ip_addresses: list) -> None:
@@ -1868,83 +1383,6 @@ def build_filter_command() -> list:
         return ['grep', '--line-buffered', '-E', watch]
 
 
-# def run_logcat(IP=None, adb_logcat_ready: Event = None, *args):
-#     """
-#     Orchestrates logcat execution with connection, command building,
-#     and process management.
-
-#     Args:
-#         IP: Optional IP address for WiFi debugging
-#         *args: Additional arguments (unused but kept for compatibility)
-#     """
-#     logging.info('Preparing to run logcat')
-
-#     # Step 1: Handle connection if IP is provided
-#     if IP:
-#         handle_logcat_connection(IP)
-
-#     # Step 2: Build logcat command
-#     logcat_cmd = build_logcat_command(IP)
-#     if not logcat_cmd:
-#         return
-
-#     # Step 3: Build filter command
-#     filter_cmd = build_filter_command()
-
-#     # Step 4: Start processes
-#     # logging.info('Starting logcat')
-#     # start_logcat_processes(logcat_cmd, filter_cmd)
-#     # adb_logcat_ready.set()
-#     logging.info('Starting logcat')
-#     logcat_proc, filter_proc = start_logcat_processes(logcat_cmd, filter_cmd)
-
-#     # Signal ready BEFORE blocking on wait
-#     if adb_logcat_ready is not None:
-#         adb_logcat_ready.set()
-
-#     # Now block waiting for processes
-#     if logcat_proc:
-#         logcat_proc.wait()
-
-# def run_logcat(IP=None, adb_logcat_ready: Event = None, *args):
-#     logging.info('Preparing to run logcat')
-
-#     if IP:
-#         handle_logcat_connection(IP)
-
-#     logcat_cmd = build_logcat_command(IP)
-#     if not logcat_cmd:
-#         return
-
-#     filter_cmd = build_filter_command()
-#     logging.info('Starting logcat')
-
-#     if platform == 'win':
-#         logcat_proc = subprocess.Popen(logcat_cmd + filter_cmd)
-#         if adb_logcat_ready is not None:
-#             adb_logcat_ready.set()
-#         logcat_proc.wait()
-#         return
-
-#     import re
-#     pattern = re.compile(filter_cmd[-1]) if filter_cmd else None
-
-#     logcat_proc = subprocess.Popen(
-#         logcat_cmd,
-#         stdout=subprocess.PIPE,
-#         text=True,
-#         encoding='utf-8',
-#         errors='replace',
-#     )
-
-#     if adb_logcat_ready is not None:
-#         adb_logcat_ready.set()
-
-#     for line in logcat_proc.stdout:
-#         if pattern is None or pattern.search(line):
-#             print(line, end='', flush=True)
-
-
 def run_logcat(IP=None, adb_logcat_ready: Event = None, *args):
     logging.info('Preparing to run logcat')
     logging.info(f'[logcat] sys.stdout={sys.stdout!r}  sys.__stdout__={sys.__stdout__!r}')
@@ -1992,18 +1430,12 @@ def run_logcat(IP=None, adb_logcat_ready: Event = None, *args):
             if line_count <= 3:
                 logging.info(f'[logcat] printing line #{line_count}: {line[:80]!r}')
             print(line, end='', flush=True)
-    # os.write(2, b'[logcat] run_logcat entered\n')
 
 
 def livestream(adb_logcat_ready: Event = None):
     """
     Handles the livestream process.
     """
-    # # clear auth to check again
-    # if config.STREAM_USING == 'WIFI':
-    #     logging.info('Waiting for WiFi authorization before starting scrcpy...')
-    #     # wait_for_authorization()   # blocks until event is set
-    # wait for adb logcat before running
 
     # Wait up to 30 seconds
     if not adb_logcat_ready.wait(timeout=30):
@@ -2199,10 +1631,6 @@ def start_scrcpy():
     # Step 1: Build scrcpy command
     scrcpy_cmd = build_scrcpy_command()
     logging.info(f'scrcpy command: {scrcpy_cmd}')
-    # import time
-
-    # # after enabling tcpip
-    # time.sleep(1)
 
     # Step 2: Execute scrcpy process with cleanup
     scrcpy_proc = None

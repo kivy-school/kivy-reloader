@@ -6,9 +6,32 @@ import shutil
 import sys
 from pathlib import Path
 
-from colorama import Fore, init
 
 from . import __version__ as _kl_version  # noqa:E402
+
+import json # noqa:E402
+import re # noqa:E402
+from datetime import datetime # noqa:E402
+
+
+_enable_inspector = False
+if '-m' in sys.argv:
+    _m_idx = sys.argv.index('-m')
+    if _m_idx + 1 < len(sys.argv) and sys.argv[_m_idx + 1] == 'inspector':
+        _enable_inspector = True
+        sys.argv.pop(_m_idx + 1)
+        sys.argv.pop(_m_idx)
+
+try:
+    from colorama import Fore, init
+except ModuleNotFoundError:
+    class Fore:
+        YELLOW = ''
+        GREEN = ''
+        RED = ''
+        RESET = ''
+    def init(*args, **kwargs):
+        return None
 
 yellow = Fore.YELLOW
 green = Fore.GREEN
@@ -33,6 +56,28 @@ _DESKTOP_EXTRA_HINT = (
 def klprint(string):
     # Kivy Logger
     print(f'{green}[KIVY RELOADER]{Fore.RESET} {string}')
+
+
+def _raise_missing_desktop_extra(command: str, missing_module: str) -> None:
+    raise SystemExit(
+        f'`kivy-reloader {command}` requires the optional desktop dependencies. '
+        f'Missing dependency: {missing_module}. {_DESKTOP_EXTRA_HINT}'
+    )
+
+
+def _log_command_history(command: str) -> None:
+    """Log a CLI command invocation to the project-local history file."""
+    history_path = Path(base_dir) / '.kivy-reloader' / 'command_history.json'
+    history = []
+    if history_path.exists():
+        try:
+            history = json.loads(history_path.read_text())
+        except Exception:
+            pass
+    history.append({'command': command, 'timestamp': datetime.now().isoformat()})
+    history = history[-1000:]
+    history_path.parent.mkdir(parents=True, exist_ok=True)
+    history_path.write_text(json.dumps(history, indent=2)) 
 
 
 def create_settings_file():
@@ -628,8 +673,13 @@ def main():
         run_gui(base=project_dir, config_path=config_path, debug=False)
 
     elif args.command in {'start', 'run', 'compile'}:
-        from .compile_app import debug_and_livestream  # noqa
-        from .compile_app import compile_app, start  # noqa
+        try:
+            from .compile_app import debug_and_livestream # noqa
+            from .compile_app import compile_app, start # noqa
+        except ModuleNotFoundError as exc:
+            if exc.name not in _DESKTOP_EXTRA_IMPORTS:
+                raise
+            _raise_missing_desktop_extra(args.command, exc.name) 
 
         if getattr(args, 'action', None) == 'build':
             from .compile_app import compile_app, debug_and_livestream
