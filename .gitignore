@@ -12,3 +12,4 @@ dmypy.json
 temp
 dist
 poetry.lock
+uv.lock
