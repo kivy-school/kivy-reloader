@@ -6,6 +6,10 @@ from pathlib import Path
 from kivy.properties import DictProperty, ObjectProperty, StringProperty
 from kivy.uix.boxlayout import BoxLayout
 
+from kivy_reloader.configurator.widgets.picker import (  # noqa: F401
+    DropdownPicker,
+    FolderOnlyDropdownPicker,
+)
 from kivy_reloader.lang import Builder
 
 Builder.load_file(__file__)
