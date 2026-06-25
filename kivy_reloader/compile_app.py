@@ -30,8 +30,8 @@ from .utils import (
     is_adb_listening,
 )
 
-_debug_proc: "Process | None" = None
-_scrcpy_proc: "Process | None" = None
+_debug_proc: 'Process | None' = None
+_scrcpy_proc: 'Process | None' = None
 
 
 def is_ci_environment() -> bool:
@@ -67,6 +67,7 @@ red = Fore.RED
 def _read_ksproject_config() -> dict:
     """Read build config from pyproject.toml [tool.kivy-school] section."""
     import tomlkit
+
     with open('pyproject.toml', 'r', encoding='utf-8') as f:
         data = tomlkit.load(f)
     ks = data.get('tool', {}).get('kivy-school', {})
@@ -240,7 +241,12 @@ def _terminate(proc: subprocess.Popen) -> None:
 def wait_for_authorization(timeout=30):
     start = time.time()
     while time.time() - start < timeout:
-        output = subprocess.check_output(["adb", "devices"]).decode().strip().splitlines()[1:]
+        output = (
+            subprocess.check_output(['adb', 'devices'])
+            .decode()
+            .strip()
+            .splitlines()[1:]
+        )
         devices = [line.split() for line in output if line.strip()]
 
         authorized_hardware_serials = set()
@@ -249,37 +255,59 @@ def wait_for_authorization(timeout=30):
                 continue
             serial, state = parts[0], parts[1]
             if state == 'device':
-                if ":" in serial:
+                if ':' in serial:
                     try:
-                        hw_serial = subprocess.check_output(
-                            ["adb", "-s", serial, "shell", "getprop", "ro.serialno"],
-                            stderr=subprocess.DEVNULL, timeout=2
-                        ).decode().strip()
+                        hw_serial = (
+                            subprocess.check_output(
+                                [
+                                    'adb',
+                                    '-s',
+                                    serial,
+                                    'shell',
+                                    'getprop',
+                                    'ro.serialno',
+                                ],
+                                stderr=subprocess.DEVNULL,
+                                timeout=2,
+                            )
+                            .decode()
+                            .strip()
+                        )
                         authorized_hardware_serials.add(hw_serial)
                     except Exception:
                         continue
                 else:
-                    authorized_hardware_serials.add(serial)  # ← USB serial is authorized directly
+                    authorized_hardware_serials.add(
+                        serial
+                    )  # ← USB serial is authorized directly
 
         # Now check: any physical USB device authorized?
         for parts in devices:
             if len(parts) < 2:
                 continue
             serial, state = parts[0], parts[1]
-            if ":" not in serial:  # physical USB
+            if ':' not in serial:  # physical USB
                 if serial in authorized_hardware_serials:
-                    print(f"Device {serial} is authorized. Proceeding...")
+                    print(f'Device {serial} is authorized. Proceeding...')
                     return True
 
         elapsed = time.time() - start
         # serial_list = [parts[0] for parts in devices if len(parts) >= 2 and ":" not in parts[0]]
         # print(f"[+{elapsed:0.2f}s] waiting for authorization on {','.join(serial_list)}...")
-        state_list = [f"{parts[0]}({parts[1]})" for parts in devices if len(parts) >= 2 and ":" not in parts[0]]
-        print(f"[+{elapsed:0.2f}s] waiting for authorization on {','.join(state_list)}...")
+        state_list = [
+            f'{parts[0]}({parts[1]})'
+            for parts in devices
+            if len(parts) >= 2 and ':' not in parts[0]
+        ]
+        print(
+            f'[+{elapsed:0.2f}s] waiting for authorization on {",".join(state_list)}...'
+        )
         if elapsed > 10:
-            print("  No prompt on your phone? Unplug and replug the USB cable.")
+            print('  No prompt on your phone? Unplug and replug the USB cable.')
         if elapsed > 20:
-            print("  Still no prompt? Settings → Developer Options → Revoke USB debugging authorizations, then replug.")
+            print(
+                '  Still no prompt? Settings → Developer Options → Revoke USB debugging authorizations, then replug.'
+            )
         time.sleep(1)
 
     return False
@@ -298,7 +326,7 @@ def validate_devices_connected() -> list:
 
     wait_for_authorization()
 
-    if config.STREAM_USING == "WIFI":
+    if config.STREAM_USING == 'WIFI':
         fetch_wifi_ip = True
     else:
         fetch_wifi_ip = False
@@ -323,9 +351,12 @@ def validate_devices_connected() -> list:
 
 def wait_for_ip_authorization(ip_with_port: str, timeout=30) -> bool:
     import time
+
     start = time.time()
     while time.time() - start < timeout:
-        result = subprocess.run(['adb', 'devices'], capture_output=True, text=True, check=False)
+        result = subprocess.run(
+            ['adb', 'devices'], capture_output=True, text=True, check=False
+        )
         for line in result.stdout.splitlines():
             if ip_with_port in line and 'device' in line and 'unauthorized' not in line:
                 logging.info(f'{ip_with_port} authorized!')
@@ -341,6 +372,7 @@ def _kill_process_tree(pid: int) -> None:
     """Kill all descendant processes of `pid` (e.g. `adb logcat`, `scrcpy`)."""
     try:
         import psutil
+
         for child in psutil.Process(pid).children(recursive=True):
             try:
                 child.kill()
@@ -462,18 +494,18 @@ def select_option(option: str, app_name: str) -> None:
     4. Restart adb server
     """
 
-    if in_wsl() and config.STREAM_USING == "USB":
+    if in_wsl() and config.STREAM_USING == 'USB':
         start_nodaemon_adb_server()
 
     try:
         buildozer_compiled = Event()
         if option == '1':
             compile_app(buildozer_compiled)
-            logging.info("debug_and_livestream RAN!!A")
+            logging.info('debug_and_livestream RAN!!A')
             debug_and_livestream(buildozer_compiled)
         elif option == '2':
             buildozer_compiled.set()
-            logging.info("debug_and_livestream RAN!!B")
+            logging.info('debug_and_livestream RAN!!B')
             debug_and_livestream(buildozer_compiled)
         elif option == '3':
             create_aab()
@@ -536,7 +568,14 @@ def _get_buildozer_command(build_type: str) -> list[str]:
     """
     Run Buildozer from the current Python environment instead of relying on PATH.
     """
-    return [sys.executable, '-m', 'buildozer.scripts.client', '-v', 'android', build_type]
+    return [
+        sys.executable,
+        '-m',
+        'buildozer.scripts.client',
+        '-v',
+        'android',
+        build_type,
+    ]
 
 
 def filter_target_devices(devices: list) -> dict:
@@ -568,7 +607,13 @@ def filter_target_devices(devices: list) -> dict:
     return physical_map
 
 
-def deploy_app_to_devices(target_devices, apk_file_path, package_name, activity_class='org.kivy.android.PythonActivity', is_ksproject=False):
+def deploy_app_to_devices(
+    target_devices,
+    apk_file_path,
+    package_name,
+    activity_class='org.kivy.android.PythonActivity',
+    is_ksproject=False,
+):
     for device in target_devices.values():
         logging.info(f'Installing APK on {device["model"]} | ({device["serial"]})')
 
@@ -578,34 +623,60 @@ def deploy_app_to_devices(target_devices, apk_file_path, package_name, activity_
         win_temp = None
         if in_wsl():
             adb_path = get_adb_windows_path()
-            win_path = subprocess.check_output(['wslpath', '-w', adb_path]).decode().strip()
-            win_user = os.environ.get('WINDOWS_USERNAME') or subprocess.check_output(
-                ['cmd.exe', '/c', 'echo %USERNAME%'], text=True
-            ).strip()
+            win_path = (
+                subprocess.check_output(['wslpath', '-w', adb_path]).decode().strip()
+            )
+            win_user = (
+                os.environ.get('WINDOWS_USERNAME')
+                or subprocess.check_output(
+                    ['cmd.exe', '/c', 'echo %USERNAME%'], text=True
+                ).strip()
+            )
             win_temp = f'/mnt/c/Users/{win_user}/AppData/Local/Temp/kivy_install.apk'
             subprocess.run(['cp', apk_file_path, win_temp], check=True)
-            win_apk_path = subprocess.check_output(['wslpath', '-w', win_temp]).decode().strip()
+            win_apk_path = (
+                subprocess.check_output(['wslpath', '-w', win_temp]).decode().strip()
+            )
 
         def _do_install(serial, reinstall=True):
             flags = ['-r'] if reinstall else []
             if win_path:
                 return subprocess.run(
-                    ['cmd.exe', '/c', win_path, '-s', serial, 'install'] + flags + [win_apk_path],
-                    timeout=120, capture_output=True, text=True, check=False
+                    ['cmd.exe', '/c', win_path, '-s', serial, 'install']
+                    + flags
+                    + [win_apk_path],
+                    timeout=120,
+                    capture_output=True,
+                    text=True,
+                    check=False,
                 )
             return subprocess.run(
                 ['adb', '-s', serial, 'install'] + flags + [apk_file_path],
-                check=False, timeout=120, capture_output=True, text=True,
+                check=False,
+                timeout=120,
+                capture_output=True,
+                text=True,
             )
 
         try:
-            print("in wsl or not?", in_wsl())
+            print('in wsl or not?', in_wsl())
             if is_ksproject:
-                logging.info(f'Force-stopping old app on {device["model"]} | ({device["serial"]})')
+                logging.info(
+                    f'Force-stopping old app on {device["model"]} | ({device["serial"]})'
+                )
                 try:
                     subprocess.run(
-                        ['adb', '-s', device['serial'], 'shell', 'am', 'force-stop', package_name],
-                        timeout=15, check=False
+                        [
+                            'adb',
+                            '-s',
+                            device['serial'],
+                            'shell',
+                            'am',
+                            'force-stop',
+                            package_name,
+                        ],
+                        timeout=15,
+                        check=False,
                     )
                 except subprocess.TimeoutExpired:
                     logging.warning('force-stop timed out, continuing with install...')
@@ -613,11 +684,18 @@ def deploy_app_to_devices(target_devices, apk_file_path, package_name, activity_
                 logging.info(f'Starting adb uninstall for {package_name}...')
                 subprocess.run(
                     ['adb', '-s', device['serial'], 'uninstall', package_name],
-                    timeout=30, capture_output=True, check=False
+                    timeout=30,
+                    capture_output=True,
+                    check=False,
                 )
                 logging.info('adb uninstall returned')
                 _sigkill_old_app(device['serial'], package_name)
-                _wait_for_port_free(device['serial'], int(config.RELOADER_PORT), timeout=30, current_package=package_name)
+                _wait_for_port_free(
+                    device['serial'],
+                    int(config.RELOADER_PORT),
+                    timeout=30,
+                    current_package=package_name,
+                )
                 result = _do_install(device['serial'], reinstall=False)
 
             else:
@@ -630,11 +708,17 @@ def deploy_app_to_devices(target_devices, apk_file_path, package_name, activity_
             logging.info(f'Install stderr: {result.stderr.strip()}')
             # ── signature mismatch detection (safety net if uninstall failed) ──
             if 'INSTALL_FAILED_UPDATE_INCOMPATIBLE' in result.stdout + result.stderr:
-                logging.warning(f'Signature mismatch on {device["serial"]} — uninstalling old version')
-                print(f'{yellow}⚠️  Signature mismatch on {device["model"]}. Uninstalling old version...{Style.RESET_ALL}')
+                logging.warning(
+                    f'Signature mismatch on {device["serial"]} — uninstalling old version'
+                )
+                print(
+                    f'{yellow}⚠️  Signature mismatch on {device["model"]}. Uninstalling old version...{Style.RESET_ALL}'
+                )
                 subprocess.run(
                     ['adb', '-s', device['serial'], 'uninstall', package_name],
-                    timeout=30, capture_output=True, check=False
+                    timeout=30,
+                    capture_output=True,
+                    check=False,
                 )
                 result = _do_install(device['serial'], reinstall=False)
                 logging.info(f'Retry stdout: {result.stdout.strip()}')
@@ -644,28 +728,58 @@ def deploy_app_to_devices(target_devices, apk_file_path, package_name, activity_
                 logging.error(f'Install failed: {result.stdout} {result.stderr}')
                 return
 
-            time.sleep(2)  # let Android finish post-install package registration before am start
+            time.sleep(
+                2
+            )  # let Android finish post-install package registration before am start
             logging.info(f'Starting app on {device["model"]} | ({device["serial"]})')
 
             try:
                 am_cmd = (
-                    ['cmd.exe', '/c', win_path, '-s', device['serial'], 'shell', 'am', 'start',
-                     '-n', f'{package_name}/{activity_class}']
-                    if win_path else
-                    ['adb', '-s', device['serial'], 'shell', 'am', 'start',
-                     '-n', f'{package_name}/{activity_class}']
+                    [
+                        'cmd.exe',
+                        '/c',
+                        win_path,
+                        '-s',
+                        device['serial'],
+                        'shell',
+                        'am',
+                        'start',
+                        '-n',
+                        f'{package_name}/{activity_class}',
+                    ]
+                    if win_path
+                    else [
+                        'adb',
+                        '-s',
+                        device['serial'],
+                        'shell',
+                        'am',
+                        'start',
+                        '-n',
+                        f'{package_name}/{activity_class}',
+                    ]
                 )
-                result_start = subprocess.run(am_cmd, timeout=60, capture_output=True, text=True, check=False)
+                result_start = subprocess.run(
+                    am_cmd, timeout=60, capture_output=True, text=True, check=False
+                )
                 logging.info(f'am start stdout: {result_start.stdout.strip()!r}')
                 logging.info(f'am start stderr: {result_start.stderr.strip()!r}')
                 logging.info(f'am start returncode: {result_start.returncode}')
 
-                print(f"\n{green}[kivy-reloader] APK installed. Next run: 'uv run kivy-reloader run' (hot-reload, no recompile).{Style.RESET_ALL}")
-                print(f"{green}                Recompile only when: Python deps change · native/gradle config changes · clean slate needed.{Style.RESET_ALL}\n")
+                print(
+                    f"\n{green}[kivy-reloader] APK installed. Next run: 'uv run kivy-reloader run' (hot-reload, no recompile).{Style.RESET_ALL}"
+                )
+                print(
+                    f'{green}                Recompile only when: Python deps change · native/gradle config changes · clean slate needed.{Style.RESET_ALL}\n'
+                )
             except subprocess.TimeoutExpired:
-                logging.warning('am start timed out - app may still have launched, continuing...')
+                logging.warning(
+                    'am start timed out - app may still have launched, continuing...'
+                )
         except subprocess.TimeoutExpired:
-            logging.error(f'adb deploy step TIMED OUT for {device["serial"]} (install, uninstall, or port-wait)')
+            logging.error(
+                f'adb deploy step TIMED OUT for {device["serial"]} (install, uninstall, or port-wait)'
+            )
             return
         except subprocess.CalledProcessError as e:
             logging.error(f'adb install FAILED: {e.stderr}')
@@ -676,7 +790,10 @@ def _sigkill_old_app(serial: str, package_name: str) -> None:
     """Find and SIGKILL processes matching package_name via ps -A (no root needed for lookup)."""
     ps = subprocess.run(
         ['adb', '-s', serial, 'shell', 'ps', '-A'],
-        capture_output=True, text=True, timeout=10, check=False
+        capture_output=True,
+        text=True,
+        timeout=10,
+        check=False,
     )
     for line in ps.stdout.splitlines():
         if package_name in line:
@@ -685,14 +802,22 @@ def _sigkill_old_app(serial: str, package_name: str) -> None:
                 pid = cols[1]
                 r = subprocess.run(
                     ['adb', '-s', serial, 'shell', 'kill', '-9', pid],
-                    capture_output=True, text=True, timeout=5, check=False
+                    capture_output=True,
+                    text=True,
+                    timeout=5,
+                    check=False,
                 )
-                logging.info(f'sigkill {pid} ({package_name}): {r.stdout.strip()!r} {r.stderr.strip()!r}')
+                logging.info(
+                    f'sigkill {pid} ({package_name}): {r.stdout.strip()!r} {r.stderr.strip()!r}'
+                )
 
 
-def _wait_for_port_free(serial: str, port: int, timeout: int = 90, current_package: str = '') -> None:
+def _wait_for_port_free(
+    serial: str, port: int, timeout: int = 90, current_package: str = ''
+) -> None:
     import re as _re
     import time
+
     hex_port = format(port, '04X')
     deadline = time.time() + timeout
     force_stopped = set()
@@ -700,7 +825,9 @@ def _wait_for_port_free(serial: str, port: int, timeout: int = 90, current_packa
     while time.time() < deadline:
         result = subprocess.run(
             ['adb', '-s', serial, 'shell', 'cat', '/proc/net/tcp6', '/proc/net/tcp'],
-            capture_output=True, text=True, check=False
+            capture_output=True,
+            text=True,
+            check=False,
         )
         listening_uids = set()
         for line in result.stdout.splitlines():
@@ -721,15 +848,25 @@ def _wait_for_port_free(serial: str, port: int, timeout: int = 90, current_packa
                 continue
             # Use awk to correctly map uid→package (userId line follows Package line)
             pkg_result = subprocess.run(
-                ['adb', '-s', serial, 'shell',
-                 f"dumpsys package | awk '/^Packages:$/{{in_pkg=1}} in_pkg && /Package \\[/{{pkg=$0}} in_pkg && /userId={uid}/{{print pkg; exit}}'"],
-                capture_output=True, text=True, timeout=10, check=False
+                [
+                    'adb',
+                    '-s',
+                    serial,
+                    'shell',
+                    f"dumpsys package | awk '/^Packages:$/{{in_pkg=1}} in_pkg && /Package \\[/{{pkg=$0}} in_pkg && /userId={uid}/{{print pkg; exit}}'",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=10,
+                check=False,
             )
             m = _re.search(r'Package \[([^\]]+)\]', pkg_result.stdout)
             conflicting_pkg = m.group(1) if m else f'uid={uid}'
 
             if current_package and conflicting_pkg == current_package:
-                logging.info(f'Port {port} held by same package after reinstall — waiting for OS cleanup')
+                logging.info(
+                    f'Port {port} held by same package after reinstall — waiting for OS cleanup'
+                )
             else:
                 logging.warning(
                     f'Port {port} held by: {conflicting_pkg} (uid={uid})\n'
@@ -737,13 +874,18 @@ def _wait_for_port_free(serial: str, port: int, timeout: int = 90, current_packa
                 )
                 subprocess.run(
                     ['adb', '-s', serial, 'shell', 'am', 'force-stop', conflicting_pkg],
-                    timeout=10, check=False
+                    timeout=10,
+                    check=False,
                 )
-                logging.info(f'Force-stopped {conflicting_pkg} — waiting for port to release...')
+                logging.info(
+                    f'Force-stopped {conflicting_pkg} — waiting for port to release...'
+                )
                 force_stopped.add(uid)
 
         elapsed = int(deadline - time.time())
-        logging.info(f'Waiting for port {port} to be released... ({elapsed}s remaining)')
+        logging.info(
+            f'Waiting for port {port} to be released... ({elapsed}s remaining)'
+        )
         time.sleep(2)
 
     logging.warning(f'Port {port} still held after {timeout}s — installing anyway')
@@ -751,7 +893,9 @@ def _wait_for_port_free(serial: str, port: int, timeout: int = 90, current_packa
 
 def _clear_ksproject_cache() -> None:
     if not Path('pyproject.toml').exists():
-        print(f'{red}pyproject.toml not found. Run kivy-reloader from your project root (the folder containing pyproject.toml).{Fore.RESET}')
+        print(
+            f'{red}pyproject.toml not found. Run kivy-reloader from your project root (the folder containing pyproject.toml).{Fore.RESET}'
+        )
         return
     root = Path('pyproject.toml').resolve().parent
     for rel in [
@@ -778,11 +922,14 @@ def _check_pypi_indexes_reachable() -> None:
     import socket as _sock
 
     import tomlkit
+
     indexes = []
     try:
         with open('pyproject.toml', 'r', encoding='utf-8') as f:
             data = tomlkit.load(f)
-        indexes = data.get('tool', {}).get('uv', {}).get('pip', {}).get('extra-index-url', [])
+        indexes = (
+            data.get('tool', {}).get('uv', {}).get('pip', {}).get('extra-index-url', [])
+        )
     except Exception:
         pass
 
@@ -809,7 +956,9 @@ def run_ksproject_build() -> float:
     _clear_ksproject_cache()
     _gradle_clean()
     print(f'{yellow}Started compiling {app_name} with ksproject')
-    notify(f'Compiling {app_name}', f'Compilation started at {time.strftime("%H:%M:%S")}')
+    notify(
+        f'Compiling {app_name}', f'Compilation started at {time.strftime("%H:%M:%S")}'
+    )
     start_time = time.time()
     try:
         subprocess.run(['ksproject', 'android', 'build', 'debug'], check=True)
@@ -818,7 +967,10 @@ def run_ksproject_build() -> float:
         raise
     compilation_time = round(time.time() - start_time, 2)
     print(f'{green}Compiled {app_name} successfully in {compilation_time}s')
-    notify(f'Compiled {app_name} successfully', f'Compilation finished in {compilation_time} seconds')
+    notify(
+        f'Compiled {app_name} successfully',
+        f'Compilation finished in {compilation_time} seconds',
+    )
     return compilation_time
 
 
@@ -836,6 +988,7 @@ def compile_app(buildozer_compiled: Event = None):
     _is_ksp = False
     try:
         import tomlkit
+
         with open('pyproject.toml', 'r', encoding='utf-8') as _f:
             _is_ksp = bool(tomlkit.load(_f).get('tool', {}).get('kivy-school', {}))
     except Exception:
@@ -848,9 +1001,9 @@ def compile_app(buildozer_compiled: Event = None):
         run_buildozer_compilation()
 
     # Step 3: Get and filter target devices
-    logging.info("compile app wait for auth")
+    logging.info('compile app wait for auth')
     wait_for_authorization()
-    if config.STREAM_USING == "WIFI":
+    if config.STREAM_USING == 'WIFI':
         fetch_wifi_ip = True
     else:
         fetch_wifi_ip = False
@@ -864,8 +1017,12 @@ def compile_app(buildozer_compiled: Event = None):
 
     # Step 4: Deploy to devices
     deploy_app_to_devices(
-        target_devices, apk_path, package,
-        activity_class='.MainActivity' if _is_ksp else 'org.kivy.android.PythonActivity',
+        target_devices,
+        apk_path,
+        package,
+        activity_class='.MainActivity'
+        if _is_ksp
+        else 'org.kivy.android.PythonActivity',
         is_ksproject=_is_ksp,
     )
 
@@ -881,9 +1038,9 @@ def debug_and_livestream(buildozer_compiled: Event = None) -> None:
     """
     # Wait up to 30 seconds
     if not buildozer_compiled.wait(timeout=30):
-        logging.error("Did not get buildozer completion")
+        logging.error('Did not get buildozer completion')
         return
-    logging.info(f"DEBUG RAN!0000!, {is_ci_environment()}")
+    logging.info(f'DEBUG RAN!0000!, {is_ci_environment()}')
     # Skip device operations in CI environments
     if is_ci_environment():
         logging.info('CI environment detected, skipping debug and livestream')
@@ -892,15 +1049,15 @@ def debug_and_livestream(buildozer_compiled: Event = None) -> None:
     # Early validation - exit immediately if no devices
     validate_devices_connected()
 
-    logging.info("DEBUG RAN!0000!")
+    logging.info('DEBUG RAN!0000!')
 
     try:
-        logging.info("DEBUG RAN!!")
+        logging.info('DEBUG RAN!!')
 
         _ctx = get_context('spawn')
         adb_logcat_ready = _ctx.Event()
         adb_logcat = _ctx.Process(target=debug, args=(adb_logcat_ready,))
-        logging.info("LIVESTREAM RAN!!")
+        logging.info('LIVESTREAM RAN!!')
         scrcpy = _ctx.Process(target=livestream, args=(adb_logcat_ready,))
 
         adb_logcat.start()
@@ -924,7 +1081,7 @@ def debug(adb_logcat_ready: Event = None):
     """
     Debugging based on the streaming method.
     """
-    logging.info(f"stream using? {config.STREAM_USING}")
+    logging.info(f'stream using? {config.STREAM_USING}')
     if config.STREAM_USING == 'USB':
         start_adb_server()
         clear_logcat()
@@ -948,20 +1105,26 @@ def kill_windows_adb():
     if not in_wsl():
         return
     result = subprocess.run(
-        ["tasklist.exe", "/FI", "IMAGENAME eq adb.exe", "/NH"],
-        capture_output=True, text=True, check=False
+        ['tasklist.exe', '/FI', 'IMAGENAME eq adb.exe', '/NH'],
+        capture_output=True,
+        text=True,
+        check=False,
     )
-    print(f"[kill_windows_adb] tasklist output: {result.stdout.strip()}")
-    if "adb.exe" in result.stdout:
-        print("[kill_windows_adb] Found adb.exe, killing...")
+    print(f'[kill_windows_adb] tasklist output: {result.stdout.strip()}')
+    if 'adb.exe' in result.stdout:
+        print('[kill_windows_adb] Found adb.exe, killing...')
         kill_result = subprocess.run(
-            ["taskkill.exe", "/F", "/IM", "adb.exe"],
-            capture_output=True, text=True, check=False
+            ['taskkill.exe', '/F', '/IM', 'adb.exe'],
+            capture_output=True,
+            text=True,
+            check=False,
         )
-        print(f"[kill_windows_adb] taskkill result: {kill_result.stdout.strip()} {kill_result.stderr.strip()}")
+        print(
+            f'[kill_windows_adb] taskkill result: {kill_result.stdout.strip()} {kill_result.stderr.strip()}'
+        )
         time.sleep(0.5)
     else:
-        print("[kill_windows_adb] No adb.exe found on Windows, skipping kill.")
+        print('[kill_windows_adb] No adb.exe found on Windows, skipping kill.')
 
 
 def kill_adb_server(disconnect: bool = True):
@@ -997,15 +1160,16 @@ def get_wsl_host_ip() -> str:
     try:
         # Try current user from environment
         import pathlib
-        for candidate in pathlib.Path("/mnt/c/Users").iterdir():
-            wslconfig = candidate / ".wslconfig"
-            if wslconfig.exists() and "mirrored" in wslconfig.read_text().lower():
-                return "127.0.0.1"
+
+        for candidate in pathlib.Path('/mnt/c/Users').iterdir():
+            wslconfig = candidate / '.wslconfig'
+            if wslconfig.exists() and 'mirrored' in wslconfig.read_text().lower():
+                return '127.0.0.1'
     except Exception:
         pass
     # NAT mode fallback
     nameservers = get_wsl_nameservers()
-    return extract_ip(nameservers[0]) if nameservers else "127.0.0.1"
+    return extract_ip(nameservers[0]) if nameservers else '127.0.0.1'
 
 
 def adb_nodaemon_check():
@@ -1014,7 +1178,7 @@ def adb_nodaemon_check():
     answer = False
     # Query Windows processes from WSL
     result = subprocess.run(
-        ["cmd.exe", "/c", "wmic process where \"name='adb.exe'\" get CommandLine"],
+        ['cmd.exe', '/c', 'wmic process where "name=\'adb.exe\'" get CommandLine'],
         capture_output=True,
         text=True,
         timeout=5,
@@ -1023,7 +1187,7 @@ def adb_nodaemon_check():
 
     cmdlines = result.stdout.lower()
     # Look for the special flags
-    if "-a" in cmdlines and "nodaemon" in cmdlines and "server" in cmdlines:
+    if '-a' in cmdlines and 'nodaemon' in cmdlines and 'server' in cmdlines:
         answer = True
     return answer
 
@@ -1031,7 +1195,7 @@ def adb_nodaemon_check():
 def start_nodaemon_adb_server():
     # this should only run in wsl tbh, so assume in wsb
     host_ip = get_wsl_host_ip()
-    print("host ip resolved to:", host_ip)
+    print('host ip resolved to:', host_ip)
     part1 = False
     part2 = False
 
@@ -1053,8 +1217,12 @@ def start_nodaemon_adb_server():
     # now we're NOT in nodaemon and server is off, restart server
     try:
         adb_path = get_adb_windows_path()
-        win_path = subprocess.check_output(["wslpath", "-w", adb_path]).decode().strip()
-        cmd = ["cmd.exe", "/c", f"{win_path} -a -P {config.WIN_ADB_PORT} nodaemon server"]
+        win_path = subprocess.check_output(['wslpath', '-w', adb_path]).decode().strip()
+        cmd = [
+            'cmd.exe',
+            '/c',
+            f'{win_path} -a -P {config.WIN_ADB_PORT} nodaemon server',
+        ]
         subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         logging.info(f'started new adb server {" ".join(cmd)}')
 
@@ -1065,15 +1233,19 @@ def start_nodaemon_adb_server():
                 break
             time.sleep(0.5)
         # now also forward if usb mode
-        logging.info(f'if check {config.STREAM_USING.lower().replace(" ", "")}, {config.STREAM_USING.lower().replace(" ", "") == "usb"}')
+        logging.info(
+            f'if check {config.STREAM_USING.lower().replace(" ", "")}, {config.STREAM_USING.lower().replace(" ", "") == "usb"}'
+        )
         PORT = config.RELOADER_PORT
-        if config.STREAM_USING.lower().replace(" ", "") == "usb":
+        if config.STREAM_USING.lower().replace(' ', '') == 'usb':
             wait_for_authorization()
             if not adb_has_forward(PORT):
                 # no port forward means we forward now:
                 adb_forward(PORT)
             else:
-                logging.info(f'adb forwarded: {adb_has_forward(PORT)} config.RELOADER_PORT: {PORT}')
+                logging.info(
+                    f'adb forwarded: {adb_has_forward(PORT)} config.RELOADER_PORT: {PORT}'
+                )
         return True
 
     except FileNotFoundError:
@@ -1111,7 +1283,7 @@ def clear_logcat():
     logging.info('Clearing logcat')
 
     try:
-        if config.STREAM_USING == "WIFI":
+        if config.STREAM_USING == 'WIFI':
             fetch_wifi_ip = True
         else:
             fetch_wifi_ip = False
@@ -1143,19 +1315,21 @@ def determine_wifi_targets(devices: list) -> tuple[list, list]:
         tuple: (target_usb_devices, target_tcpip_ips)
     """
 
-    logging.info(f"device list unfiltered, {str(devices)}")
+    logging.info(f'device list unfiltered, {str(devices)}')
 
     for d in devices:
-        logging.info(f"RAW DEVICE: {repr(d)} keys={list(d.keys())}")
+        logging.info(f'RAW DEVICE: {repr(d)} keys={list(d.keys())}')
 
     # 1. Start from all USB and all TCP/IP devices
     usb_devices = [d for d in devices if d.get('transport') == 'usb']
-    tcpip_devices = [d for d in devices if d.get('transport') == 'tcpip' and d.get('wifi_ip')]
+    tcpip_devices = [
+        d for d in devices if d.get('transport') == 'tcpip' and d.get('wifi_ip')
+    ]
 
     # 2. Normalize PHONE_IPS into a list of strings (or empty list)
-    phone_ips_raw = getattr(config, "PHONE_IPS", None)
+    phone_ips_raw = getattr(config, 'PHONE_IPS', None)
     if isinstance(phone_ips_raw, str):
-        phone_ips = [ip.strip() for ip in phone_ips_raw.split(",") if ip.strip()]
+        phone_ips = [ip.strip() for ip in phone_ips_raw.split(',') if ip.strip()]
     elif phone_ips_raw:
         phone_ips = list(phone_ips_raw)
     else:
@@ -1168,16 +1342,16 @@ def determine_wifi_targets(devices: list) -> tuple[list, list]:
     else:
         # Filter by PHONE_IPS
         target_usb_devices = [
-            d for d in usb_devices
+            d
+            for d in usb_devices
             if d.get('wifi_ip') in phone_ips or d.get('wifi_ip') is None
         ]
         target_tcpip_ips = [
-            d['wifi_ip'] for d in tcpip_devices
-            if d['wifi_ip'] in phone_ips
+            d['wifi_ip'] for d in tcpip_devices if d['wifi_ip'] in phone_ips
         ]
 
     logging.info(
-        f"device list filtered, usb={target_usb_devices!r}, tcpip_ips={target_tcpip_ips!r}"
+        f'device list filtered, usb={target_usb_devices!r}, tcpip_ips={target_tcpip_ips!r}'
     )
     return target_usb_devices, target_tcpip_ips
 
@@ -1186,10 +1360,10 @@ def wait_for_adb_online(serial: str = None, timeout: float = 10.0) -> bool:
     try:
         # This blocks natively until the state is 'device'
         # We use a timeout at the subprocess level to avoid hanging forever
-        cmd = ["adb"]
+        cmd = ['adb']
         if serial is not None:
-            cmd += ["-s", serial]
-        cmd.append("wait-for-device")
+            cmd += ['-s', serial]
+        cmd.append('wait-for-device')
         subprocess.run(
             cmd,
             timeout=timeout,
@@ -1210,21 +1384,23 @@ def enable_tcpip_for_devices(usb_devices: list) -> list:
         logging.info(f'Enabling tcpip mode for {device["model"]} ({usb_serial})')
 
         tcpip_command = ['adb', '-s', usb_serial, 'tcpip', f'{config.ADB_PORT}']
-        logging.info(f"Running command: {' '.join(tcpip_command)}")
+        logging.info(f'Running command: {" ".join(tcpip_command)}')
         subprocess.run(tcpip_command, check=True)
 
         # Wait for ADB to restart after tcpip
         if not wait_for_adb_online(usb_serial, timeout=60):
-            logging.error(f"ADB did not come back online after tcpip for {usb_serial}")
+            logging.error(f'ADB did not come back online after tcpip for {usb_serial}')
             return []
-        logging.info(f"wait_for_adb_online passed, {usb_serial}")
+        logging.info(f'wait_for_adb_online passed, {usb_serial}')
 
         # Now it's safe to query WiFi IP
         if not device['wifi_ip']:
             device['wifi_ip'] = get_wifi_ip(usb_serial)
 
         if not device['wifi_ip']:
-            print(f'{red}Cannot switch to WiFi mode - phone WiFi is off or not connected.')
+            print(
+                f'{red}Cannot switch to WiFi mode - phone WiFi is off or not connected.'
+            )
             print(f'{yellow}Please enable WiFi on your phone and try again.')
             return converted_ips  # bail out early
 
@@ -1242,13 +1418,19 @@ def enable_tcpip_for_devices(usb_devices: list) -> list:
 
             # Validate it's the same physical device
             try:
-                wifi_serial = subprocess.check_output(
-                    ['adb', '-s', ip_with_port, 'shell', 'getprop', 'ro.serialno'],
-                    stderr=subprocess.DEVNULL
-                ).decode().strip()
+                wifi_serial = (
+                    subprocess.check_output(
+                        ['adb', '-s', ip_with_port, 'shell', 'getprop', 'ro.serialno'],
+                        stderr=subprocess.DEVNULL,
+                    )
+                    .decode()
+                    .strip()
+                )
 
                 if wifi_serial != usb_serial:
-                    logging.error(f'Wrong device! Expected {usb_serial}, got {wifi_serial}')
+                    logging.error(
+                        f'Wrong device! Expected {usb_serial}, got {wifi_serial}'
+                    )
                     continue
 
                 logging.info(f'Device identity confirmed: {wifi_serial}')
@@ -1259,7 +1441,9 @@ def enable_tcpip_for_devices(usb_devices: list) -> list:
 
         except FileNotFoundError:
             logging.error('adb not found')
-            print(f'{red}Please, install `scrcpy`: {yellow}https://github.com/Genymobile/scrcpy{Fore.RESET}')
+            print(
+                f'{red}Please, install `scrcpy`: {yellow}https://github.com/Genymobile/scrcpy{Fore.RESET}'
+            )
 
     return converted_ips
 
@@ -1285,7 +1469,7 @@ def debug_on_wifi(adb_logcat_ready: Event = None):
     """
     logging.info('Switching ADB to TCP/IP mode...')
     # wait_for_authorization()
-    if config.STREAM_USING == "WIFI":
+    if config.STREAM_USING == 'WIFI':
         fetch_wifi_ip = True
     else:
         fetch_wifi_ip = False
@@ -1295,7 +1479,9 @@ def debug_on_wifi(adb_logcat_ready: Event = None):
     # Step 1: Determine target devices and IPs
     target_usb_devices, target_tcpip_ips = determine_wifi_targets(devices)
 
-    logging.info(f"# Step 2: Convert USB devices to TCP/IP and get their IPs {str(target_usb_devices)}, {str(target_tcpip_ips)}")
+    logging.info(
+        f'# Step 2: Convert USB devices to TCP/IP and get their IPs {str(target_usb_devices)}, {str(target_tcpip_ips)}'
+    )
     converted_ips = enable_tcpip_for_devices(target_usb_devices)
 
     # Step 3: Combine existing TCP/IP IPs with newly converted ones
@@ -1329,10 +1515,11 @@ def handle_logcat_connection(ip: str) -> None:
         )
     except Exception:
         import traceback
+
         error_traceback = traceback.format_exc()
 
         # Now you can print it or handle it as a string
-        print(f"An error occurred:\n{error_traceback}")
+        print(f'An error occurred:\n{error_traceback}')
 
 
 def build_logcat_command(ip: str = None) -> list:
@@ -1350,7 +1537,7 @@ def build_logcat_command(ip: str = None) -> list:
 
     # wait_for_authorization()
     # Handle USB/local device connection
-    if config.STREAM_USING == "WIFI":
+    if config.STREAM_USING == 'WIFI':
         fetch_wifi_ip = True
     else:
         fetch_wifi_ip = False
@@ -1386,7 +1573,9 @@ def build_filter_command() -> list:
 
 def run_logcat(IP=None, adb_logcat_ready: Event = None, *args):
     logging.info('Preparing to run logcat')
-    logging.info(f'[logcat] sys.stdout={sys.stdout!r}  sys.__stdout__={sys.__stdout__!r}')
+    logging.info(
+        f'[logcat] sys.stdout={sys.stdout!r}  sys.__stdout__={sys.__stdout__!r}'
+    )
 
     if IP:
         handle_logcat_connection(IP)
@@ -1440,11 +1629,12 @@ def livestream(adb_logcat_ready: Event = None):
 
     # Wait up to 30 seconds
     if not adb_logcat_ready.wait(timeout=30):
-        logging.error("Logcat did not become ready in time")
+        logging.error('Logcat did not become ready in time')
         return
 
     try:
         import psutil
+
         for proc in psutil.process_iter():
             try:
                 if proc.name() == 'scrcpy':
@@ -1774,6 +1964,7 @@ def execute_selected_option(option: str) -> None:
         from pathlib import Path
 
         from kivy_reloader.configurator.gui import run_gui
+
         run_gui(base=Path.cwd(), config_path=Path.cwd() / 'kivy-reloader.toml')
         return
     if option == 'Exit':

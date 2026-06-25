@@ -35,10 +35,12 @@ class CommandPanel(BoxLayout):
 
     def copy_command(self):
         from kivy.core.clipboard import Clipboard
+
         Clipboard.copy(self.current_command)
 
     def copy_log(self):
         from kivy.core.clipboard import Clipboard
+
         Clipboard.copy(self.output_log)
 
     def toggle(self):

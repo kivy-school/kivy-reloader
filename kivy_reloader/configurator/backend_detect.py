@@ -1,4 +1,5 @@
 """Detect whether the current project builds with buildozer or ksproject."""
+
 from __future__ import annotations
 
 from pathlib import Path

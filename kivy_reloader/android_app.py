@@ -152,6 +152,7 @@ class AndroidApp(BaseReloaderApp, KivyApp):
             self.nursery = nursery
             self._app_root = self._get_app_root()
             import kivy_reloader.lang as krl
+
             krl.base_dir = self._app_root
             self.initialize_server()
             self._run_prepare()
@@ -644,13 +645,14 @@ class AndroidApp(BaseReloaderApp, KivyApp):
         discovers the device's IP address for network communication.
         """
         import errno as _errno
+
         PORT = int(config.RELOADER_PORT)
 
         # if config.STREAM_USING == "USB":
         #     host = "127.0.0.1"
         # else:
         #     host = "0.0.0.0"
-        host = "0.0.0.0"
+        host = '0.0.0.0'
 
         # try:
         #     # Discover device IP address
@@ -695,17 +697,19 @@ class AndroidApp(BaseReloaderApp, KivyApp):
                     await trio.sleep(1)
                 else:
                     import traceback
+
                     full_trace = traceback.format_exc()
-                    Logger.info(f"I python full trace, {full_trace}")
-                    Logger.info(f"I python error detail, {repr(e)}")
+                    Logger.info(f'I python full trace, {full_trace}')
+                    Logger.info(f'I python error detail, {repr(e)}')
                     self._log_server_startup_error(repr(e), full_trace)
                     return
             except Exception as e:
                 import traceback
+
                 full_trace = traceback.format_exc()
                 error_detail = repr(e)
-                Logger.info(f"I python full trace, {full_trace}")
-                Logger.info(f"I python error detail, {error_detail}")
+                Logger.info(f'I python full trace, {full_trace}')
+                Logger.info(f'I python error detail, {error_detail}')
                 self._log_server_startup_error(error_detail, full_trace)
                 return
 
@@ -768,22 +772,22 @@ class AndroidApp(BaseReloaderApp, KivyApp):
                     #     # If this returns None (due to your new logic), success_path will be None
                     #     success_path = await self._receive_zip_file(data_stream, zip_file_path)
                     # Read header first to get size
-                    header = b""
+                    header = b''
                     with trio.move_on_after(5):
-                        while not header.endswith(b"\n"):
+                        while not header.endswith(b'\n'):
                             chunk = await data_stream.receive_some(1)
                             if not chunk:
                                 return
                             header += chunk
 
                     if not header.strip():
-                        Logger.warning("Reloader: Header timeout or empty, aborting")
+                        Logger.warning('Reloader: Header timeout or empty, aborting')
                         return
 
                     try:
                         zip_size = int(header.strip())
                     except ValueError:
-                        Logger.warning(f"Reloader: Invalid header: {header!r}")
+                        Logger.warning(f'Reloader: Invalid header: {header!r}')
                         return
 
                     # Read file tree flag (1 byte)
@@ -799,20 +803,34 @@ class AndroidApp(BaseReloaderApp, KivyApp):
                     min_speed_bytes_per_sec = 0.5 * 1024 * 1024
                     timeout = (zip_size / min_speed_bytes_per_sec) + 30
 
-                    Logger.info(f'Reloader: expecting {zip_size} bytes, timeout={timeout:.0f}s')
+                    Logger.info(
+                        f'Reloader: expecting {zip_size} bytes, timeout={timeout:.0f}s'
+                    )
 
                     with trio.move_on_after(timeout):
-                        zip_file_path = os.path.join(os.getcwd(), f'app_copy_{uuid4().hex}.zip')
-                        success_path = await self._receive_zip_file(data_stream, zip_file_path, zip_size=zip_size)
+                        zip_file_path = os.path.join(
+                            os.getcwd(), f'app_copy_{uuid4().hex}.zip'
+                        )
+                        success_path = await self._receive_zip_file(
+                            data_stream, zip_file_path, zip_size=zip_size
+                        )
 
                 # CRITICAL GUARD: Only update if the file actually exists
                 if success_path and os.path.exists(success_path):
                     await data_stream.send_all(b'OK')
-                    Logger.info(f"Reloader: Zip saved to {success_path}. Starting update...")
-                    await trio.sleep(0.5)  # let ACK flush before reload kills the stream
-                    self.nursery.start_soon(self._process_app_update, success_path, print_file_tree)
+                    Logger.info(
+                        f'Reloader: Zip saved to {success_path}. Starting update...'
+                    )
+                    await trio.sleep(
+                        0.5
+                    )  # let ACK flush before reload kills the stream
+                    self.nursery.start_soon(
+                        self._process_app_update, success_path, print_file_tree
+                    )
                 else:
-                    Logger.warning("Reloader: No valid zip received. Ignoring update request.")
+                    Logger.warning(
+                        'Reloader: No valid zip received. Ignoring update request.'
+                    )
                     # If the file was partially created, clean it up
                     if success_path and os.path.exists(success_path):
                         os.remove(success_path)
@@ -991,34 +1009,38 @@ class AndroidApp(BaseReloaderApp, KivyApp):
     async def _receive_zip_file(self, data_stream, zip_file_path, zip_size=None):
         if zip_size is None:
             # Read header
-            header = b""
-            while not header.endswith(b"\n"):
+            header = b''
+            while not header.endswith(b'\n'):
                 try:
                     chunk = await data_stream.receive_some(1)
                     if not chunk:
-                        Logger.warning("Reloader: Connection closed before header received")
+                        Logger.warning(
+                            'Reloader: Connection closed before header received'
+                        )
                         return None
                     header += chunk
                 except Exception as e:
-                    Logger.warning(f"Reloader: Socket error during header: {e}")
+                    Logger.warning(f'Reloader: Socket error during header: {e}')
                     return None
 
             try:
                 zip_size = int(header.strip())
             except ValueError:
-                Logger.warning(f"Reloader: Invalid header received: {header}")
+                Logger.warning(f'Reloader: Invalid header received: {header}')
                 return None
 
-        Logger.info(f"Reloader: expecting {zip_size} bytes")
+        Logger.info(f'Reloader: expecting {zip_size} bytes')
         received = 0
         last_logged_mb = 0
 
         try:
-            with open(zip_file_path, "wb") as zip_file:
+            with open(zip_file_path, 'wb') as zip_file:
                 while received < zip_size:
                     data = await data_stream.receive_some(65536)
                     if not data:
-                        Logger.warning("Reloader: Connection closed early while receiving ZIP")
+                        Logger.warning(
+                            'Reloader: Connection closed early while receiving ZIP'
+                        )
                         return None
                     zip_file.write(data)
                     received += len(data)
@@ -1027,13 +1049,15 @@ class AndroidApp(BaseReloaderApp, KivyApp):
                     total_mb = zip_size / 1024 / 1024
                     if received_mb - last_logged_mb >= 0.5:  # log every 0.5 MB
                         percent = (received / zip_size) * 100
-                        Logger.info(f"Reloader: Received {received_mb:.1f} / {total_mb:.1f} MB ({percent:.0f}%)")
+                        Logger.info(
+                            f'Reloader: Received {received_mb:.1f} / {total_mb:.1f} MB ({percent:.0f}%)'
+                        )
                         last_logged_mb = received_mb
         except Exception as e:
-            Logger.error(f"Reloader: File/Socket error during ZIP receive: {e}")
+            Logger.error(f'Reloader: File/Socket error during ZIP receive: {e}')
             return None
 
-        Logger.info("Reloader: ZIP fully received")
+        Logger.info('Reloader: ZIP fully received')
         return zip_file_path
 
     # OLD WORKING
@@ -1080,37 +1104,37 @@ class AndroidApp(BaseReloaderApp, KivyApp):
 
     async def _receive_zip_file_old(self, data_stream, zip_file_path):
         # 1. Read header until newline
-        header = b""
-        while not header.endswith(b"\n"):
+        header = b''
+        while not header.endswith(b'\n'):
             chunk = await data_stream.receive_some(1)
             if not chunk:
-                raise Exception("Connection closed before header received")
+                raise Exception('Connection closed before header received')
             header += chunk
 
         zip_size = int(header.strip())
-        Logger.info(f"Reloader: expecting {zip_size} bytes")
+        Logger.info(f'Reloader: expecting {zip_size} bytes')
 
         received = 0
 
         # 2. Receive exactly zip_size bytes
-        with open(zip_file_path, "wb") as zip_file:
+        with open(zip_file_path, 'wb') as zip_file:
             while received < zip_size:
                 data = await data_stream.receive_some(65536)
                 if not data:
-                    raise Exception("Connection closed early while receiving ZIP")
+                    raise Exception('Connection closed early while receiving ZIP')
 
                 zip_file.write(data)
                 received += len(data)
 
-        Logger.info("Reloader: ZIP fully received")
+        Logger.info('Reloader: ZIP fully received')
 
         # 3. Send OK
         try:
-            await data_stream.send_all(b"OK")
-            Logger.info("Reloader: OK SENT")
+            await data_stream.send_all(b'OK')
+            Logger.info('Reloader: OK SENT')
             await trio.sleep(0.1)
         except Exception as e:
-            Logger.warning(f"Reloader: Failed to send OK: {e}")
+            Logger.warning(f'Reloader: Failed to send OK: {e}')
 
         return zip_file_path
 
@@ -1203,18 +1227,24 @@ class AndroidApp(BaseReloaderApp, KivyApp):
                 self._process_full_update(zip_file_path, print_file_tree)
 
             # Verify extraction went in-place (no duplicate in original CWD)
-            site_pkg_kv = os.path.join(self._app_root, 'hello_world', 'screens', 'main_screen.kv')
+            site_pkg_kv = os.path.join(
+                self._app_root, 'hello_world', 'screens', 'main_screen.kv'
+            )
             cwd_kv = os.path.join(_orig_cwd, 'hello_world', 'screens', 'main_screen.kv')
             Logger.info(f'[CWD check] app_root={self._app_root}')
             Logger.info(f'[CWD check] site_pkg_kv exists={os.path.exists(site_pkg_kv)}')
-            Logger.info(f'[CWD check] cwd_kv (duplicate) exists={os.path.exists(cwd_kv)}')
+            Logger.info(
+                f'[CWD check] cwd_kv (duplicate) exists={os.path.exists(cwd_kv)}'
+            )
 
             # Best-effort cleanup of temp file
             try:
                 if os.path.exists(zip_file_path):
                     os.remove(zip_file_path)
             except Exception as e:
-                Logger.warning(f'Reloader: Failed to remove temp file {zip_file_path}: {e}')
+                Logger.warning(
+                    f'Reloader: Failed to remove temp file {zip_file_path}: {e}'
+                )
 
             Logger.info('Reloader: App updated, triggering hot reload')
             Logger.info('Reloader: ************** END SERVER **************')
@@ -1462,7 +1492,9 @@ class AndroidApp(BaseReloaderApp, KivyApp):
                 if not self._should_exclude_path(rel_path, exclude_patterns):
                     project_files.add(rel_path)
 
-        Logger.info(f'Reloader: Filesystem snapshot done: {len(project_files)} files found')
+        Logger.info(
+            f'Reloader: Filesystem snapshot done: {len(project_files)} files found'
+        )
         return project_files
 
     def _should_exclude_path(self, rel_path, exclude_patterns):

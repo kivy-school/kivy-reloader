@@ -16,6 +16,7 @@ from kivy_reloader.config import config
 
 try:
     from colorama import Fore, init
+
     init(autoreset=True)
     red = Fore.RED
     green = Fore.GREEN
@@ -237,7 +238,7 @@ def get_connected_devices(fetch_wifi_ip: bool = False) -> list[dict[str, str]]:
         ['adb', 'devices', '-l'], capture_output=True, text=True, check=True
     )
     lines = result.stdout.strip().splitlines()[1:]  # Skip header
-    print("get connected devices output", lines)
+    print('get connected devices output', lines)
     devices = []
     for line in lines:
         if not line.strip():
@@ -269,8 +270,11 @@ def get_connected_devices(fetch_wifi_ip: bool = False) -> list[dict[str, str]]:
     # logging.info(f'Total devices connected: {len(unique_physical)}. WIFI: {fetch_wifi_ip}')
     usb_count = sum(1 for d in devices if d['transport'] == 'usb')
     wifi_count = sum(1 for d in devices if d['transport'] == 'tcpip')
-    logging.info(f'Total devices: {len(devices)} (USB: {usb_count}, WIFI: {wifi_count})')
+    logging.info(
+        f'Total devices: {len(devices)} (USB: {usb_count}, WIFI: {wifi_count})'
+    )
     return devices
+
 
 # def get_connected_devices() -> list[dict[str, str]]:
 #     """
@@ -335,7 +339,7 @@ def get_wifi_ip(serial: str) -> Optional[str]:
     # time.sleep(3)
 
     def adb(cmd):
-        return subprocess.check_output(["adb"] + cmd).decode().strip()
+        return subprocess.check_output(['adb'] + cmd).decode().strip()
 
     try:
         result = subprocess.run(
@@ -350,7 +354,7 @@ def get_wifi_ip(serial: str) -> Optional[str]:
             logging.error(
                 f'Could not find WiFi IP for {serial}. '
                 f'Is WiFi enabled on the device? '
-                f'Check: Settings → WiFi → make sure it\'s ON and connected.'
+                f"Check: Settings → WiFi → make sure it's ON and connected."
             )
             logging.error(f'ERROR: Could not find WiFi IP on device {serial}.')
             logging.error('Make sure WiFi is enabled and connected on your phone!')
@@ -562,6 +566,7 @@ def _validate_wifi_ip_ifconfig(ip: str, interface: str, serial: str) -> Optional
 
     return None
 
+
 # def is_adb_listening(host="127.0.0.1", timeout=10.0):
 #     end_time = time.time() + timeout
 
@@ -598,26 +603,26 @@ def _validate_wifi_ip_ifconfig(ip: str, interface: str, serial: str) -> Optional
 
 def adb_forward(port: int, serial: str = None) -> int:
     if serial:
-        cmd = ["adb", "-s", serial, "forward", f"tcp:{port}", f"tcp:{port}"]
+        cmd = ['adb', '-s', serial, 'forward', f'tcp:{port}', f'tcp:{port}']
     else:
-        cmd = ["adb", "forward", f"tcp:{port}", f"tcp:{port}"]
-    logging.info(" ".join(cmd))
+        cmd = ['adb', 'forward', f'tcp:{port}', f'tcp:{port}']
+    logging.info(' '.join(cmd))
     try:
         result = subprocess.run(cmd, timeout=10, check=False)
         return result.returncode
     except subprocess.TimeoutExpired:
-        logging.warning("adb forward timed out after 10s")
+        logging.warning('adb forward timed out after 10s')
         return 1
 
 
 def adb_has_forward(port: int) -> bool:
     if not in_wsl():
         return False
-    pattern = re.compile(rf"tcp:{port}\s+tcp:{port}\b")
+    pattern = re.compile(rf'tcp:{port}\s+tcp:{port}\b')
 
     try:
         result = subprocess.run(
-            ["cmd.exe", "/c", "adb.exe", "forward", "--list"],
+            ['cmd.exe', '/c', 'adb.exe', 'forward', '--list'],
             capture_output=True,
             text=True,
             timeout=5,
@@ -634,7 +639,7 @@ def adb_has_forward(port: int) -> bool:
         return False
 
 
-def is_adb_listening(host="127.0.0.1", timeout=10.0) -> bool:
+def is_adb_listening(host='127.0.0.1', timeout=10.0) -> bool:
     """
     Check if ADB server is reachable (the port doesn't really work in wsl anymore).
     In WSL, runs adb.exe start-server (idempotent) instead of a raw socket test,
@@ -646,11 +651,11 @@ def is_adb_listening(host="127.0.0.1", timeout=10.0) -> bool:
     if in_wsl():
         try:
             result = subprocess.run(
-                ["cmd.exe", "/c", "adb.exe", "start-server"],
+                ['cmd.exe', '/c', 'adb.exe', 'start-server'],
                 capture_output=True,
                 text=True,
                 timeout=10,
-                check=False
+                check=False,
             )
             return result.returncode == 0
         except (subprocess.TimeoutExpired, FileNotFoundError):
@@ -658,7 +663,7 @@ def is_adb_listening(host="127.0.0.1", timeout=10.0) -> bool:
 
     # Non-WSL: socket check is fine, host is always 127.0.0.1
     end_time = time.time() + timeout
-    adb_port = getattr(config, "ADB_PORT", 5037)
+    adb_port = getattr(config, 'ADB_PORT', 5037)
     while time.time() < end_time:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.settimeout(0.5)
@@ -675,6 +680,7 @@ def is_adb_listening(host="127.0.0.1", timeout=10.0) -> bool:
 def extract_ip(line):
     match = re.search(r'\b\d+\.\d+\.\d+\.\d+\b', line)
     return match.group(0) if match else None
+
 
 # def get_wsl_nameservers():
 #     if not in_wsl():
@@ -698,27 +704,28 @@ def get_wsl_nameservers():
         # Method 1: Get IP from the default gateway (Best for WSL2)
         try:
             # Runs 'ip route show default' and looks for 'via'
-            route_output = subprocess.check_output(['ip', 'route', 'show', 'default'],
-                                                stderr=subprocess.DEVNULL).decode()
+            route_output = subprocess.check_output(
+                ['ip', 'route', 'show', 'default'], stderr=subprocess.DEVNULL
+            ).decode()
             parts = route_output.split()
-            if "via" in parts:
-                return [parts[parts.index("via") + 1]]
+            if 'via' in parts:
+                return [parts[parts.index('via') + 1]]
         except Exception:
             pass
 
         # Method 2: Fallback to nameserver in resolv.conf
         try:
-            if os.path.exists("/etc/resolv.conf"):
-                with open("/etc/resolv.conf", "r", encoding="utf-8") as f:
+            if os.path.exists('/etc/resolv.conf'):
+                with open('/etc/resolv.conf', 'r', encoding='utf-8') as f:
                     for line in f:
-                        if line.strip().startswith("nameserver"):
+                        if line.strip().startswith('nameserver'):
                             return [line.split()[1].strip()]
         except Exception:
             pass
 
-        return ["127.0.0.1"]  # Absolute fallback
+        return ['127.0.0.1']  # Absolute fallback
     except Exception:
-        return "NAMESERVERS FAILED"
+        return 'NAMESERVERS FAILED'
 
 
 def get_adb_host_ip() -> str:
@@ -726,31 +733,39 @@ def get_adb_host_ip() -> str:
     if in_wsl():
         try:
             wslconfig = subprocess.check_output(
-                ["sh", "-c", "cat /mnt/c/Users/$(cmd.exe /c 'echo %USERNAME%' 2>/dev/null | tr -d '\r')/.wslconfig 2>/dev/null"],
-                text=True
+                [
+                    'sh',
+                    '-c',
+                    "cat /mnt/c/Users/$(cmd.exe /c 'echo %USERNAME%' 2>/dev/null | tr -d '\r')/.wslconfig 2>/dev/null",
+                ],
+                text=True,
             ).strip()
             if re.search(r'networkingMode\s*=\s*mirrored', wslconfig, re.IGNORECASE):
-                return "127.0.0.1"
+                return '127.0.0.1'
         except Exception:
             pass
         # NAT mode fallback: use eth0 gateway
         try:
             gateway = subprocess.check_output(
-                ["sh", "-c", "ip route show dev eth0 | grep default | awk '{print $3}'"],
-                text=True
+                [
+                    'sh',
+                    '-c',
+                    "ip route show dev eth0 | grep default | awk '{print $3}'",
+                ],
+                text=True,
             ).strip()
             if gateway:
                 return gateway
         except Exception:
             pass
-    return "127.0.0.1"
+    return '127.0.0.1'
 
 
 def get_adb_windows_path():
     """Extract the adb.exe path from the bash alias in .bashrc"""
-    bashrc = os.path.expanduser("~/.bashrc")
+    bashrc = os.path.expanduser('~/.bashrc')
     try:
-        with open(bashrc, encoding="utf-8") as f:
+        with open(bashrc, encoding='utf-8') as f:
             for line in f:
                 # matches: alias adb='/mnt/c/.../adb.exe'
                 match = re.search(r"alias adb=['\"](.+?)['\"]", line)
@@ -761,17 +776,17 @@ def get_adb_windows_path():
 
     # Fallback: which adb (catches symlinks/wrappers too)
     try:
-        path = subprocess.check_output(["which", "adb"]).decode().strip()
+        path = subprocess.check_output(['which', 'adb']).decode().strip()
         if path:
             return path
     except Exception:
         pass
 
-    return "adb"  # last resort
+    return 'adb'  # last resort
 
 
 def in_wsl():
-    ans = "wsl2" in platform.release().lower()
+    ans = 'wsl2' in platform.release().lower()
     # print("WSL:", ans)
     return ans
 
@@ -779,7 +794,9 @@ def in_wsl():
 async def fix_wsl():
     PORT = int(config.RELOADER_PORT)
     # 1. Trigger the Firewall Fix (UAC)
-    print(f"{yellow}Initial connection blocked. Fixing Windows firewall for WSL2. Waiting for you to approve the UAC prompt...")
+    print(
+        f'{yellow}Initial connection blocked. Fixing Windows firewall for WSL2. Waiting for you to approve the UAC prompt...'
+    )
     await run_wsl_firewall_fix(port=PORT)
 
     # Wait up to 30 seconds for the rule to actually appear
@@ -788,86 +805,102 @@ async def fix_wsl():
         print(f"{red}Firewall rule not detected. Please click 'Yes' on UAC!")
         return
 
-    print(f"{green}Tunnel reset. Retrying immediately...")
+    print(f'{green}Tunnel reset. Retrying immediately...')
     # Check ADB separately — it should already be up, but wait briefly if not
-    if in_wsl() and config.STREAM_USING == "USB":
+    if in_wsl() and config.STREAM_USING == 'USB':
         host_ip = extract_ip(get_wsl_nameservers()[0])
-        print("what is host ip?", host_ip)
+        print('what is host ip?', host_ip)
         adb_ready = is_adb_listening(host_ip)
     else:
         adb_ready = is_adb_listening()
     if not adb_ready:
-        print(f"{yellow}ADB not listening yet, waiting up to 5s...")
+        print(f'{yellow}ADB not listening yet, waiting up to 5s...')
         for _ in range(10):
             await trio.sleep(0.5)
-            ip_data = subprocess.check_output(["ip", "-o", "-4", "addr", "show", "eth0"]).decode()
+            ip_data = subprocess.check_output([
+                'ip',
+                '-o',
+                '-4',
+                'addr',
+                'show',
+                'eth0',
+            ]).decode()
             raw_ip = ip_data.split()[3].split('/')[0]
             parts = raw_ip.split('.')
-            subnet_range = f"{parts[0]}.{parts[1]}.0.0/20"
-            print(f"[*] Detected WSL IP: {raw_ip} -> Using Subnet: {subnet_range}")
-            wsl_ip = f"{parts[0]}.{parts[1]}.0.0"
+            subnet_range = f'{parts[0]}.{parts[1]}.0.0/20'
+            print(f'[*] Detected WSL IP: {raw_ip} -> Using Subnet: {subnet_range}')
+            wsl_ip = f'{parts[0]}.{parts[1]}.0.0'
             if is_adb_listening(host=wsl_ip):
                 adb_ready = True
                 break
 
     if not adb_ready:
-        print(f"{yellow}ADB still not up, proceeding anyway with tunnel reset...")
+        print(f'{yellow}ADB still not up, proceeding anyway with tunnel reset...')
 
-    print("Removing old forward...")
+    print('Removing old forward...')
     with trio.move_on_after(10) as cancel_scope:
         res_remove = await trio.run_process(
             # ["adb.exe", "forward", "--remove", f"tcp:{PORT}"],
             # ["cmd.exe", "/c", "start", "adb.exe", "forward", "--remove", f"tcp:{PORT}"],
-            ["cmd.exe", "/c", "adb.exe", "forward", "--remove", f"tcp:{PORT}"],
+            ['cmd.exe', '/c', 'adb.exe', 'forward', '--remove', f'tcp:{PORT}'],
             check=False,
             capture_stdout=True,
             capture_stderr=True,
         )
-        print(f"stdout: {res_remove.stdout.decode().strip()}")
-        print(f"stderr: {res_remove.stderr.decode().strip()}")
+        print(f'stdout: {res_remove.stdout.decode().strip()}')
+        print(f'stderr: {res_remove.stderr.decode().strip()}')
         if cancel_scope.cancelled_caught:
-            print("❌ Timeout: Remove forward took too long.")
+            print('❌ Timeout: Remove forward took too long.')
         else:
-            status = "✅ Success" if res_remove.returncode == 0 else "⚠️  Failed/Not Found"
-            print(f"Remove Forward: {status} (Code: {res_remove.returncode})")
+            status = (
+                '✅ Success' if res_remove.returncode == 0 else '⚠️  Failed/Not Found'
+            )
+            print(f'Remove Forward: {status} (Code: {res_remove.returncode})')
 
     await trio.sleep(0.5)
-    print("Re-adding forward...")
+    print('Re-adding forward...')
     res_add = await trio.run_process(
         # ["adb.exe", "forward", f"tcp:{PORT}", f"tcp:{PORT}"],
         # ["cmd.exe", "/c", "start", "adb.exe", "forward", f"tcp:{PORT}", f"tcp:{PORT}"],
-        ["cmd.exe", "/c", "adb.exe", "forward", f"tcp:{PORT}", f"tcp:{PORT}"],
+        ['cmd.exe', '/c', 'adb.exe', 'forward', f'tcp:{PORT}', f'tcp:{PORT}'],
         check=False,
         capture_stdout=True,
-        capture_stderr=True
+        capture_stderr=True,
     )
 
     if res_add.returncode == 0:
-        print(f"✅ Add Forward: Success (Port {PORT})")
+        print(f'✅ Add Forward: Success (Port {PORT})')
     else:
-        print(f"❌ Add Forward: Failed (Code: {res_add.returncode})")
-        print(f"   Reason: {res_add.stderr.decode().strip()}")
+        print(f'❌ Add Forward: Failed (Code: {res_add.returncode})')
+        print(f'   Reason: {res_add.stderr.decode().strip()}')
 
-    print(f"{green}Tunnel reset complete.")
+    print(f'{green}Tunnel reset complete.')
 
 
 async def run_wsl_firewall_fix(port=8055):  # noqa: PLR0914
     try:
         # 1. Get the IP and convert to /20 subnet range
-        ip_data = subprocess.check_output(["ip", "-o", "-4", "addr", "show", "eth0"]).decode()
+        ip_data = subprocess.check_output([
+            'ip',
+            '-o',
+            '-4',
+            'addr',
+            'show',
+            'eth0',
+        ]).decode()
         raw_ip = ip_data.split()[3].split('/')[0]
         parts = raw_ip.split('.')
-        subnet_range = f"{parts[0]}.{parts[1]}.0.0/20"
-        print(f"[*] Detected WSL IP: {raw_ip} -> Using Subnet: {subnet_range}")
+        subnet_range = f'{parts[0]}.{parts[1]}.0.0/20'
+        print(f'[*] Detected WSL IP: {raw_ip} -> Using Subnet: {subnet_range}')
 
         # Get Windows host gateway (the IP WSL2 uses to reach Windows)
         gateway = subprocess.check_output(
-            ["sh", "-c", "ip route show dev eth0 | grep default | awk '{print $3}'"],
-            text=True
+            ['sh', '-c', "ip route show dev eth0 | grep default | awk '{print $3}'"],
+            text=True,
         ).strip()
-        print(f"[*] Windows host gateway: {gateway}")
+        print(f'[*] Windows host gateway: {gateway}')
 
-        rule_name = f"WSL Kivy Surgical {port}"
+        rule_name = f'WSL Kivy Surgical {port}'
 
         # 2. Read current state (no admin needed)
         # check_cmd = [
@@ -908,7 +941,9 @@ async def run_wsl_firewall_fix(port=8055):  # noqa: PLR0914
         # ]
 
         check_cmd = [
-            "powershell.exe", "-NoProfile", "-Command",
+            'powershell.exe',
+            '-NoProfile',
+            '-Command',
             (
                 f'$aliases = (Get-NetFirewallProfile -Profile Public).DisabledInterfaceAliases;'
                 f'$regPath = "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\SharedAccess\\Parameters\\FirewallPolicy\\FirewallRules";'
@@ -919,19 +954,23 @@ async def run_wsl_firewall_fix(port=8055):  # noqa: PLR0914
                 f'  if ($val -like "*Active=TRUE*") {{ "True" }} else {{ "False" }}'
                 f'}} else {{ "NotFound" }};'
                 f'Write-Output "ALIASES:$aliases|RULE:$ruleEnabled"'
-            )
+            ),
         ]
 
-        check_result = subprocess.run(check_cmd, capture_output=True, text=True, check=False)
+        check_result = subprocess.run(
+            check_cmd, capture_output=True, text=True, check=False
+        )
         output = check_result.stdout.strip()
-        print(f"RAW OUTPUT: {repr(output)}")
+        print(f'RAW OUTPUT: {repr(output)}')
 
-        wsl_allowed = "vEthernet (WSL)" in output
-        rule_enabled = "RULE:True" in output
+        wsl_allowed = 'vEthernet (WSL)' in output
+        rule_enabled = 'RULE:True' in output
 
         proxy_result = subprocess.run(
-            ["netsh.exe", "interface", "portproxy", "show", "v4tov4"],
-            capture_output=True, text=True, check=False
+            ['netsh.exe', 'interface', 'portproxy', 'show', 'v4tov4'],
+            capture_output=True,
+            text=True,
+            check=False,
         )
         portproxy_exists = any(
             gateway in line and str(port) in line
@@ -940,14 +979,20 @@ async def run_wsl_firewall_fix(port=8055):  # noqa: PLR0914
 
         # 3. Report each case clearly
         print()
-        print(f"[Case 1] WSL interface allowed: {'✓ YES' if wsl_allowed else '✗ NO — will fix'}")
-        print(f"[Case 2] Port {port} rule enabled: {'✓ YES' if rule_enabled else '✗ NO — will fix'}")
-        print(f"[Case 3] Port proxy {gateway}:{port} → 127.0.0.1:{port}: {'✓ YES' if portproxy_exists else '✗ NO — will fix'}")
+        print(
+            f'[Case 1] WSL interface allowed: {"✓ YES" if wsl_allowed else "✗ NO — will fix"}'
+        )
+        print(
+            f'[Case 2] Port {port} rule enabled: {"✓ YES" if rule_enabled else "✗ NO — will fix"}'
+        )
+        print(
+            f'[Case 3] Port proxy {gateway}:{port} → 127.0.0.1:{port}: {"✓ YES" if portproxy_exists else "✗ NO — will fix"}'
+        )
         print()
 
         # 4. Nothing to do
         if wsl_allowed and rule_enabled and portproxy_exists:
-            print("[✓] All good — nothing to fix!")
+            print('[✓] All good — nothing to fix!')
             return
 
         # 5. Build a single script covering only what needs fixing
@@ -956,9 +1001,9 @@ async def run_wsl_firewall_fix(port=8055):  # noqa: PLR0914
         # Case 1 fix: allow WSL interface on Public profile
         if not wsl_allowed:
             ps_parts.append(
-                "$p = Get-NetFirewallProfile -Profile Public; "
+                '$p = Get-NetFirewallProfile -Profile Public; '
                 "$aliases = $p.DisabledInterfaceAliases + 'vEthernet (WSL)'; "
-                "Set-NetFirewallProfile -Profile Public -DisabledInterfaceAliases $aliases; "
+                'Set-NetFirewallProfile -Profile Public -DisabledInterfaceAliases $aliases; '
                 "Write-Host '[+] Case 1 fixed: WSL interface now allowed on Public firewall profile.'"
             )
 
@@ -967,7 +1012,7 @@ async def run_wsl_firewall_fix(port=8055):  # noqa: PLR0914
             ps_parts.append(
                 f"Remove-NetFirewallRule -DisplayName '{rule_name}' -ErrorAction SilentlyContinue; "
                 f"New-NetFirewallRule -DisplayName '{rule_name}' "
-                f"-Direction Inbound -Action Allow -Protocol TCP "
+                f'-Direction Inbound -Action Allow -Protocol TCP '
                 f"-LocalPort {port} -RemoteAddress '{subnet_range}' "
                 f"-InterfaceAlias 'vEthernet (WSL)'; "
                 f"Write-Host '[+] Case 2 fixed: Inbound rule for port {port} created.'"
@@ -976,27 +1021,29 @@ async def run_wsl_firewall_fix(port=8055):  # noqa: PLR0914
         # Case 3 fix: portproxy so WSL2 can reach ADB forward on Windows loopback
         if not portproxy_exists:
             ps_parts.append(
-                f"netsh interface portproxy delete v4tov4 listenaddress={gateway} listenport={port} 2>$null; "
-                f"netsh interface portproxy add v4tov4 listenaddress={gateway} listenport={port} connectaddress=127.0.0.1 connectport={port}; "
+                f'netsh interface portproxy delete v4tov4 listenaddress={gateway} listenport={port} 2>$null; '
+                f'netsh interface portproxy add v4tov4 listenaddress={gateway} listenport={port} connectaddress=127.0.0.1 connectport={port}; '
                 f"Write-Host '[+] Case 3 fixed: Port proxy {gateway}:{port} -> 127.0.0.1:{port} added.'"
             )
 
         # 6. Fire single UAC prompt with combined script
-        combined_script = " ".join(ps_parts)
-        encoded_script = base64.b64encode(combined_script.encode('utf-16-le')).decode('utf-8')
+        combined_script = ' '.join(ps_parts)
+        encoded_script = base64.b64encode(combined_script.encode('utf-16-le')).decode(
+            'utf-8'
+        )
         launch_command = (
             f'Start-Process powershell -Verb RunAs '
             f'-ArgumentList "-NoProfile", "-EncodedCommand", "{encoded_script}"'
         )
 
-        print("[*] Triggering single UAC prompt for all required fixes...")
-        subprocess.run(["powershell.exe", "-Command", launch_command], check=True)
-        print("[+] Done! Check your taskbar for the UAC shield.")
+        print('[*] Triggering single UAC prompt for all required fixes...')
+        subprocess.run(['powershell.exe', '-Command', launch_command], check=True)
+        print('[+] Done! Check your taskbar for the UAC shield.')
 
     except subprocess.CalledProcessError as e:
-        print(f"[!] Subprocess error: {e}")
+        print(f'[!] Subprocess error: {e}')
     except Exception as e:
-        print(f"[!] Failed: {e}")
+        print(f'[!] Failed: {e}')
 
 
 async def wsl_firewall_check_async(port):
@@ -1006,20 +1053,29 @@ async def wsl_firewall_check_async(port):
 
     while time.time() - start_time < timeout:
         # Use netsh.exe to check from WSL
-        check_cmd = ["netsh.exe", "advfirewall", "firewall", "show", "rule", f"name=WSL Kivy Surgical {port}"]
+        check_cmd = [
+            'netsh.exe',
+            'advfirewall',
+            'firewall',
+            'show',
+            'rule',
+            f'name=WSL Kivy Surgical {port}',
+        ]
 
         # Using trio.run_process for a clean async check
         try:
-            result = await trio.run_process(check_cmd, capture_stdout=True, capture_stderr=True, check=False)
+            result = await trio.run_process(
+                check_cmd, capture_stdout=True, capture_stderr=True, check=False
+            )
             if result.returncode == 0:
-                print(f"{green}Firewall rule detected! Proceeding...")
+                print(f'{green}Firewall rule detected! Proceeding...')
                 rule_found = True
                 break
         except Exception as e:
-            print(f"{red}Check failed: {e}")
+            print(f'{red}Check failed: {e}')
 
         elapsed = int(time.time() - start_time)
-        print(f"{yellow}[{elapsed}s] Rule not found yet. Check UAC prompt...")
+        print(f'{yellow}[{elapsed}s] Rule not found yet. Check UAC prompt...')
 
         # This allows other async tasks to run while we wait for the UAC click
         await trio.sleep(1)

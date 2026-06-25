@@ -103,14 +103,18 @@ def load_kv_path(path: str, encoding='utf8', **kwargs):
 
         if kv_module_suffix:
             for mod_name, mod in list(sys.modules.items()):
-                if mod_name == kv_module_suffix or mod_name.endswith('.' + kv_module_suffix):
+                if mod_name == kv_module_suffix or mod_name.endswith(
+                    '.' + kv_module_suffix
+                ):
                     mod_file = getattr(mod, '__file__', None) or ''
                     mod_kv = mod_file.replace('.pyc', '.kv').replace('.py', '.kv')
                     mod_kv = mod_file.replace('.pyc', '.kv').replace('.py', '.kv')
                     mod_kv_resolved = str(pathlib.Path(mod_kv).resolve())
                     for bf in list(Builder.files):
                         if str(pathlib.Path(bf).resolve()) == mod_kv_resolved:
-                            logging.info(f'[load_kv_path] UNLOADING (module {mod_name}): {bf}')
+                            logging.info(
+                                f'[load_kv_path] UNLOADING (module {mod_name}): {bf}'
+                            )
                             Builder.unload_file(bf)
                             unloaded = True
                             break

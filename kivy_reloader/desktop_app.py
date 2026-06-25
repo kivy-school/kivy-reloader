@@ -108,7 +108,6 @@ class DesktopApp(BaseReloaderApp, KakiApp):
     # ==================== INITIALIZATION ====================
 
     def __init__(self, *args, **kwargs):
-
         super().__init__(*args, **kwargs)
         Logger.info(f'Reloader: Kivy Reloader v{__version__}')
         self._initialize_app_state()
@@ -441,7 +440,6 @@ class DesktopApp(BaseReloaderApp, KakiApp):
     def _handle_android_reload(self):
         """Handle Android hot reload if configured and available."""
         if not config.HOT_RELOAD_ON_PHONE:
-
             return
 
         # Check if any devices are connected before processing
@@ -640,12 +638,17 @@ class DesktopApp(BaseReloaderApp, KakiApp):
         if _first == '.':
             app_name = getattr(config, 'APP_NAME', None)
             src_candidate = os.path.join(_cwd, 'src', app_name) if app_name else None
-            _delta_root = src_candidate if src_candidate and os.path.isdir(src_candidate) else _cwd
+            _delta_root = (
+                src_candidate
+                if src_candidate and os.path.isdir(src_candidate)
+                else _cwd
+            )
         else:
             _delta_root = os.path.realpath(os.path.join(_cwd, _first))
         # Initialize delta transfer manager — zip always lands at CWD for send_app_to_phone.py
         delta_manager = DeltaTransferManager(
-            _delta_root, zip_root=_cwd,
+            _delta_root,
+            zip_root=_cwd,
             source_package=self.__class__.__module__.split('.')[0],
         )
 
@@ -717,7 +720,7 @@ class DesktopApp(BaseReloaderApp, KakiApp):
 
         # strip src/ prefix for ksproject src layout
         if filename.startswith('src' + os.path.sep):
-            filename = filename[len('src' + os.path.sep):]
+            filename = filename[len('src' + os.path.sep) :]
 
         # Convert to module notation (remove .py extension and replace separators)
         module = filename[:-3].replace(prefix, '.')

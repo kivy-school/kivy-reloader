@@ -455,7 +455,6 @@ FIELD_DEFS: list[FieldDef] = [
         help_short='Keep FlightDeck window on top',
         help_long='When true, the FlightDeck window stays above all other windows.',
     ),
-
     # ---------------------------------------------------------------------------
     # 🎵 Audio
     # ---------------------------------------------------------------------------

@@ -24,11 +24,14 @@ _STATIC_COMMANDS = [
 
 def _stream_proc_output(proc):
     from kivy.clock import Clock
+
     try:
         for raw_line in proc.stdout:
             line = raw_line.rstrip('\n')
             if line:
-                Clock.schedule_once(lambda dt, l=line: EventBus.emit('logcat_line', line=l))  # noqa:E741
+                Clock.schedule_once(
+                    lambda dt, l=line: EventBus.emit('logcat_line', line=l)
+                )  # noqa:E741
     except Exception:
         pass
 
@@ -43,7 +46,11 @@ class CommandButton(BoxLayout):
     def run(self):
         record(self.label, self.command)
         EventBus.emit('terminal_log', command=self.command)
-        if self.command.startswith('__') and self.command.endswith('__') and self.card_action_handler:
+        if (
+            self.command.startswith('__')
+            and self.command.endswith('__')
+            and self.card_action_handler
+        ):
             self.card_action_handler(self.command)
             return
 
@@ -61,7 +68,7 @@ class CommandButton(BoxLayout):
 
         _OPTION_MAP = {
             'uv run kivy-reloader run build': '1',
-            'uv run kivy-reloader run':       '2',
+            'uv run kivy-reloader run': '2',
         }
 
         option = _OPTION_MAP.get(self.command)
@@ -89,7 +96,9 @@ class CommandButton(BoxLayout):
                     output=f"doesn't work, dev must fix: {self.command!r} ({e})",
                 )
                 return
-            threading.Thread(target=_stream_proc_output, args=(proc,), daemon=True).start()
+            threading.Thread(
+                target=_stream_proc_output, args=(proc,), daemon=True
+            ).start()
 
 
 class QuickCommandsCard(BoxLayout):
@@ -107,7 +116,9 @@ class QuickCommandsCard(BoxLayout):
     def load_from_model(self):
         if not self.config_model:
             return
-        self.hot_reload_on_phone = bool(self.config_model.get_value('HOT_RELOAD_ON_PHONE'))
+        self.hot_reload_on_phone = bool(
+            self.config_model.get_value('HOT_RELOAD_ON_PHONE')
+        )
         self.stream_using = str(self.config_model.get_value('STREAM_USING') or 'WIFI')
         self.target_ip = str(self.config_model.get_value('TARGET_IP') or '')
         self.screen_size = str(self.config_model.get_value('SCREEN_SIZE') or '')
@@ -166,6 +177,7 @@ class QuickCommandsCard(BoxLayout):
 
     def reset_history(self):
         from kivy_reloader.configurator.command_history import _history_file
+
         f = _history_file()
         if f.exists():
             f.unlink()
@@ -181,7 +193,7 @@ class QuickCommandsCard(BoxLayout):
                 label=item['label'],
                 command=item['command'],
                 display_command=item.get('display', ''),
-                count=f"×{item['count']}" if item.get('count') else '',
+                count=f'×{item["count"]}' if item.get('count') else '',
                 card_action_handler=self._handle_card_action,
             )
             lst.add_widget(btn)

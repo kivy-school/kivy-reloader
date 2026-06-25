@@ -249,6 +249,7 @@ class CoreScreen(Screen):
         if self.config_model:
             try:
                 from kivy_reloader.configurator.command_history import record
+
                 for fs in self.config_model.unsaved_states():
                     record(
                         label=f'Set {fs.field.key}',
@@ -260,7 +261,7 @@ class CoreScreen(Screen):
                 msg = f'Saved to {self.config_model.config_path}'
                 print(msg)
                 self._log(
-                f'kivy-reloader config --file {self.config_model.config_path}', msg
+                    f'kivy-reloader config --file {self.config_model.config_path}', msg
                 )
             except Exception as e:
                 print(f'Error saving configuration: {e}')

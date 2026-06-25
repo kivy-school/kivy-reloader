@@ -32,9 +32,14 @@ class DeviceRow(BoxLayout):
 
         def _check():
             rc, out = _run(['adb', '-s', self.serial, 'get-state'], timeout=5)
-            state = ('ok', out.strip() or 'device') if rc == 0 else ('fail', out.strip() or 'unreachable')
+            state = (
+                ('ok', out.strip() or 'device')
+                if rc == 0
+                else ('fail', out.strip() or 'unreachable')
+            )
             Clock.schedule_once(lambda dt: setattr(self, 'device_status', state[0]))
             Clock.schedule_once(lambda dt: setattr(self, 'status_detail', state[1]))
+
         threading.Thread(target=_check, daemon=True).start()
 
 
@@ -52,6 +57,7 @@ class StatusCard(BoxLayout):
 
     def on_kv_post(self, base_widget):
         from kivy_reloader.configurator.status_checks import detect_os
+
         self.os_label = detect_os().upper()
         self.refresh()
 
@@ -79,7 +85,9 @@ class StatusCard(BoxLayout):
         def _fetch():
             devs = get_connected_devices()
             from kivy.clock import Clock
+
             Clock.schedule_once(lambda dt: setattr(self, 'devices', devs))
+
         threading.Thread(target=_fetch, daemon=True).start()
 
     def on_devices(self, instance, devices):
@@ -88,19 +96,23 @@ class StatusCard(BoxLayout):
             return
         lst.clear_widgets()
         for d in devices:
-            lst.add_widget(DeviceRow(
-                serial=d['serial'],
-                name=d['name'],
-                connection=d['connection'],
-                device_status=d['device_status'],
-                status_detail=d['status_detail'],
-            ))
+            lst.add_widget(
+                DeviceRow(
+                    serial=d['serial'],
+                    name=d['name'],
+                    connection=d['connection'],
+                    device_status=d['device_status'],
+                    status_detail=d['status_detail'],
+                )
+            )
 
     def copy_report(self):
         from kivy_reloader.configurator.status_checks import format_report
+
         text = format_report(self._last_results, self._last_config_path)
         try:
             from kivy.core.clipboard import Clipboard
+
             Clipboard.copy(text)
             self.report_status = 'Copied to clipboard'
             return
@@ -111,9 +123,11 @@ class StatusCard(BoxLayout):
             ('xsel', ['xsel', '--clipboard', '--input']),
         ]:
             import shutil
+
             if shutil.which(tool):
                 try:
                     import subprocess
+
                     p = subprocess.Popen(args, stdin=subprocess.PIPE)
                     p.communicate(input=text.encode())
                     self.report_status = f'Copied via {tool}'
@@ -124,12 +138,14 @@ class StatusCard(BoxLayout):
 
     def save_report(self, text: str | None = None):
         from kivy_reloader.configurator.status_checks import format_report
+
         if text is None:
             text = format_report(self._last_results, self._last_config_path)
         from kivy_reloader.configurator.status_checks import (  # noqa: PLC2701
             _get_windows_home,
             detect_os,
         )
+
         save_path = None
         if detect_os() == 'wsl2':
             win_home = _get_windows_home()
@@ -137,6 +153,7 @@ class StatusCard(BoxLayout):
                 save_path = win_home / 'Desktop' / 'kivy-reloader-diag.txt'
         if save_path is None:
             from pathlib import Path
+
             save_path = Path.home() / 'kivy-reloader-diag.txt'
         save_path.write_text(text)
         self.report_status = f'Saved to {save_path}'
@@ -148,16 +165,23 @@ class StatusCard(BoxLayout):
             return
         lst.clear_widgets()
         for r in rows:
-            lst.add_widget(StatusRow(
-                icon=r['icon'],
-                label=r['label'],
-                detail=r['detail'],
-                row_status=r['row_status'],
-            ))
+            lst.add_widget(
+                StatusRow(
+                    icon=r['icon'],
+                    label=r['label'],
+                    detail=r['detail'],
+                    row_status=r['row_status'],
+                )
+            )
 
     def reset_reloader_state(self):
         from pathlib import Path
-        base = self.config_model.config_path.parent if (self.config_model and self.config_model.config_path) else Path.cwd()
+
+        base = (
+            self.config_model.config_path.parent
+            if (self.config_model and self.config_model.config_path)
+            else Path.cwd()
+        )
         state_file = base / '.kivy_reloader_state.json'
         if state_file.exists():
             state_file.unlink()

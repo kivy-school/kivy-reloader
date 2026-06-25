@@ -8,6 +8,7 @@ from pathlib import Path
 def _should_launch_flightdeck() -> bool:
     try:
         import tomlkit  # noqa: PLC0415
+
         t = Path.cwd() / 'kivy-reloader.toml'
         if not t.exists():
             return False

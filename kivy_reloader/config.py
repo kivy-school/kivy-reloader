@@ -89,7 +89,11 @@ class Config:  # noqa: PLR0904
         if not self._is_pyinstaller_environment():
             try:
                 import sys as _sys
-                on_android = (_sys.platform == 'android' or 'ANDROID_ARGUMENT' in __import__('os').environ)
+
+                on_android = (
+                    _sys.platform == 'android'
+                    or 'ANDROID_ARGUMENT' in __import__('os').environ
+                )
             except Exception:
                 on_android = False
 

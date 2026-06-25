@@ -1,5 +1,3 @@
-
-
 import argparse
 import json
 import os
@@ -22,13 +20,16 @@ if '-m' in sys.argv:
 try:
     from colorama import Fore, init
 except ModuleNotFoundError:
+
     class Fore:
         YELLOW = ''
         GREEN = ''
         RED = ''
         RESET = ''
+
     def init(*args, **kwargs):
         return None
+
 
 yellow = Fore.YELLOW
 green = Fore.GREEN
@@ -213,6 +214,7 @@ def _detect_ksproject():
         return False, None
     try:
         import tomlkit
+
         with open(pyproject_path, 'r', encoding='utf-8') as f:
             data = tomlkit.load(f)
         ks = data.get('tool', {}).get('kivy-school', {})
@@ -246,7 +248,7 @@ def _scaffold_hello_world_ksproject(module_name: str):  # noqa:PLR0914
     screens_dir = src_app_dir / 'screens'
     files = {
         screens_dir / '__init__.py': '',
-        screens_dir / 'main_screen.py': '''\
+        screens_dir / 'main_screen.py': """\
 from kivy.uix.boxlayout import BoxLayout
 from kivy_reloader.lang import Builder
 
@@ -257,9 +259,8 @@ class MainScreen(BoxLayout):
     def on_button_click(self):
         self.ids.subtitle_label.text = "Explore the power of Python + KVLang!"
         self.ids.action_btn.text = "Ready to Build!"
-''',
-
-        screens_dir / 'main_screen.kv': '''\
+""",
+        screens_dir / 'main_screen.kv': """\
 <MainScreen>:
     orientation: 'vertical'
     padding: dp(24)
@@ -349,7 +350,7 @@ class MainScreen(BoxLayout):
                     pos: self.pos
                     size: self.size
                     radius: [25] # Perfect pill-shaped button
-''',
+""",
     }
 
     for path, content in files.items():
@@ -362,7 +363,7 @@ class MainScreen(BoxLayout):
 
     # Rewrite app.py to use kivy_reloader base class
     app_py = src_app_dir / 'app.py'
-    app_py_content = f'''\
+    app_py_content = f"""\
 from kivy_reloader.app import App
 from {module_name}.screens.main_screen import MainScreen
 
@@ -375,7 +376,7 @@ class {class_name}App(App):
 def main():
     import trio
     {class_name}App().run()
-'''
+"""
 
     if app_py.exists() and 'from kivy_reloader.app import App' in app_py.read_text():
         klprint(f'Already patched, skipping: src/{module_name}/app.py')
@@ -386,11 +387,11 @@ def main():
 
     # Fix __init__.py — ksproject default calls `from .app import main` which doesn't exist
     init_py = src_app_dir / '__init__.py'
-    init_content = '''\
+    init_content = """\
 def main(*args) -> None:
     from .app import main
     main()
-'''
+"""
 
     if not init_py.exists() or init_py.read_text() != init_content:
         init_py.write_text(init_content)
@@ -400,12 +401,12 @@ def main(*args) -> None:
 
     # Fix __main__.py entry point
     main_module_py = src_app_dir / '__main__.py'
-    main_module_content = '''\
+    main_module_content = """\
 from .app import main
 
 if __name__ == "__main__":
     main()
-'''
+"""
 
     if not main_module_py.exists() or main_module_py.read_text() != main_module_content:
         main_module_py.write_text(main_module_content)
@@ -424,13 +425,13 @@ if __name__ == "__main__":
     # are relative to src/{module_name}/ — Android extracts them correctly into
     # site-packages/{module_name}/ without a stray src/{module_name}/ prefix.
     toml_path = project_root / 'kivy-reloader.toml'
-    toml_content = f'''\
+    toml_content = f"""\
 [kivy_reloader]
 HOT_RELOAD_ON_PHONE = true
 FULL_RELOAD_FILES = ["src/{module_name}/app.py"]
 WATCHED_FOLDERS_RECURSIVELY = ["src/{module_name}"]
 STREAM_USING = "WIFI"
-'''
+"""
     if not toml_path.exists():
         toml_path.write_text(toml_content)
         klprint('Created: kivy-reloader.toml')
@@ -438,11 +439,11 @@ STREAM_USING = "WIFI"
         klprint('Already exists, skipping: kivy-reloader.toml')
     # main.py
     main_py = project_root / 'main.py'
-    main_content = f'''\
+    main_content = f"""\
 from {module_name}.app import main
 
 main()
-'''
+"""
 
     if main_py.exists():
         existing = main_py.read_text()
@@ -458,7 +459,9 @@ main()
         elif f'from {module_name}.app import' in existing:
             klprint('main.py already configured, skipping.')
         else:
-            klprint(f'{red}⚠️  main.py exists. To use Kivy Reloader, replace its contents with:')
+            klprint(
+                f'{red}⚠️  main.py exists. To use Kivy Reloader, replace its contents with:'
+            )
             print(f'{red}{main_content}{Fore.RESET}')
     else:
         main_py.write_text(main_content)
@@ -473,39 +476,45 @@ def scaffold_hello_world():
     """
     is_ksp, module_name = _detect_ksproject()
     if is_ksp:
-        klprint(f'ksproject detected (module: {module_name}) — scaffolding into src/{module_name}/')
+        klprint(
+            f'ksproject detected (module: {module_name}) — scaffolding into src/{module_name}/'
+        )
         _scaffold_hello_world_ksproject(module_name)
         return
 
     project_root = Path.cwd()
     files = {
-        project_root / "hello_world" / "__init__.py": "",
-        project_root / "hello_world" / "app.py": _app_py("hello_world", "HelloWorld"),
-        project_root / "hello_world" / "screens" / "__init__.py": "",
-        project_root / "hello_world" / "screens" / "main_screen.py": MAIN_SCREEN_PY,
-        project_root / "hello_world" / "screens" / "main_screen.kv": MAIN_SCREEN_KV,
-        project_root / "kivy-reloader.toml": _toml("hello_world"),
-        project_root / "main.py": _main_py("hello_world", "HelloWorld"),
+        project_root / 'hello_world' / '__init__.py': '',
+        project_root / 'hello_world' / 'app.py': _app_py('hello_world', 'HelloWorld'),
+        project_root / 'hello_world' / 'screens' / '__init__.py': '',
+        project_root / 'hello_world' / 'screens' / 'main_screen.py': MAIN_SCREEN_PY,
+        project_root / 'hello_world' / 'screens' / 'main_screen.kv': MAIN_SCREEN_KV,
+        project_root / 'kivy-reloader.toml': _toml('hello_world'),
+        project_root / 'main.py': _main_py('hello_world', 'HelloWorld'),
     }
 
     for path, content in files.items():
         path.parent.mkdir(parents=True, exist_ok=True)
         if path.exists():
-            if path.name == "main.py" and UV_INIT_MAIN_PATTERN.match(path.read_text()):
-                answer = input(f"{yellow}[KIVY RELOADER] Detected uv placeholder main.py. Replace it? [y/n]: {Fore.RESET}")
+            if path.name == 'main.py' and UV_INIT_MAIN_PATTERN.match(path.read_text()):
+                answer = input(
+                    f'{yellow}[KIVY RELOADER] Detected uv placeholder main.py. Replace it? [y/n]: {Fore.RESET}'
+                )
                 if answer.strip().lower() == 'y':
                     path.write_text(content)
-                    klprint(f"{red} Replaced uv placeholder: main.py")
+                    klprint(f'{red} Replaced uv placeholder: main.py')
                 else:
-                    klprint("Skipped main.py")
+                    klprint('Skipped main.py')
             else:
-                klprint(f"Already exists, skipping: {path.relative_to(project_root)}")
-                if path.name == "main.py":
-                    klprint(f"{red}⚠️ To start using Kivy-Reloader, replace main.py contents with:")
-                    print(f"{red}{content}{Fore.RESET}")
+                klprint(f'Already exists, skipping: {path.relative_to(project_root)}')
+                if path.name == 'main.py':
+                    klprint(
+                        f'{red}⚠️ To start using Kivy-Reloader, replace main.py contents with:'
+                    )
+                    print(f'{red}{content}{Fore.RESET}')
         else:
             path.write_text(content)
-            klprint(f"Created: {path.relative_to(project_root)}")
+            klprint(f'Created: {path.relative_to(project_root)}')
 
 
 def smoke():
@@ -515,19 +524,22 @@ def smoke():
     import time
     from pathlib import Path
 
-    TARGET = "HELLO_WORLD_STARTED"
+    TARGET = 'HELLO_WORLD_STARTED'
     TIMEOUT = 30
 
-    SMOKE_APP_PY = _app_py("hello_world", "HelloWorld") + """\
+    SMOKE_APP_PY = (
+        _app_py('hello_world', 'HelloWorld')
+        + """\
 
     def on_start(self):
         print("HELLO_WORLD_STARTED", flush=True)
         from kivy.clock import Clock
         Clock.schedule_once(lambda dt: self.stop(), 1.0)
 """
+    )
 
-    with tempfile.TemporaryDirectory(prefix="kivy_smoke_") as tmpdir:
-        klprint(f"Bootstrapping hello world in {tmpdir}...")
+    with tempfile.TemporaryDirectory(prefix='kivy_smoke_') as tmpdir:
+        klprint(f'Bootstrapping hello world in {tmpdir}...')
         original_dir = os.getcwd()
         os.chdir(tmpdir)
         try:
@@ -535,21 +547,21 @@ def smoke():
         finally:
             os.chdir(original_dir)
 
-        (Path(tmpdir) / "hello_world" / "app.py").write_text(SMOKE_APP_PY)
+        (Path(tmpdir) / 'hello_world' / 'app.py').write_text(SMOKE_APP_PY)
 
-        if not (Path(tmpdir) / "main.py").exists():
-            klprint(f"{red}SMOKE FAILED: bootstrap did not create main.py")
+        if not (Path(tmpdir) / 'main.py').exists():
+            klprint(f'{red}SMOKE FAILED: bootstrap did not create main.py')
             return 1
 
-        klprint("Bootstrap OK, running app headlessly...")
+        klprint('Bootstrap OK, running app headlessly...')
         env = {
             **os.environ,
-            "RELOADER_STATUS": "PROD",
-            "KIVY_NO_ENV_CONFIG": "1",
-            "KIVY_LOG_MODE": "PYTHON",
+            'RELOADER_STATUS': 'PROD',
+            'KIVY_NO_ENV_CONFIG': '1',
+            'KIVY_LOG_MODE': 'PYTHON',
         }
         proc = subprocess.Popen(
-            [sys.executable, "main.py"],
+            [sys.executable, 'main.py'],
             cwd=tmpdir,
             env=env,
             stdout=subprocess.PIPE,
@@ -565,7 +577,7 @@ def smoke():
                     break
                 line = proc.stdout.readline()
                 if line:
-                    print(line, end="", flush=True)
+                    print(line, end='', flush=True)
                     if TARGET in line:
                         found = True
                         break
@@ -577,7 +589,7 @@ def smoke():
                 proc.kill()
 
     if found:
-        klprint(f"{green}SMOKE TEST PASSED")
+        klprint(f'{green}SMOKE TEST PASSED')
         return 0
     klprint(f"{red}SMOKE TEST FAILED: '{TARGET}' not found within {TIMEOUT}s")
     return 1
@@ -671,8 +683,8 @@ def main():
 
     elif args.command in {'start', 'run', 'compile'}:
         try:
-            from .compile_app import debug_and_livestream # noqa
-            from .compile_app import compile_app, start # noqa
+            from .compile_app import debug_and_livestream  # noqa
+            from .compile_app import compile_app, start  # noqa
         except ModuleNotFoundError as exc:
             if exc.name not in _DESKTOP_EXTRA_IMPORTS:
                 raise
@@ -680,20 +692,25 @@ def main():
 
         if getattr(args, 'action', None) == 'build':
             from .compile_app import compile_app, debug_and_livestream
+
             compile_app()
             debug_and_livestream()
         elif getattr(args, 'action', None) == 'debug':
             from .compile_app import debug_and_livestream
+
             debug_and_livestream()
         else:
             from .launcher import _should_launch_flightdeck
+
             if _should_launch_flightdeck():
                 from .configurator.gui import run_gui
+
                 project_dir = Path(os.getcwd())
                 config_path = project_dir / 'kivy-reloader.toml'
                 run_gui(base=project_dir, config_path=config_path)
             else:
                 from .compile_app import start
+
                 start()
 
     elif args.command == 'smoke':

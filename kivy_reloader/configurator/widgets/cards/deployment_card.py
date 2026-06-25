@@ -18,13 +18,39 @@ Builder.load_file(__file__)
 
 
 _QUICK_ACTIONS_BUILDOZER = [
-  {'label': 'Full clean (keep downloads)', 'fn': 'clean_all', 'command': '__full_clean__', 'display': 'buildozer android clean'},
-  {'label': 'App clean (redownload + rebuild)', 'fn': 'app_clean', 'command': '__app_clean__', 'display': 'buildozer appclean'},
-  {'label': 'Clean recipe', 'fn': 'clean_recipe', 'command': '__clean_recipe__', 'display': 'rm -rf .buildozer/.../other_builds/<recipe>', 'needs_input': 'recipe'},
+    {
+        'label': 'Full clean (keep downloads)',
+        'fn': 'clean_all',
+        'command': '__full_clean__',
+        'display': 'buildozer android clean',
+    },
+    {
+        'label': 'App clean (redownload + rebuild)',
+        'fn': 'app_clean',
+        'command': '__app_clean__',
+        'display': 'buildozer appclean',
+    },
+    {
+        'label': 'Clean recipe',
+        'fn': 'clean_recipe',
+        'command': '__clean_recipe__',
+        'display': 'rm -rf .buildozer/.../other_builds/<recipe>',
+        'needs_input': 'recipe',
+    },
 ]
 _QUICK_ACTIONS_KSPROJECT = [
-  {'label': 'Full clean (keep downloads)', 'fn': 'clean_all', 'command': '__full_clean__', 'display': 'clear ksproject site-packages cache + gradle clean'},
-  {'label': 'App clean (rebuild gradle project)', 'fn': 'app_clean', 'command': '__app_clean__', 'display': 'rm -rf project_dist/gradle'},
+    {
+        'label': 'Full clean (keep downloads)',
+        'fn': 'clean_all',
+        'command': '__full_clean__',
+        'display': 'clear ksproject site-packages cache + gradle clean',
+    },
+    {
+        'label': 'App clean (rebuild gradle project)',
+        'fn': 'app_clean',
+        'command': '__app_clean__',
+        'display': 'rm -rf project_dist/gradle',
+    },
 ]
 
 
@@ -55,7 +81,9 @@ class DeploymentCard(BoxLayout):
         self._active_procs: list[subprocess.Popen] = []
         self.backend = detect_backend()
         self.quick_actions = (
-            _QUICK_ACTIONS_KSPROJECT if self.backend == 'ksproject' else _QUICK_ACTIONS_BUILDOZER
+            _QUICK_ACTIONS_KSPROJECT
+            if self.backend == 'ksproject'
+            else _QUICK_ACTIONS_BUILDOZER
         )
         super().__init__(**kwargs)
 
@@ -69,6 +97,7 @@ class DeploymentCard(BoxLayout):
             values=lambda instance, values: self.on_exclusions_change(values)
         )
         from kivy.app import App
+
         app = App.get_running_app()
         if app:
             app.bind(on_stop=self._on_app_stop)
@@ -84,14 +113,20 @@ class DeploymentCard(BoxLayout):
     def _run(self, cmd_list, *, timeout, success_msg, fail_prefix):
         proc = subprocess.Popen(
             cmd_list,
-            stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-            text=True, cwd=str(Path.cwd()),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            cwd=str(Path.cwd()),
         )
         self._active_procs.append(proc)
         try:
             output, _ = proc.communicate(timeout=timeout)
             output = output.strip() or 'Done'
-            msg = success_msg if proc.returncode == 0 else f'{fail_prefix}: {output[-100:]}'
+            msg = (
+                success_msg
+                if proc.returncode == 0
+                else f'{fail_prefix}: {output[-100:]}'
+            )
         except subprocess.TimeoutExpired:
             proc.terminate()
             output = msg = 'Timed out'
@@ -99,6 +134,7 @@ class DeploymentCard(BoxLayout):
             if proc in self._active_procs:
                 self._active_procs.remove(proc)
         from kivy.clock import Clock
+
         Clock.schedule_once(lambda dt: setattr(self, 'build_status', msg))
         EventBus.emit('terminal_output', output=output)
 
@@ -128,6 +164,7 @@ class DeploymentCard(BoxLayout):
     def clean_recipe(self, recipe_override=''):
         import glob
         import shutil
+
         recipe = (recipe_override or self.recipe_name).strip()
         if not recipe:
             self.build_status = 'Enter a recipe name first'
@@ -145,14 +182,21 @@ class DeploymentCard(BoxLayout):
                 shutil.rmtree(p, ignore_errors=True)
             msg = f'Cleaned {recipe} build cache'
             from kivy.clock import Clock
+
             Clock.schedule_once(lambda dt: setattr(self, 'build_status', msg))
             EventBus.emit('terminal_output', output=msg)
+
         threading.Thread(target=_clean, daemon=True).start()
 
     def clean_all(self):
         if self.backend == 'ksproject':
-            self.build_status = 'Clearing ksproject site-packages cache + gradle clean...'
-            EventBus.emit('terminal_log', command='ksproject full clean (site-packages + gradlew clean)')
+            self.build_status = (
+                'Clearing ksproject site-packages cache + gradle clean...'
+            )
+            EventBus.emit(
+                'terminal_log',
+                command='ksproject full clean (site-packages + gradlew clean)',
+            )
             threading.Thread(target=self._ksproject_clean_all, daemon=True).start()
             return
         self.build_status = 'Running buildozer android clean...'
@@ -160,12 +204,17 @@ class DeploymentCard(BoxLayout):
         threading.Thread(
             target=self._run,
             args=(['buildozer', 'android', 'clean'],),
-            kwargs={'timeout': 120, 'success_msg': 'Done — platform rebuilt, downloads preserved', 'fail_prefix': 'Failed'},
+            kwargs={
+                'timeout': 120,
+                'success_msg': 'Done — platform rebuilt, downloads preserved',
+                'fail_prefix': 'Failed',
+            },
             daemon=True,
         ).start()
 
     def _ksproject_clean_all(self):
         from kivy_reloader.compile_app import _clear_ksproject_cache, _gradle_clean
+
         try:
             _clear_ksproject_cache()
             _gradle_clean()
@@ -173,12 +222,15 @@ class DeploymentCard(BoxLayout):
         except Exception as exc:
             msg = f'Failed: {exc}'
         from kivy.clock import Clock
+
         Clock.schedule_once(lambda dt: setattr(self, 'build_status', msg))
         EventBus.emit('terminal_output', output=msg)
 
     def app_clean(self):
         if self.backend == 'ksproject':
-            self.build_status = 'Removing project_dist/gradle (full rebuild on next compile)...'
+            self.build_status = (
+                'Removing project_dist/gradle (full rebuild on next compile)...'
+            )
             EventBus.emit('terminal_log', command='rm -rf project_dist/gradle')
             threading.Thread(target=self._ksproject_app_clean, daemon=True).start()
             return
@@ -187,7 +239,11 @@ class DeploymentCard(BoxLayout):
         threading.Thread(
             target=self._run,
             args=(['buildozer', 'appclean'],),
-            kwargs={'timeout': 300, 'success_msg': 'Done — full rebuild on next compile', 'fail_prefix': 'Failed'},
+            kwargs={
+                'timeout': 300,
+                'success_msg': 'Done — full rebuild on next compile',
+                'fail_prefix': 'Failed',
+            },
             daemon=True,
         ).start()
 
@@ -198,6 +254,7 @@ class DeploymentCard(BoxLayout):
         except Exception as exc:
             msg = f'Failed: {exc}'
         from kivy.clock import Clock
+
         Clock.schedule_once(lambda dt: setattr(self, 'build_status', msg))
         EventBus.emit('terminal_output', output=msg)
 
@@ -207,8 +264,11 @@ class DeploymentCard(BoxLayout):
         def _list():
             self._run(
                 ['buildozer', 'android', 'p4a', '--', 'recipes'],
-                timeout=30, success_msg='', fail_prefix='Failed',
+                timeout=30,
+                success_msg='',
+                fail_prefix='Failed',
             )
+
         threading.Thread(target=_list, daemon=True).start()
 
     def on_exclusions_change(self, values):

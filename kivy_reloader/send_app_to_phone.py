@@ -30,7 +30,9 @@ async def connect_to_server(IP):
     UAC_count = 0
     attempt_count = 0
 
-    print(f'Connecting to {green}{IP}{white}:{green}{PORT}{white}...', end='', flush=True)
+    print(
+        f'Connecting to {green}{IP}{white}:{green}{PORT}{white}...', end='', flush=True
+    )
 
     while (trio.current_time() - start_time) < timeout:
         try:
@@ -42,23 +44,33 @@ async def connect_to_server(IP):
                 return client_socket  # SUCCESS: Return the socket
 
             attempt_count += 1
-            print(f'\r{yellow}Connecting to {IP}:{PORT}... attempt {attempt_count}. ', end='', flush=True)
+            print(
+                f'\r{yellow}Connecting to {IP}:{PORT}... attempt {attempt_count}. ',
+                end='',
+                flush=True,
+            )
             # If we reached here, the connection timed out
-            print(f"{yellow}Connection timed out. Checking Firewall/ADB...")
+            print(f'{yellow}Connection timed out. Checking Firewall/ADB...')
 
-            if in_wsl() and config.STREAM_USING == "USB" and UAC_count < 1:
+            if in_wsl() and config.STREAM_USING == 'USB' and UAC_count < 1:
                 await fix_wsl()
                 UAC_count += 1
 
         except Exception:
             attempt_count += 1
             # print(f'{red}Attempt failed: {e}. Retrying in 2s...')
-            print(f'\r{yellow}Connecting to {IP}:{PORT}... attempt {attempt_count}', end='', flush=True)
+            print(
+                f'\r{yellow}Connecting to {IP}:{PORT}... attempt {attempt_count}',
+                end='',
+                flush=True,
+            )
 
         await trio.sleep(2)  # Wait before the next full attempt
 
     # print(f"{red}Global timeout reached in {timeout}s. Could not connect to {IP}")
-    print(f'\n{red}Could not connect to {IP} after {attempt_count} attempts in  ({timeout}s)')
+    print(
+        f'\n{red}Could not connect to {IP} after {attempt_count} attempts in  ({timeout}s)'
+    )
     return None
 
 
@@ -74,16 +86,21 @@ async def connect_to_server(IP):
 #         print(f'{red}Error: {e}')
 #         return None
 
+
 def wsl_network_dead(timeout=1.0):
     """
     Returns True if WSL2 networking is dead (Windows 10 adapter vanished).
     """
     try:
         # 1. Get default gateway (Windows host)
-        route = subprocess.check_output(
-            ["sh", "-c", "ip route | grep default | awk '{print $3}'"],
-            stderr=subprocess.DEVNULL
-        ).decode().strip()
+        route = (
+            subprocess.check_output(
+                ['sh', '-c', "ip route | grep default | awk '{print $3}'"],
+                stderr=subprocess.DEVNULL,
+            )
+            .decode()
+            .strip()
+        )
 
         if not route:
             return True  # No gateway at all → WSL networking dead
@@ -98,7 +115,7 @@ def wsl_network_dead(timeout=1.0):
         except ConnectionRefusedError:
             return False  # Host reachable, port just closed — networking alive
         except Exception:
-            return True   # Timeout or no route — networking dead
+            return True  # Timeout or no route — networking dead
     except Exception:
         return True  # Any failure → treat as dead
 
@@ -219,22 +236,22 @@ def wsl_network_dead(timeout=1.0):
 def check_adb_context():
     try:
         # Check which binary is being called
-        which_adb = subprocess.check_output(["which", "adb"]).decode().strip()
+        which_adb = subprocess.check_output(['which', 'adb']).decode().strip()
         # Check the version and path reported by ADB itself
-        version_info = subprocess.check_output(["adb", "version"]).decode().strip()
-        print("--- ADB DEBUG INFO ---")
-        print(f"Python is calling: {which_adb}")
-        print(f"{version_info}")
-        print("----------------------")
+        version_info = subprocess.check_output(['adb', 'version']).decode().strip()
+        print('--- ADB DEBUG INFO ---')
+        print(f'Python is calling: {which_adb}')
+        print(f'{version_info}')
+        print('----------------------')
     except Exception as e:
-        print(f"ADB check failed: {e}")
+        print(f'ADB check failed: {e}')
 
 
 async def send_app():  # noqa:PLR0914
     print('*' * 50)
     print(green + 'Connecting to smartphone...')
 
-    fetch_wifi = config.STREAM_USING == "WIFI"
+    fetch_wifi = config.STREAM_USING == 'WIFI'
     devices = get_connected_devices(fetch_wifi_ip=fetch_wifi)
 
     if not devices:
@@ -253,13 +270,13 @@ async def send_app():  # noqa:PLR0914
     #     # unique_physical = set(zip(config.PHONE_IPS, (d["model"] for d in devices)))
     #     host_ip = get_adb_host_ip()
     #     unique_physical = {(host_ip, d["model"]) for d in devices}
-    if config.STREAM_USING == "USB":
+    if config.STREAM_USING == 'USB':
         PORT = config.RELOADER_PORT
         usb_devices = [d for d in devices if d['transport'] == 'usb']
         for d in usb_devices:
             adb_forward(PORT, serial=d['serial'])
         host_ip = get_adb_host_ip()
-        unique_physical = {(host_ip, d["model"]) for d in usb_devices}
+        unique_physical = {(host_ip, d['model']) for d in usb_devices}
     else:
         unique_physical = {
             (d['wifi_ip'], d['model']) for d in devices if d['wifi_ip'] is not None
@@ -320,7 +337,7 @@ async def send_app():  # noqa:PLR0914
         print(f'DEBUG: Opening zip at {os.path.abspath(zip_path)}, size={zip_size}')
 
         # 1. Send header: "<size>\n"
-        header = f"{zip_size}\n".encode()
+        header = f'{zip_size}\n'.encode()
         await client_socket.send_all(header)
         print(f'DEBUG: Sent header with size {zip_size}')
 
@@ -348,9 +365,16 @@ async def send_app():  # noqa:PLR0914
                 if chunks_sent % 10 == 0:
                     mb_sent = total_bytes / (1024 * 1024)
                     mb_total = zip_size / (1024 * 1024)
-                    print(f'\r{green}Sent {mb_sent:.1f} / {mb_total:.1f} MB ({chunks_sent} chunks)', end='', flush=True)
+                    print(
+                        f'\r{green}Sent {mb_sent:.1f} / {mb_total:.1f} MB ({chunks_sent} chunks)',
+                        end='',
+                        flush=True,
+                    )
 
-        print(green + f'Finished sending app! ({total_bytes} bytes in {chunks_sent} chunks)')
+        print(
+            green
+            + f'Finished sending app! ({total_bytes} bytes in {chunks_sent} chunks)'
+        )
 
         # # 3. SAFE WRITE SHUTDOWN (USB + Wi‑Fi)
         # import socket
@@ -386,7 +410,7 @@ async def send_app():  # noqa:PLR0914
         except Exception as e:
             print(f'{red}Error while waiting for ACK: {e}')
 
-        formatted_time = datetime.datetime.now().strftime("%m-%d %H:%M:%S.%f")[:-3]
+        formatted_time = datetime.datetime.now().strftime('%m-%d %H:%M:%S.%f')[:-3]
 
         if ack_ok:
             print(f'{green}ACK received from {IP}, {formatted_time}')

@@ -53,9 +53,9 @@ class BaseReloaderApp:
         # Unload any KV files that build() loaded last time.
         # Handles the standard Kivy pattern of calling Builder.load_file inside build()
         # without requiring users to change their code.
-        '''
+        """
         First call: _build_kv_files doesn't exist → no unloading → build() runs → records which files it loaded. Every subsequent reload: unloads exactly those files → build() re-loads them fresh. Zero files from outside build() are touched.
-        '''
+        """
         for f in getattr(self, '_build_kv_files', []):
             Builder.unload_file(f)
 

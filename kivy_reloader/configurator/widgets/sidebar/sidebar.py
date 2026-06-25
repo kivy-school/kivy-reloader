@@ -121,8 +121,12 @@ class SideBar(BoxLayout):
 
     def load_from_model(self):
         if self.config_model:
-            self.flightdeck_active = bool(self.config_model.get_value('PERSISTENT_FLIGHTDECK'))
-            self.flightdeck_always_on_top = bool(self.config_model.get_value('FLIGHTDECK_ALWAYS_ON_TOP'))
+            self.flightdeck_active = bool(
+                self.config_model.get_value('PERSISTENT_FLIGHTDECK')
+            )
+            self.flightdeck_always_on_top = bool(
+                self.config_model.get_value('FLIGHTDECK_ALWAYS_ON_TOP')
+            )
 
     def toggle_flightdeck(self):
         self.flightdeck_active = not self.flightdeck_active
@@ -133,7 +137,10 @@ class SideBar(BoxLayout):
     def toggle_flightdeck_always_on_top(self):
         self.flightdeck_always_on_top = not self.flightdeck_always_on_top
         from kivy.core.window import Window
+
         Window.always_on_top = self.flightdeck_always_on_top
         if self.config_model:
-            self.config_model.set_value('FLIGHTDECK_ALWAYS_ON_TOP', self.flightdeck_always_on_top)
+            self.config_model.set_value(
+                'FLIGHTDECK_ALWAYS_ON_TOP', self.flightdeck_always_on_top
+            )
             self.config_model.save(create_backup=False)

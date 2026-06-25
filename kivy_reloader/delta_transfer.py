@@ -27,7 +27,9 @@ DELTA_CHANGE_THRESHOLD = 0.3  # Use delta if less than 30% of files changed
 class DeltaTransferManager:
     """Manages delta transfers by tracking file changes and creating minimal updates."""
 
-    def __init__(self, project_root: str, zip_root: str = None, source_package: str = None):
+    def __init__(
+        self, project_root: str, zip_root: str = None, source_package: str = None
+    ):
         self.project_root = Path(project_root)
         self.zip_root = Path(zip_root) if zip_root else self.project_root
         self.source_package = source_package
@@ -197,7 +199,7 @@ class DeltaTransferManager:
             'file_count': len(changed_files),
             'files': list(changed_files),
             'deleted_files': list(deleted_files),
-            'source_package': self.source_package or Path(self.project_root).name
+            'source_package': self.source_package or Path(self.project_root).name,
         }
 
         with zipfile.ZipFile(output_path, 'w', zipfile.ZIP_DEFLATED) as zip_file:
@@ -238,7 +240,7 @@ class DeltaTransferManager:
             'timestamp': time.time(),
             'file_count': len(all_files),
             'files': list(all_files.keys()),
-            'source_package': self.source_package or Path(self.project_root).name
+            'source_package': self.source_package or Path(self.project_root).name,
         }
 
         with zipfile.ZipFile(output_path, 'w', zipfile.ZIP_DEFLATED) as zip_file:

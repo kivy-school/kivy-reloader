@@ -3,6 +3,7 @@
 This module provides the run_gui function that initializes the Kivy app
 with a ConfigModel and launches the configurator interface.
 """
+
 from __future__ import annotations
 
 import shutil
@@ -40,9 +41,17 @@ def run_gui(
         print('[FlightDeck] Already running — bringing it to focus')
         return
     try:
-        raw = config_loader.load_config_values(config_path) if config_path.exists() else {}
+        raw = (
+            config_loader.load_config_values(config_path)
+            if config_path.exists()
+            else {}
+        )
         dark_mode = bool(raw.get('DARK_MODE', False))
-        if sys.platform == 'linux' and not shutil.which('xclip') and not shutil.which('xsel'):
+        if (
+            sys.platform == 'linux'
+            and not shutil.which('xclip')
+            and not shutil.which('xsel')
+        ):
             print(
                 '[Flightdeck] WSL2/Linux: xclip and xsel not found — clipboard cut buffer unavailable.\n'
                 '             Fix: sudo apt install xclip'
@@ -83,9 +92,11 @@ def run_gui(
 
             def on_start(self):
                 Clock.schedule_once(
-                    lambda dt: setattr(self.core_screen.toolbar, 'is_dark_mode', self._dark_mode),
+                    lambda dt: setattr(
+                        self.core_screen.toolbar, 'is_dark_mode', self._dark_mode
+                    ),
                     0,
-                    )
+                )
 
             def toggle_dark_mode(self, current_screen):
                 self._dark_mode = not self._dark_mode
@@ -101,7 +112,9 @@ def run_gui(
                 self.core_screen = new_screen
                 Window.add_widget(new_screen)
                 Clock.schedule_once(
-                    lambda dt: setattr(new_screen.toolbar, 'is_dark_mode', self._dark_mode),
+                    lambda dt: setattr(
+                        new_screen.toolbar, 'is_dark_mode', self._dark_mode
+                    ),
                     0,
                 )
 
@@ -109,6 +122,7 @@ def run_gui(
         trio.run(app.async_run, 'trio')
     finally:
         from kivy_reloader.compile_app import cleanup_background_processes
+
         cleanup_background_processes()
         lock.close()
 
