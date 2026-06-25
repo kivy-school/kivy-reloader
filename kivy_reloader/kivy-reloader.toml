@@ -12,9 +12,9 @@
 # This is the main feature - enables live coding on your phone
 HOT_RELOAD_ON_PHONE = true
 
-# Open Kivy FlightDeck on startup (python main.py / kivy-reloader run)
-# Set to false to bypass FlightDeck and run the app directly
-PERSISTENT_FLIGHTDECK = true
+# Open Kivy FlightDeck immediately on startup, skipping the interactive CLI menu
+# false = show interactive CLI menu (kivy-reloader run) / run app directly (python main.py)
+PERSISTENT_FLIGHTDECK = false
 
 # Connection method: "USB" (faster) or "WIFI" (wireless)
 # (WIFI requires you to connect the cable once to set up)
