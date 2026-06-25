@@ -1337,17 +1337,62 @@ def determine_wifi_targets(devices: list) -> tuple[list, list]:
 
     if not phone_ips:
         # No filtering → use all USB devices, all known TCP/IP IPs
-        target_usb_devices = usb_devices
         target_tcpip_ips = [d['wifi_ip'] for d in tcpip_devices]
+        # Only skip a USB device if its WiFi IP is already connected AND live.
+        # A stale TCP/IP entry in `adb devices` (e.g. after a network hiccup)
+        # must still be refreshed via USB — so we verify with `adb get-state`.
+        #
+        # `adb get-state` queries the ADB server's cached connection state —
+        # it does NOT open a new TCP connection to the device, so it is safe
+        # and reliable on all platforms (Linux, macOS, WSL1, WSL2).
+        # The Windows Firewall issue in WSL2 only affects reverse connections
+        # (phone → computer), not this outbound ADB server query.
+        live_tcpip_ips = set()
+        for ip in target_tcpip_ips:
+            try:
+                r = subprocess.run(
+                    ['adb', '-s', f'{ip}:{config.ADB_PORT}', 'get-state'],
+                    capture_output=True, text=True, timeout=3, check=False,
+                )
+                if r.stdout.strip() == 'device':
+                    live_tcpip_ips.add(ip)
+                    logging.info(
+                        f'TCP/IP connection {ip} is live, '
+                        'skipping USB tcpip conversion'
+                    )
+                else:
+                    logging.info(
+                        f'TCP/IP connection {ip} is stale '
+                        f'({r.stdout.strip()!r}), will refresh via USB'
+                    )
+            except Exception:
+                logging.info(
+                    f'TCP/IP connection {ip} unreachable, will refresh via USB'
+                )
+        target_usb_devices = [
+            d for d in usb_devices if d.get('wifi_ip') not in live_tcpip_ips
+        ]
     else:
         # Filter by PHONE_IPS
+        target_tcpip_ips = [
+            d['wifi_ip'] for d in tcpip_devices if d['wifi_ip'] in phone_ips
+        ]
+        live_tcpip_ips = set()
+        for ip in target_tcpip_ips:
+            try:
+                r = subprocess.run(
+                    ['adb', '-s', f'{ip}:{config.ADB_PORT}', 'get-state'],
+                    capture_output=True, text=True, timeout=3, check=False,
+                )
+                if r.stdout.strip() == 'device':
+                    live_tcpip_ips.add(ip)
+            except Exception:
+                pass
         target_usb_devices = [
             d
             for d in usb_devices
-            if d.get('wifi_ip') in phone_ips or d.get('wifi_ip') is None
-        ]
-        target_tcpip_ips = [
-            d['wifi_ip'] for d in tcpip_devices if d['wifi_ip'] in phone_ips
+            if (d.get('wifi_ip') in phone_ips or d.get('wifi_ip') is None)
+            and d.get('wifi_ip') not in live_tcpip_ips
         ]
 
     logging.info(
