@@ -242,7 +242,8 @@ def wait_for_authorization(timeout=30):
     start = time.time()
     while time.time() - start < timeout:
         output = (
-            subprocess.check_output(['adb', 'devices'])
+            subprocess
+            .check_output(['adb', 'devices'])
             .decode()
             .strip()
             .splitlines()[1:]
@@ -258,7 +259,8 @@ def wait_for_authorization(timeout=30):
                 if ':' in serial:
                     try:
                         hw_serial = (
-                            subprocess.check_output(
+                            subprocess
+                            .check_output(
                                 [
                                     'adb',
                                     '-s',
@@ -1352,13 +1354,15 @@ def determine_wifi_targets(devices: list) -> tuple[list, list]:
             try:
                 r = subprocess.run(
                     ['adb', '-s', f'{ip}:{config.ADB_PORT}', 'get-state'],
-                    capture_output=True, text=True, timeout=3, check=False,
+                    capture_output=True,
+                    text=True,
+                    timeout=3,
+                    check=False,
                 )
                 if r.stdout.strip() == 'device':
                     live_tcpip_ips.add(ip)
                     logging.info(
-                        f'TCP/IP connection {ip} is live, '
-                        'skipping USB tcpip conversion'
+                        f'TCP/IP connection {ip} is live, skipping USB tcpip conversion'
                     )
                 else:
                     logging.info(
@@ -1382,7 +1386,10 @@ def determine_wifi_targets(devices: list) -> tuple[list, list]:
             try:
                 r = subprocess.run(
                     ['adb', '-s', f'{ip}:{config.ADB_PORT}', 'get-state'],
-                    capture_output=True, text=True, timeout=3, check=False,
+                    capture_output=True,
+                    text=True,
+                    timeout=3,
+                    check=False,
                 )
                 if r.stdout.strip() == 'device':
                     live_tcpip_ips.add(ip)
@@ -1464,7 +1471,8 @@ def enable_tcpip_for_devices(usb_devices: list) -> list:
             # Validate it's the same physical device
             try:
                 wifi_serial = (
-                    subprocess.check_output(
+                    subprocess
+                    .check_output(
                         ['adb', '-s', ip_with_port, 'shell', 'getprop', 'ro.serialno'],
                         stderr=subprocess.DEVNULL,
                     )

@@ -94,7 +94,8 @@ def wsl_network_dead(timeout=1.0):
     try:
         # 1. Get default gateway (Windows host)
         route = (
-            subprocess.check_output(
+            subprocess
+            .check_output(
                 ['sh', '-c', "ip route | grep default | awk '{print $3}'"],
                 stderr=subprocess.DEVNULL,
             )

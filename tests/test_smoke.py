@@ -4,6 +4,7 @@ Smoke test: bootstrap a fresh hello world in a temp dir, run it headlessly,
 verify HELLO_WORLD_STARTED appears, then clean up.
 Run via: xvfb-run -a uv run python tests/test_smoke.py
 """
+
 import os
 import subprocess
 import sys
@@ -14,13 +15,13 @@ from pathlib import Path
 
 from kivy_reloader.bootstrap import scaffold_hello_world
 
-TARGET = "HELLO_WORLD_STARTED"
+TARGET = 'HELLO_WORLD_STARTED'
 TIMEOUT = 30
 
 
 def main():
-    with tempfile.TemporaryDirectory(prefix="kivy_smoke_") as tmpdir:
-        print(f"Bootstrapping hello world in {tmpdir}...")
+    with tempfile.TemporaryDirectory(prefix='kivy_smoke_') as tmpdir:
+        print(f'Bootstrapping hello world in {tmpdir}...')
 
         original_dir = os.getcwd()
         os.chdir(tmpdir)
@@ -29,12 +30,13 @@ def main():
         finally:
             os.chdir(original_dir)
 
-        if not os.path.exists(os.path.join(tmpdir, "main.py")):
-            print("SMOKE TEST FAILED: bootstrap did not create main.py")
+        if not os.path.exists(os.path.join(tmpdir, 'main.py')):
+            print('SMOKE TEST FAILED: bootstrap did not create main.py')
             return 1
 
         # Patch app.py to print the sentinel and self-stop
-        (Path(tmpdir) / "hello_world" / "app.py").write_text(textwrap.dedent("""\
+        (Path(tmpdir) / 'hello_world' / 'app.py').write_text(
+            textwrap.dedent("""\
             from kivy_reloader.app import App
             from hello_world.screens.main_screen import MainScreen
 
@@ -48,20 +50,21 @@ def main():
 
             def main():
                 HelloWorldApp().run()
-        """))
+        """)
+        )
 
-        print("Bootstrap OK, running app...")
+        print('Bootstrap OK, running app...')
 
         env = {
             **os.environ,
-            "RELOADER_STATUS": "PROD",
-            "KIVY_SMOKE_TEST": "1",
-            "KIVY_NO_ENV_CONFIG": "1",
-            "KIVY_LOG_MODE": "PYTHON",
+            'RELOADER_STATUS': 'PROD',
+            'KIVY_SMOKE_TEST': '1',
+            'KIVY_NO_ENV_CONFIG': '1',
+            'KIVY_LOG_MODE': 'PYTHON',
         }
 
         proc = subprocess.Popen(
-            [sys.executable, "main.py"],
+            [sys.executable, 'main.py'],
             cwd=tmpdir,
             env=env,
             stdout=subprocess.PIPE,
@@ -79,7 +82,7 @@ def main():
                     break
                 line = proc.stdout.readline()
                 if line:
-                    print(line, end="", flush=True)
+                    print(line, end='', flush=True)
                     if TARGET in line:
                         found = True
                         break
@@ -98,5 +101,5 @@ def main():
     return 1
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     sys.exit(main())

@@ -5,6 +5,7 @@ modify a watched file, verify the app rebuilds automatically.
 
 Run via: xvfb-run -a uv run python tests/test_hot_reload.py
 """
+
 import os
 import subprocess
 import sys
@@ -14,16 +15,16 @@ from pathlib import Path
 
 from kivy_reloader.bootstrap import scaffold_hello_world
 
-STARTUP_MARKER = "Starting Async Kivy app"
-RELOAD_MARKER = "Rebuilding the application"
+STARTUP_MARKER = 'Starting Async Kivy app'
+RELOAD_MARKER = 'Rebuilding the application'
 TIMEOUT_STARTUP = 30
 TIMEOUT_RELOAD = 20
 
 
 def main():  # noqa: PLR0915
-    with tempfile.TemporaryDirectory(prefix="kivy_hot_reload_") as tmpdir:
+    with tempfile.TemporaryDirectory(prefix='kivy_hot_reload_') as tmpdir:
         tmppath = Path(tmpdir)
-        print(f"Scaffolding in {tmpdir}...")
+        print(f'Scaffolding in {tmpdir}...')
 
         original_dir = os.getcwd()
         os.chdir(tmpdir)
@@ -35,12 +36,12 @@ def main():  # noqa: PLR0915
         env = {
             **os.environ,
             # No RELOADER_STATUS=PROD → uses DesktopApp with hot-reload
-            "KIVY_NO_ENV_CONFIG": "1",
-            "KIVY_LOG_MODE": "PYTHON",
+            'KIVY_NO_ENV_CONFIG': '1',
+            'KIVY_LOG_MODE': 'PYTHON',
         }
 
         proc = subprocess.Popen(
-            ["uv", "run", "python", "main.py"],
+            ['uv', 'run', 'python', 'main.py'],
             cwd=tmpdir,
             env=env,
             stdout=subprocess.PIPE,
@@ -58,26 +59,28 @@ def main():  # noqa: PLR0915
                     break
                 line = proc.stdout.readline()
                 if line:
-                    print(line, end="", flush=True)
+                    print(line, end='', flush=True)
                     if STARTUP_MARKER in line:
                         started = True
                         break
         except Exception as e:
-            print(f"Error during startup: {e}")
+            print(f'Error during startup: {e}')
 
         if not started:
             proc.terminate()
             proc.wait(timeout=5)
-            print(f"\nHOT-RELOAD TEST FAILED: '{STARTUP_MARKER}' not found within {TIMEOUT_STARTUP}s")  # noqa: E501
+            print(
+                f"\nHOT-RELOAD TEST FAILED: '{STARTUP_MARKER}' not found within {TIMEOUT_STARTUP}s"
+            )  # noqa: E501
             return 1
 
         # Give watchdog a moment to register file watches
         time.sleep(1.5)
 
         # Phase 2: modify a watched .kv file
-        kv_file = tmppath / "hello_world" / "screens" / "main_screen.kv"
-        kv_file.write_text(kv_file.read_text() + "\n# hot-reload-trigger\n")
-        print(f"\nModified: {kv_file.name}")
+        kv_file = tmppath / 'hello_world' / 'screens' / 'main_screen.kv'
+        kv_file.write_text(kv_file.read_text() + '\n# hot-reload-trigger\n')
+        print(f'\nModified: {kv_file.name}')
 
         # Phase 3: wait for reload
         reloaded = False
@@ -88,7 +91,7 @@ def main():  # noqa: PLR0915
                     break
                 line = proc.stdout.readline()
                 if line:
-                    print(line, end="", flush=True)
+                    print(line, end='', flush=True)
                     if RELOAD_MARKER in line:
                         reloaded = True
                         break
@@ -103,9 +106,11 @@ def main():  # noqa: PLR0915
         print(f"\nHOT-RELOAD TEST PASSED: detected '{RELOAD_MARKER}'")
         return 0
 
-    print(f"\nHOT-RELOAD TEST FAILED: '{RELOAD_MARKER}' not found within {TIMEOUT_RELOAD}s")  # noqa: E501
+    print(
+        f"\nHOT-RELOAD TEST FAILED: '{RELOAD_MARKER}' not found within {TIMEOUT_RELOAD}s"
+    )  # noqa: E501
     return 1
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     sys.exit(main())
