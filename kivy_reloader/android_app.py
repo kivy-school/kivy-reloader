@@ -577,39 +577,6 @@ class AndroidApp(BaseReloaderApp, KivyApp):
             f'Reloader: Reloading {len(modules_to_reload)} modules '
             f'({MODULE_RELOAD_PASSES} passes)'
         )
-
-        # for pass_num in range(MODULE_RELOAD_PASSES):
-        #     for module in modules_to_reload:
-        #         # play nice with ksproject loading things:
-        #         # desktop ksproject loads __main__
-        #         # android ksproject loads bapp.__main__
-        #         if module.__name__ not in sys.modules:
-        #             continue  # can't reload — registered under a different name (e.g. __main__)
-        #         try:
-        #             importlib.reload(module)
-        #         except Exception as e:
-        #             Logger.warning(
-        #                 f'Failed to reload {module} on pass {pass_num + 1}: {e}'
-        #             )
-
-        # for pass_num in range(MODULE_RELOAD_PASSES):
-        #     for module in modules_to_reload:
-        #         spec_name = getattr(getattr(module, '__spec__', None), 'name', None)
-        #         Logger.info(
-        #             f'[reload debug] pass={pass_num+1} '
-        #             f'module.__name__={module.__name__!r} '
-        #             f'spec_name={spec_name!r} '
-        #             f'in_sys_by_name={module.__name__ in sys.modules} '
-        #             f'in_sys_by_spec={spec_name in sys.modules if spec_name else "N/A"}'
-        #         )
-        #         if module.__name__ not in sys.modules:
-        #             continue
-        #         try:
-        #             importlib.reload(module)
-        #         except Exception as e:
-        #             Logger.warning(
-        #                 f'Failed to reload {module} on pass {pass_num + 1}: {e}'
-        #             )
         for pass_num in range(MODULE_RELOAD_PASSES):
             for module in modules_to_reload:
                 # importlib.reload requires sys.modules[spec.name] to be the exact
@@ -647,36 +614,11 @@ class AndroidApp(BaseReloaderApp, KivyApp):
         import errno as _errno
 
         PORT = int(config.RELOADER_PORT)
-
-        # if config.STREAM_USING == "USB":
-        #     host = "127.0.0.1"
-        # else:
-        #     host = "0.0.0.0"
         host = '0.0.0.0'
 
-        # try:
-        #     # Discover device IP address
-        #     # device_ip = self._get_device_ip()
-        #     # Logger.info(f'Smartphone IP: {device_ip}')
-        #     Logger.info(f'starting server on: host:{host},port:{PORT}')
-
-        #     # Start TCP server
-        #     await trio.serve_tcp(self.data_receiver, PORT, host=host)
-
-        # except Exception as e:
-        #     import traceback
-        #     full_trace = traceback.format_exc()
-        #     # If it's a Trio MultiError, we want to see the sub-exceptions
-        #     error_detail = repr(e)
-        #     Logger.info(f"I python full trace, {full_trace}")
-        #     Logger.info(f"I python error detail, {error_detail}")
-        #     self._log_server_startup_error(error_detail, full_trace)
         max_attempts = 60
         for attempt in range(max_attempts):
             try:
-                # Logger.info(f'Kivy-Reloader: starting server on host{host},port:{PORT}')
-                # await trio.serve_tcp(self.data_receiver, PORT, host=host)
-
                 Logger.info(f'Kivy-Reloader: starting server on host{host},port:{PORT}')
                 raw_sock = _socket.socket(_socket.AF_INET, _socket.SOCK_STREAM)
                 raw_sock.setsockopt(_socket.SOL_SOCKET, _socket.SO_REUSEADDR, 1)
@@ -763,14 +705,6 @@ class AndroidApp(BaseReloaderApp, KivyApp):
                 zip_size = None
 
                 async with self._update_lock:
-                    # THIS WORKED
-                    # # Use a small timeout for the header to avoid hanging on ghost connections
-                    # with trio.move_on_after(5):
-                    #     # YOUR ZIP LOGIC HERE
-                    #     zip_file_path = os.path.join(os.getcwd(), f'app_copy_{uuid4().hex}.zip')
-                    #     # Try to receive the file
-                    #     # If this returns None (due to your new logic), success_path will be None
-                    #     success_path = await self._receive_zip_file(data_stream, zip_file_path)
                     # Read header first to get size
                     header = b''
                     with trio.move_on_after(5):
@@ -842,170 +776,6 @@ class AndroidApp(BaseReloaderApp, KivyApp):
             # IMPORTANT: Do NOT re-raise. Just let the function exit.
             # This keeps the Nursery (and the app) alive.
 
-    # # THIS WORKED
-    # async def data_receiver_WORKED(self, data_stream):
-    #     """
-    #     Handle incoming data from the desktop development environment.
-
-    #     Receives a zip file containing the updated application code,
-    #     unpacks it, and triggers a hot reload of the application.
-
-    #     Args:
-    #         data_stream: The incoming TCP data stream
-    #     """
-    #     Logger.info('Reloader: ************** SERVER **************')
-    #     Logger.info('Reloader: Server started: receiving data from computer...')
-
-    #     try:
-    #         # # Ensure only one update is applied at a time
-    #         # async with self._update_lock:
-
-    #             # # Send ACK immediately, before processing ZIP
-    #             # await data_stream.send_all(b"EARLY")
-    #             # Logger.info("EARLY ACK SENT")
-    #             # await trio.sleep(1)
-
-    #             # # Use a unique filename per connection to prevent collisions
-    #             # zip_file_path = os.path.join(os.getcwd(), f'app_copy_{uuid4().hex}.zip')
-
-    #             # # Receive and save the zip file
-    #             # await self._receive_zip_file(data_stream, zip_file_path)
-
-    #             # # Send ACK back to the desktop after successful processing. it's moved here because the reload was killing the app before the acknowledgement was sent, preventing state file from being made
-    #             # try:
-    #             #     await data_stream.send_all(b'OK')
-    #             #     Logger.info('Reloader: OK SENT')
-    #             #     # Give the OS time to flush the ACK before reload kills the process
-    #             #     # await trio.sleep(0.1)
-    #             #     await trio.sleep(1)
-    #             # except Exception as ack_err:
-    #             #     Logger.warning(
-    #             #         f'Reloader: Failed to send ACK to desktop: {ack_err}'
-    #             #     )
-    #             #     Logger.info('Reloader: OK FAILED')
-
-    #             # # Close stream cleanly
-    #             # try:
-    #             #     await data_stream.aclose()
-    #             # except Exception:
-    #             #     pass
-
-    #             # # Schedule reload AFTER handler exits
-    #             # self.nursery.start_soon(self._delayed_reload, zip_file_path)
-
-    #         # =-=-=-=-=
-
-    #         # Ensure only one update is applied at a time
-    #         async with self._update_lock:
-
-    #             # Send ACK immediately, before processing ZIP
-    #             await data_stream.send_all(b"EARLY")
-    #             Logger.info("EARLY ACK SENT")
-    #             Logger.info("EARLY ACK SENTZIPFILE ERR?")
-    #             await trio.sleep(1)
-
-    #             # Use a unique filename per connection to prevent collisions
-    #             zip_file_path = os.path.join(os.getcwd(), f'app_copy_{uuid4().hex}.zip')
-
-    #             # Receive and save the zip file
-    #             await self._receive_zip_file(data_stream, zip_file_path)
-
-    #             await data_stream.send_all(b"EARLY3")
-    #             Logger.info("EARLY ACK SENT3")
-
-    #             # Send ACK back to the desktop after successful processing. it's moved here because the reload was killing the app before the acknowledgement was sent, preventing state file from being made
-    #             # try:
-    #             #     await data_stream.send_all(b'OK')
-    #             #     Logger.info('Reloader: OK SENT')
-    #             #     # Give the OS time to flush the ACK before reload kills the process
-    #             #     # await trio.sleep(0.1)
-    #             #     await trio.sleep(1)
-    #             # except Exception as ack_err:
-    #             #     Logger.warning(
-    #             #         f'Reloader: Failed to send ACK to desktop: {ack_err}'
-    #             #     )
-    #             #     Logger.info('Reloader: OK FAILED')
-
-    #             Logger.info('Reloader: starting app update ????')
-    #             # Close stream
-    #             await data_stream.aclose()
-    #             self.nursery.start_soon(self._process_app_update, zip_file_path)
-
-    #             # await self._process_app_update(zip_file_path)
-
-    #             # await data_stream.send_all(b"EARLY4")
-    #             # Logger.info("EARLY ACK SENT4")
-
-    #             # # Send ACK back to the desktop after successful processing
-    #             # try:
-    #             #     await data_stream.send_all(b'OK')
-    #             # except Exception as ack_err:
-    #             #     Logger.warning(
-    #             #         f'Reloader: Failed to send ACK to desktop: {ack_err}'
-    #             #     )
-
-    #             # # In android_app.py after processing
-    #             # import trio
-    #             # async with await trio.open_tcp_stream("127.0.0.1", 8056) as ack_stream:
-    #             #     await ack_stream.send_all(b'OK')
-    #             #     Logger.info('Reloader: OK SENT')
-
-    #             # # Send ACK back to the desktop after successful processing. it's moved here because the reload was killing the app before the acknowledgement was sent, preventing state file from being made
-    #             # try:
-    #             #     await data_stream.send_all(b'OK')
-    #             #     Logger.info('Reloader: OK SENT')
-    #             #     # Give the OS time to flush the ACK before reload kills the process
-    #             #     # await trio.sleep(0.1)
-    #             #     await trio.sleep(1)
-    #             # except Exception as ack_err:
-    #             #     Logger.warning(
-    #             #         f'Reloader: Failed to send ACK to desktop: {ack_err}'
-    #             #     )
-    #             #     Logger.info('Reloader: OK FAILED')
-    #         # Close stream afterwards so that USB connection is kept alive
-    #         # await data_stream.aclose()
-
-    #     except (trio.BrokenResourceError, trio.ClosedResourceError, Exception) as e:
-    #         # Catch connection resets and "header" exceptions here
-    #         Logger.warning(f'Reloader: Connection dropped or malformed: {e}')
-    #         # IMPORTANT: Do NOT re-raise. Just let the function exit.
-    #         # This keeps the Nursery (and the app) alive.
-
-    #     except Exception as e:
-    #         self._log_server_error(e)
-    #         Logger.error(f'{repr(e)}, {traceback.format_exc()}')
-
-    #     # try:
-    #     #     # Ensure only one update is applied at a time
-    #     #     Logger.info(f'Reloader: attempting to acquire lock...')
-    #     #     # just log timing
-    #     #     import time
-    #     #     t = time.time()
-    #     #     # async with self._update_lock:
-    #     #     #     Logger.info(f'Reloader: lock wait time: {time.time() - t:.4f}s')
-    #     #     #     Logger.info(f'Reloader: lock acquired!')
-    #     #     #     # Use a unique filename per connection to prevent collisions
-    #     #     #     zip_file_path = os.path.join(os.getcwd(), f'app_copy_{uuid4().hex}.zip')
-
-    #     #     #     # Receive and save the zip file
-    #     #     #     await self._receive_zip_file(data_stream, zip_file_path)
-
-    #     #     #     # Process the received update
-    #     #     #     await self._process_app_update(data_stream, zip_file_path)
-    #     #     Logger.info(f'Reloader: lock wait time: {time.time() - t:.4f}s')
-    #     #     Logger.info(f'Reloader: lock acquired!')
-    #     #     # Use a unique filename per connection to prevent collisions
-    #     #     zip_file_path = os.path.join(os.getcwd(), f'app_copy_{uuid4().hex}.zip')
-
-    #     #     # Receive and save the zip file
-    #     #     await self._receive_zip_file(data_stream, zip_file_path)
-
-    #     #     # Process the received update
-    #     #     await self._process_app_update(data_stream, zip_file_path)
-
-    #     # except Exception as e:
-    #     #     self._log_server_error(e)
-
     async def _receive_zip_file(self, data_stream, zip_file_path, zip_size=None):
         if zip_size is None:
             # Read header
@@ -1060,48 +830,6 @@ class AndroidApp(BaseReloaderApp, KivyApp):
         Logger.info('Reloader: ZIP fully received')
         return zip_file_path
 
-    # OLD WORKING
-    # async def _receive_zip_file(self, data_stream, zip_file_path):
-    #     # 1. Read header until newline
-    #     header = b""
-    #     while not header.endswith(b"\n"):
-    #         try:
-    #             chunk = await data_stream.receive_some(1)
-    #             if not chunk:
-    #                 Logger.warning("Reloader: Connection closed before header received")
-    #                 return None  # Return None instead of raising
-    #             header += chunk
-    #         except Exception as e:
-    #             Logger.warning(f"Reloader: Socket error during header: {e}")
-    #             return None
-
-    #     try:
-    #         zip_size = int(header.strip())
-    #     except ValueError:
-    #         Logger.warning(f"Reloader: Invalid header received: {header}")
-    #         return None
-
-    #     Logger.info(f"Reloader: expecting {zip_size} bytes")
-    #     received = 0
-
-    #     # 2. Receive exactly zip_size bytes
-    #     try:
-    #         with open(zip_file_path, "wb") as zip_file:
-    #             while received < zip_size:
-    #                 data = await data_stream.receive_some(65536)
-    #                 if not data:
-    #                     Logger.warning("Reloader: Connection closed early while receiving ZIP")
-    #                     return None # Return None instead of raising
-
-    #                 zip_file.write(data)
-    #                 received += len(data)
-    #     except Exception as e:
-    #         Logger.error(f"Reloader: File/Socket error during ZIP receive: {e}")
-    #         return None
-
-    #     Logger.info("Reloader: ZIP fully received")
-    #     return zip_file_path # Success!
-
     async def _receive_zip_file_old(self, data_stream, zip_file_path):
         # 1. Read header until newline
         header = b''
@@ -1137,55 +865,6 @@ class AndroidApp(BaseReloaderApp, KivyApp):
             Logger.warning(f'Reloader: Failed to send OK: {e}')
 
         return zip_file_path
-
-    # THIS WORKED
-    # async def _receive_zip_file(self, data_stream, zip_file_path):
-    #     """
-    #     Receive zip file data from the TCP stream.
-
-    #     Args:
-    #         data_stream: The incoming TCP data stream
-    #         zip_file_path: Destination path where to write the received zip
-
-    #     Returns:
-    #         str: Path to the saved zip file
-    #     """
-    #     vxy = 0
-    #     await data_stream.send_all(b"EARLY1b")
-    #     Logger.info("EARLY ACK SENT1b")
-    #     Logger.info("Reloader: waiting for EOF from desktop...")
-    #     with open(zip_file_path, 'wb') as zip_file:
-    #         Logger.info('Reloader: Server: receiving data')
-    #         async for data in data_stream:
-    #             # Logger.info(f'Reloader: Data size: {len(data)}')
-    #             # Data arrives in chunks until client half-closes
-    #             zip_file.write(data)
-    #             await data_stream.send_all(b"EARLY " + str(vxy).encode())
-    #             Logger.info(f"EARLY ACK SENT {vxy}")
-    #             vxy += 1
-    #         # 🔥 This line ONLY prints if the loop ends normally (EOF delivered)
-    #         Logger.info("Reloader: LOOP ENDED NORMALLY (EOF RECEIVED)")
-
-    #     await data_stream.send_all(b"EARLY2")
-    #     Logger.info("EARLY ACK SENT2")
-
-    #     # # BEFORE returning, send ACK
-    #     # await data_stream.send_all(b'OK')
-    #     # Logger.info("Reloader: EOF received, exiting receive loop")
-
-    #     try:
-    #         await data_stream.send_all(b'OK')
-    #         Logger.info('Reloader: OK SENT')
-    #         # Give the OS time to flush the ACK before reload kills the process
-    #         # await trio.sleep(0.1)
-    #         await trio.sleep(1)
-    #     except Exception as ack_err:
-    #         Logger.warning(
-    #             f'Reloader: Failed to send ACK to desktop: {ack_err}'
-    #         )
-    #         Logger.info('Reloader: OK FAILED')
-    #     return zip_file_path
-    # THIS WORKED END
 
     async def _process_app_update(self, zip_file_path, print_file_tree):
         """

@@ -263,61 +263,12 @@ def get_connected_devices(fetch_wifi_ip: bool = False) -> list[dict[str, str]]:
             'model': model,
             'wifi_ip': wifi_ip,
         })
-    # logging.info(f'Total serials connected: {len(devices)}')
-    # unique_physical = {
-    #     (d['wifi_ip'], d['model']) for d in devices if d['wifi_ip'] is not None
-    # }
-    # logging.info(f'Total devices connected: {len(unique_physical)}. WIFI: {fetch_wifi_ip}')
     usb_count = sum(1 for d in devices if d['transport'] == 'usb')
     wifi_count = sum(1 for d in devices if d['transport'] == 'tcpip')
     logging.info(
         f'Total devices: {len(devices)} (USB: {usb_count}, WIFI: {wifi_count})'
     )
     return devices
-
-
-# def get_connected_devices() -> list[dict[str, str]]:
-#     """
-#     Returns a list of connected devices with metadata:
-#     - serial: device serial (USB or IP)
-#     - transport: usb or tcpip
-#     - model: device model name if available
-#     - wifi_ip: IP address of wlan0 (if available)
-#     """
-#     result = subprocess.run(
-#         ['adb', 'devices', '-l'], capture_output=True, text=True, check=True
-#     )
-#     lines = result.stdout.strip().splitlines()[1:]  # Skip header
-#     print("get connected devices output", lines)
-#     devices = []
-#     for line in lines:
-#         if not line.strip() or 'device' not in line:
-#             continue
-#         parts = line.strip().split()
-#         serial = parts[0]
-#         transport = 'tcpip' if ':' in serial else 'usb'
-#         model = next(
-#             (p.split(':')[1] for p in parts if p.startswith('model:')),
-#             'unknown',
-#         )
-
-#         logging.info(
-#             f'Detected device: serial={serial}, transport={transport}, model={model}'
-#         )
-#         wifi_ip = get_wifi_ip(serial)
-
-#         devices.append({
-#             'serial': serial,
-#             'transport': transport,
-#             'model': model,
-#             'wifi_ip': wifi_ip,
-#         })
-#     logging.info(f'Total serials connected: {len(devices)}')
-#     unique_physical = {
-#         (d['wifi_ip'], d['model']) for d in devices if d['wifi_ip'] is not None
-#     }
-#     logging.info(f'Total physical devices connected: {len(unique_physical)}')
-#     return devices
 
 
 def get_wifi_ip(serial: str) -> Optional[str]:
@@ -567,40 +518,6 @@ def _validate_wifi_ip_ifconfig(ip: str, interface: str, serial: str) -> Optional
     return None
 
 
-# def is_adb_listening(host="127.0.0.1", timeout=10.0):
-#     end_time = time.time() + timeout
-
-#     while time.time() < end_time:
-#         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-#         s.settimeout(0.5)
-
-#         adb_port = getattr(config, "ADB_PORT", 5037)
-
-#         try:
-#             logging.info(f'testing {host}:{adb_port}')
-#             s.connect((host, adb_port))
-#             s.close()
-#             return True
-#         except (ConnectionRefusedError, socket.timeout, OSError):
-#             time.sleep(0.1)
-#         finally:
-#             s.close()
-
-#     return False
-
-# def adb_forward(port: int):
-#     adb_cmd = f"adb forward tcp:{port} tcp:{port}"
-#     logging.info(adb_cmd)
-#     return os.system(adb_cmd)
-
-# def adb_forward(port: int) -> int:
-#     cmd = ["adb", "forward", f"tcp:{port}", f"tcp:{port}"]
-#     logging.info(" ".join(cmd))
-
-#     result = subprocess.run(cmd)
-#     return result.returncode
-
-
 def adb_forward(port: int, serial: str = None) -> int:
     if serial:
         cmd = ['adb', '-s', serial, 'forward', f'tcp:{port}', f'tcp:{port}']
@@ -680,17 +597,6 @@ def is_adb_listening(host='127.0.0.1', timeout=10.0) -> bool:
 def extract_ip(line):
     match = re.search(r'\b\d+\.\d+\.\d+\.\d+\b', line)
     return match.group(0) if match else None
-
-
-# def get_wsl_nameservers():
-#     if not in_wsl():
-#         return []
-#     nameservers = []
-#     with open("/etc/resolv.conf") as f:
-#         for line in f:
-#             if line.startswith("nameserver"):
-#                 nameservers.append(line.strip())
-#     return nameservers
 
 
 def get_wsl_nameservers():
@@ -840,8 +746,6 @@ async def fix_wsl():
     print('Removing old forward...')
     with trio.move_on_after(10) as cancel_scope:
         res_remove = await trio.run_process(
-            # ["adb.exe", "forward", "--remove", f"tcp:{PORT}"],
-            # ["cmd.exe", "/c", "start", "adb.exe", "forward", "--remove", f"tcp:{PORT}"],
             ['cmd.exe', '/c', 'adb.exe', 'forward', '--remove', f'tcp:{PORT}'],
             check=False,
             capture_stdout=True,
@@ -860,8 +764,6 @@ async def fix_wsl():
     await trio.sleep(0.5)
     print('Re-adding forward...')
     res_add = await trio.run_process(
-        # ["adb.exe", "forward", f"tcp:{PORT}", f"tcp:{PORT}"],
-        # ["cmd.exe", "/c", "start", "adb.exe", "forward", f"tcp:{PORT}", f"tcp:{PORT}"],
         ['cmd.exe', '/c', 'adb.exe', 'forward', f'tcp:{PORT}', f'tcp:{PORT}'],
         check=False,
         capture_stdout=True,
@@ -901,44 +803,6 @@ async def run_wsl_firewall_fix(port=8055):  # noqa: PLR0914
         print(f'[*] Windows host gateway: {gateway}')
 
         rule_name = f'WSL Kivy Surgical {port}'
-
-        # 2. Read current state (no admin needed)
-        # check_cmd = [
-        #     "powershell.exe", "-NoProfile", "-Command",
-        #     f"$aliases = (Get-NetFirewallProfile -Profile Public).DisabledInterfaceAliases;"
-        #     f"$rule = Get-NetFirewallRule -DisplayName '{rule_name}' -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Enabled;"
-        #     f"Write-Output \"ALIASES:$aliases|RULE:$rule\""
-        # ]
-        # check_cmd = [
-        #     "powershell.exe", "-NoProfile", "-Command",
-        #     (
-        #         f'$aliases = (Get-NetFirewallProfile -Profile Public).DisabledInterfaceAliases;'
-        #         f'$rule = Get-NetFirewallRule -DisplayName "{rule_name}" -ErrorAction SilentlyContinue '
-        #         f'| Select-Object -ExpandProperty Enabled;'
-        #         f'Write-Output "ALIASES:$aliases|RULE:$rule"'
-        #     )
-        # ]
-        # check_cmd = [
-        #     "powershell.exe", "-NoProfile", "-Command",
-        #     (
-        #         f'$aliases = (Get-NetFirewallProfile -Profile Public).DisabledInterfaceAliases;'
-        #         f'$rule = Get-NetFirewallRule | Where-Object {{ $_.DisplayName -like "*{port}*" }} '
-        #         f'| Select-Object -First 1;'
-        #         f'$ruleEnabled = if ($rule) {{ [string]$rule.Enabled }} else {{ "NotFound" }};'
-        #         f'Write-Output "ALIASES:$aliases|RULE:$ruleEnabled"'
-        #     )
-        # ]
-        #     check_cmd = [
-        #     "powershell.exe", "-NoProfile", "-Command",
-        #     (
-        #         f'$aliases = (Get-NetFirewallProfile -Profile Public).DisabledInterfaceAliases;'
-        #         f'$count = (Get-NetFirewallRule | Measure-Object).Count;'
-        #         f'$rule = Get-NetFirewallRule | Where-Object {{ $_.DisplayName -like "*{port}*" }} '
-        #         f'| Select-Object -First 1;'
-        #         f'$ruleEnabled = if ($rule) {{ [string]$rule.Enabled }} else {{ "NotFound" }};'
-        #         f'Write-Output "ALIASES:$aliases|RULE:$ruleEnabled|COUNT:$count"'
-        #     )
-        # ]
 
         check_cmd = [
             'powershell.exe',

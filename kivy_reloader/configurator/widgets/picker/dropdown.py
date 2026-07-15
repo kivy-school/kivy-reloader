@@ -573,13 +573,6 @@ class DropdownPicker(ButtonBehavior, BoxLayout):
         # Update text and selected_files when initial_selection changes
         self.bind(initial_selection=self._on_initial_selection_changed)
 
-    #     # Initialize cached_data with data
-    #     self.bind(data=self._update_cached_data)
-
-    # def _update_cached_data(self, *args):
-    #     """Update cached_data when data changes"""
-    #     self.cached_data = self.data[:]
-
     def _on_initial_selection_changed(self, instance, value):
         """Convert initial_selection to selected_files for display before dropdown opens"""
         if value:
