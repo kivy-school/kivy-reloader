@@ -32,6 +32,9 @@ jobs:
       - name: Install system deps (Linux)
         if: runner.os == 'Linux'
         run: sudo apt-get install -y xvfb libgl1 libgles2
+      - name: Install system deps (macOS)
+        if: runner.os == 'macOS'
+        run: brew install sdl2 sdl2_image sdl2_ttf sdl2_mixer
       - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true

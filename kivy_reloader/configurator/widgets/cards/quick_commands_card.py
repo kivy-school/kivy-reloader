@@ -30,7 +30,7 @@ def _stream_proc_output(proc):
             line = raw_line.rstrip('\n')
             if line:
                 Clock.schedule_once(
-                    lambda dt, l=line: EventBus.emit('logcat_line', line=l)
+                    lambda dt, ln=line: EventBus.emit('logcat_line', line=ln)
                 )  # noqa:E741
     except Exception:
         pass
