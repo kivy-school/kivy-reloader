@@ -31,7 +31,7 @@ desktop = [
 [dependency-groups]
 dev = [
     "isort>=6.0.1",
-    "ruff>=0.12.5",
+    "ruff>=0.13.0",
     "pytest>=8.0.0",
     "fonttools>=4.61.1",
     "brotli>=1.2.0",
