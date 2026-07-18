@@ -94,7 +94,6 @@ def main():
                 proc.kill()
             time.sleep(0.5)  # Windows needs time to release SDL2 file handles
 
-
     if found:
         print(f"\nSMOKE TEST PASSED: detected '{TARGET}'")
         return 0
