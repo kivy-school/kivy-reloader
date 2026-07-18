@@ -1,8 +1,9 @@
 [project]
 name = "kivy-reloader"
-version = "0.9.0"
+version = "0.9.1"
 description = "Hot reload your Kivy app on multiple Android phones and computer in real-time."
 readme = "README.md"
+license = { text = "MIT" }
 requires-python = ">=3.10"
 authors = [{ name = "filipemarch", email = "filipe.marchesini@gmail.com" }, {email = "138998466+AccelQuasarDragon@users.noreply.github.com"}]
 urls = { Homepage = "https://kivyschool.com/kivy-reloader/", Repository = "https://github.com/kivy-school/kivy-reloader" }
