@@ -448,9 +448,12 @@ main()
     if main_py.exists():
         existing = main_py.read_text()
         if UV_INIT_MAIN_PATTERN.match(existing):
-            answer = input(
-                f'{yellow}[KIVY RELOADER] Detected uv placeholder main.py. Replace it? [y/n]: {Fore.RESET}'
-            )
+            if sys.stdin.isatty():
+                answer = input(
+                    f'{yellow}[KIVY RELOADER] Detected uv placeholder main.py. Replace it? [y/n]: {Fore.RESET}'
+                )
+            else:
+                answer = 'y'
             if answer.strip().lower() == 'y':
                 main_py.write_text(main_content)
                 klprint(f'{red}Replaced uv placeholder: main.py')
@@ -497,9 +500,12 @@ def scaffold_hello_world():
         path.parent.mkdir(parents=True, exist_ok=True)
         if path.exists():
             if path.name == 'main.py' and UV_INIT_MAIN_PATTERN.match(path.read_text()):
-                answer = input(
-                    f'{yellow}[KIVY RELOADER] Detected uv placeholder main.py. Replace it? [y/n]: {Fore.RESET}'
-                )
+                if sys.stdin.isatty():
+                    answer = input(
+                        f'{yellow}[KIVY RELOADER] Detected uv placeholder main.py. Replace it? [y/n]: {Fore.RESET}'
+                    )
+                else:
+                    answer = 'y'
                 if answer.strip().lower() == 'y':
                     path.write_text(content)
                     klprint(f'{red} Replaced uv placeholder: main.py')

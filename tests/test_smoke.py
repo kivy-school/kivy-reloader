@@ -20,7 +20,7 @@ TIMEOUT = 30
 
 
 def main():
-    with tempfile.TemporaryDirectory(prefix='kivy_smoke_') as tmpdir:
+    with tempfile.TemporaryDirectory(prefix='kivy_smoke_', ignore_cleanup_errors=True) as tmpdir:
         print(f'Bootstrapping hello world in {tmpdir}...')
 
         original_dir = os.getcwd()
@@ -92,6 +92,8 @@ def main():
                 proc.wait(timeout=5)
             except subprocess.TimeoutExpired:
                 proc.kill()
+            time.sleep(0.5)  # Windows needs time to release SDL2 file handles
+
 
     if found:
         print(f"\nSMOKE TEST PASSED: detected '{TARGET}'")
