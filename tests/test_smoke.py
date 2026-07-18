@@ -20,7 +20,9 @@ TIMEOUT = 30
 
 
 def main():
-    with tempfile.TemporaryDirectory(prefix='kivy_smoke_', ignore_cleanup_errors=True) as tmpdir:
+    with tempfile.TemporaryDirectory(
+        prefix='kivy_smoke_', ignore_cleanup_errors=True
+    ) as tmpdir:
         print(f'Bootstrapping hello world in {tmpdir}...')
 
         original_dir = os.getcwd()
