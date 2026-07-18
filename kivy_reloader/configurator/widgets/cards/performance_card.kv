@@ -4,7 +4,7 @@
     height: self.minimum_height
 
     Card:
-        title: f'[size=16][font={emoji_font}]⚙️[/font][/size] Performance Tuning'
+        title: f'[size=16][font={emoji_font}]⚙️[/font][/size] Scrcpy Performance Tuning'
         description: 'Configure resolution, bitrate, and driver options for optimal throughput.'
 
         BoxLayout:
@@ -140,7 +140,7 @@
                     spacing: dp(8)
 
                     Label:
-                        text: 'SDL render driver'
+                        text: 'Scrcpy SDL render driver'
                         font_size: font_size_sm
                         bold: True
                         color: foreground_color
@@ -170,14 +170,14 @@
 
                 CustomSwitch:
                     id: no_mouse_hover_switch
-                    title: 'Disable mouse hover events'
+                    title: 'Scrcpy Disable mouse hover events'
                     description: 'Skip hover events for better performance (especially in VMs)'
                     active: root.config['NO_MOUSE_HOVER']
                     on_active: root.on_switch_change('NO_MOUSE_HOVER', self.active)
 
                 CustomSwitch:
                     id: disable_screensaver_switch
-                    title: 'Prevent screensaver'
+                    title: 'Scrcpy Prevent screensaver'
                     description: 'Prevent the computer screensaver from activating during mirroring'
                     active: root.config['DISABLE_SCREENSAVER']
                     on_active: root.on_switch_change('DISABLE_SCREENSAVER', self.active)

@@ -70,7 +70,7 @@ def extract_used_emojis(search_dir: Path) -> set[str]:
         for char in text:
             codepoint = ord(char)
             # Include: emojis (U+1F300+), symbols (U+2000+), variation selectors
-            if codepoint > 0x2000 or codepoint == 0xFE0F:
+            if codepoint > 0x2000 or codepoint == 0xFE0F:  # noqa: PLR2004
                 used_emojis.add(char)
 
     for ext in ('*.py', '*.kv'):
@@ -128,7 +128,7 @@ def emojis_to_unicode_ranges(emojis: set[str]) -> list[str]:
     for emoji in emojis:
         for char in emoji:
             codepoint = ord(char)
-            if codepoint > 0x7F:  # Non-ASCII
+            if codepoint > 0x7F:  # Non-ASCII # noqa: PLR2004
                 unicode_ranges.append(f'U+{codepoint:04X}')
     return sorted(set(unicode_ranges))
 
@@ -152,7 +152,7 @@ def subset_font(
         True if successful, False otherwise
     """
     try:
-        from fontTools.subset import main as subset_main
+        from fontTools.subset import main as subset_main  # noqa: PLC0415
     except ImportError:
         print('Error: fonttools not installed. Run: pip install fonttools brotli')
         return False
@@ -184,7 +184,7 @@ def format_size(size_bytes: int) -> str:
     """Format byte size as human-readable string."""
     if size_bytes >= 1024 * 1024:
         return f'{size_bytes / (1024 * 1024):.2f} MB'
-    elif size_bytes >= 1024:
+    elif size_bytes >= 1024:  # noqa: PLR2004
         return f'{size_bytes / 1024:.1f} KB'
     return f'{size_bytes} bytes'
 
@@ -196,7 +196,7 @@ def main():
 
     # Check if fonttools is installed
     try:
-        import fontTools  # noqa: F401
+        import fontTools  # noqa: F401, E402, PLC0415
     except ImportError:
         print('\nError: fonttools is not installed.')
         print('Install it with: pip install fonttools brotli')
@@ -248,7 +248,6 @@ def main():
         print(f'   Error: {emoji_input} not found')
     else:
         original_size = emoji_input.stat().st_size
-        emoji_text = ''.join(used_emojis)
         emoji_unicodes = emojis_to_unicode_ranges(used_emojis)
 
         if subset_font(emoji_input, emoji_output, unicodes=emoji_unicodes):

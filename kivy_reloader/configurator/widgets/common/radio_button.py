@@ -85,9 +85,3 @@ class RadioGroup(BoxLayout):
 
         for btn in self.radio_buttons:
             btn.selected = btn.value == value
-            self.selected_value = value
-            # Dispatch the event to notify listeners
-            self.dispatch('on_selected_value', value)
-
-        for btn in self.radio_buttons:
-            btn.selected = btn.value == value

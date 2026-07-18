@@ -1,0 +1,74 @@
+name: CI
+
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  push:
+    branches: [main, macfix_gaimwsl]
+  pull_request:
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv sync --group dev
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+
+  smoke:
+    name: Smoke (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install system deps (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get install -y xvfb libgl1 libgles2
+      - name: Install system deps (macOS)
+        if: runner.os == 'macOS'
+        run: brew install sdl2 sdl2_image sdl2_ttf sdl2_mixer
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv sync --extra desktop
+      - name: Run smoke test (Linux)
+        if: runner.os == 'Linux'
+        run: xvfb-run -a uv run python tests/test_smoke.py
+        env:
+          RELOADER_STATUS: PROD
+          KIVY_SMOKE_TEST: "1"
+          KIVY_NO_ENV_CONFIG: "1"
+          KIVY_LOG_MODE: PYTHON
+      - name: Run smoke test (macOS / Windows)
+        if: runner.os != 'Linux'
+        run: uv run python tests/test_smoke.py
+        env:
+          RELOADER_STATUS: PROD
+          KIVY_SMOKE_TEST: "1"
+          KIVY_NO_ENV_CONFIG: "1"
+          KIVY_LOG_MODE: PYTHON
+          KIVY_GL_BACKEND: mock
+  hot-reload:
+    name: Hot-reload (Linux)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install system deps
+        run: sudo apt-get install -y xvfb libgl1 libgles2
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv sync --extra desktop
+      - name: Run hot-reload test
+        run: xvfb-run -a uv run python tests/test_hot_reload.py
+        env:
+          KIVY_NO_ENV_CONFIG: "1"
+          KIVY_LOG_MODE: PYTHON

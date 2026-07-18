@@ -573,13 +573,6 @@ class DropdownPicker(ButtonBehavior, BoxLayout):
         # Update text and selected_files when initial_selection changes
         self.bind(initial_selection=self._on_initial_selection_changed)
 
-    #     # Initialize cached_data with data
-    #     self.bind(data=self._update_cached_data)
-
-    # def _update_cached_data(self, *args):
-    #     """Update cached_data when data changes"""
-    #     self.cached_data = self.data[:]
-
     def _on_initial_selection_changed(self, instance, value):
         """Convert initial_selection to selected_files for display before dropdown opens"""
         if value:
@@ -609,7 +602,9 @@ class DropdownPicker(ButtonBehavior, BoxLayout):
             self.is_hovered = False
 
     def on_mouse_down(self, window, x, y, button, modifiers):
-        """Close dropdown if clicking outside"""
+        """Close dropdown if clicking outside. Scroll events are handled by touch dispatch."""
+        if button in {'scrolldown', 'scrollup', 'scrollleft', 'scrollright'}:
+            return
         if self.is_open and self.container:
             # Adjust Window y coordinate for Kivy's coordinate system
             # In Kivy, (0,0) is bottom left, but Window gives (0,0) at top left

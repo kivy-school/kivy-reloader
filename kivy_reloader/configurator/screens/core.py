@@ -1,21 +1,53 @@
+import io
 import os
 import subprocess
 import sys
+import webbrowser
 
 from kivy.animation import Animation
 from kivy.app import App
+from kivy.clock import Clock
 from kivy.core.window import Window
 from kivy.properties import ObjectProperty, StringProperty
+from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.screenmanager import Screen
 
+from kivy_reloader.configurator.event_bus import EventBus
 from kivy_reloader.configurator.widgets.cards import (  # noqa: F401
     CoreCard,
     ServicesCard,
 )
+from kivy_reloader.configurator.widgets.command_panel import CommandPanel  # noqa: F401
 from kivy_reloader.configurator.widgets.common import ConfirmPopup, HelpPopup
 from kivy_reloader.configurator.widgets.sidebar import SideBar  # noqa: F401
 from kivy_reloader.configurator.widgets.toolbar import Toolbar  # noqa: F401
 from kivy_reloader.lang import Builder
+
+
+class SectionBox(BoxLayout):
+    _height_ev = None
+
+    def on_minimum_height(self, instance, value):
+        if self._height_ev:
+            self._height_ev.cancel()
+        self._height_ev = Clock.schedule_once(
+            lambda dt: setattr(self, 'height', self.minimum_height), 0
+        )
+
+
+class _LogCapture(io.StringIO):
+    def __init__(self):
+        super().__init__()
+        self._real = sys.__stdout__
+
+    def write(self, text):
+        self._real.write(text)
+        if text.strip():
+            EventBus.emit('terminal_output', output=text.rstrip())
+
+    def flush(self):
+        self._real.flush()
+
 
 Builder.load_file(__file__)
 
@@ -45,6 +77,7 @@ class CoreScreen(Screen):
     section_manager = ObjectProperty(None)
     core_card = ObjectProperty(None)
     services_card = ObjectProperty(None)
+    command_panel = ObjectProperty(None)
 
     def __init__(self, **kwargs):
         self._section_cards = {}
@@ -68,6 +101,8 @@ class CoreScreen(Screen):
         toolbar.on_import = self.handle_import
         toolbar.on_help = self.handle_help
         toolbar.on_toggle_sidebar = self.toggle_sidebar
+        toolbar.on_toggle_dark_mode = self.handle_toggle_dark_mode
+        toolbar.on_discord = lambda: webbrowser.open('https://discord.gg/kEEA7gkPvG')
 
         sidebar = self.sidebar
         self._sidebar_default_width = sidebar.width
@@ -76,11 +111,22 @@ class CoreScreen(Screen):
         self._collect_section_cards()
         self._attach_model_to_cards()
 
-        initial_section = sidebar.selected_section or 'Core'
+        initial_section = sidebar.selected_section or 'Quick Commands'
+
         self.show_section(initial_section)
 
         # Setup keyboard shortcuts
         self._setup_keyboard_shortcuts()
+
+        if self.command_panel:
+            sys.stdout = _LogCapture()
+
+    def on_leave(self, *args):
+        if isinstance(sys.stdout, _LogCapture):
+            sys.stdout = sys.__stdout__
+
+    def _log(self, command, output=''):
+        EventBus.emit('terminal_log', command=command, output=output)
 
     def update_unsaved_indicator(self):
         """Update the unsaved changes indicator based on model state."""
@@ -175,6 +221,11 @@ class CoreScreen(Screen):
         """Clear the current popup reference."""
         self._current_popup = None
 
+    def handle_toggle_dark_mode(self):
+        app = App.get_running_app()
+        if hasattr(app, 'toggle_dark_mode'):
+            app.toggle_dark_mode(self)
+
     def handle_apply_reload(self):
         """Handle Apply & Reload action"""
         if self.config_model:
@@ -193,11 +244,25 @@ class CoreScreen(Screen):
 
     def handle_save(self):
         """Handle Save action"""
+        EventBus.emit('terminal_log', command='kivy-reloader config --save')
+
         if self.config_model:
             try:
+                from kivy_reloader.configurator.command_history import record
+
+                for fs in self.config_model.unsaved_states():
+                    record(
+                        label=f'Set {fs.field.key}',
+                        command=f'SET:{fs.field.key}:{fs.value}',
+                    )
+
                 self.config_model.save()
                 self.update_unsaved_indicator()
-                print(f'Configuration saved to {self.config_model.config_path}')
+                msg = f'Saved to {self.config_model.config_path}'
+                print(msg)
+                self._log(
+                    f'kivy-reloader config --file {self.config_model.config_path}', msg
+                )
             except Exception as e:
                 print(f'Error saving configuration: {e}')
         else:
@@ -251,9 +316,9 @@ class CoreScreen(Screen):
             if sys.platform == 'win32':
                 os.startfile(folder)
             elif sys.platform == 'darwin':
-                subprocess.run(['open', folder])
+                subprocess.run(['open', folder], check=False)
             else:
-                subprocess.run(['xdg-open', folder])
+                subprocess.run(['xdg-open', folder], check=False)
 
         popup = ConfirmPopup(
             title='Export Successful',
@@ -357,6 +422,10 @@ class CoreScreen(Screen):
         # Wire up config change callbacks to update unsaved indicator
         def on_any_config_change(config):
             self.update_unsaved_indicator()
+            for name in ('Core', 'Quick Commands'):
+                card = self._section_cards.get(name)
+                if card is not None:
+                    card.load_from_model()
 
         non_core_cards = {k: v for k, v in cards.items() if k != 'Core'}
         for name, card in non_core_cards.items():
@@ -380,6 +449,16 @@ class CoreScreen(Screen):
                 continue
             card.config_model = model
             card.load_from_model()
+
+        for card in self._section_cards.values():
+            if card is None:
+                continue
+            card.config_model = model
+            card.load_from_model()
+
+        # Sync sidebar power switch
+        self.sidebar.config_model = model
+        self.sidebar.load_from_model()
 
         # Update indicator after initial load (should be clean)
         self.update_unsaved_indicator()

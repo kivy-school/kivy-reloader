@@ -33,12 +33,12 @@ os.environ['KIVY_LOG_MODE'] = 'MIXED'
 if hasattr(sys, '_MEIPASS') or '__compiled__' in dir(sys.modules[__name__]):
     os.environ['RELOADER_STATUS'] = 'PROD'
 
-
 _DESKTOP_EXTRA_HINT = (
     'Desktop hot reload requires the optional desktop dependencies. '
     'Install them with `pip install "kivy-reloader[desktop]"` or '
     '`uv add "kivy-reloader[desktop]"`.'
 )
+
 _KIVY_RUNTIME_HINT = (
     'Kivy is not installed. Install it with '
     '`pip install "kivy-reloader[desktop]"` or '
@@ -90,6 +90,7 @@ else:
             App = DesktopApp
     else:
         App = KivyApp
+
 
 # Export all classes for backward compatibility
 __all__ = ['App', 'BaseReloaderApp']

@@ -12,9 +12,13 @@
 # This is the main feature - enables live coding on your phone
 HOT_RELOAD_ON_PHONE = true
 
+# Open Kivy FlightDeck immediately on startup, skipping the interactive CLI menu
+# false = show interactive CLI menu (kivy-reloader run) / run app directly (python main.py)
+PERSISTENT_FLIGHTDECK = false
+
 # Connection method: "USB" (faster) or "WIFI" (wireless)
 # (WIFI requires you to connect the cable once to set up)
-STREAM_USING = "USB"
+STREAM_USING = "WIFI"
 
 # Files that trigger a complete app restart when changed
 # Example: ["main.py", "settings.py"] - main app files
@@ -37,7 +41,7 @@ WATCHED_FOLDERS = []
 # Built-in exclusions are automatically applied (.git, .buildozer, .venv, *.pyc, __pycache__, etc.)
 # Add your own patterns here for additional files/folders to ignore
 # Example: ["*.tmp", "cache", "logs/*.log"]
-DO_NOT_WATCH_PATTERNS = []
+DO_NOT_WATCH_PATTERNS = ["kivy_reloader", "kivy-reloader"]
 
 # ════════════════════════════════════════════════════════════════
 # 🛠️ SERVICES & BACKGROUND PROCESSES
@@ -65,6 +69,9 @@ PHONE_IPS = []
 
 # ADB TCP/IP port for wireless debugging (default: 5555)
 ADB_PORT = 5555
+
+# ADB port on windows (win 10 compatibility) (default: 5037)
+WIN_ADB_PORT = 5037
 
 # Port for the trio server that receives files on the device
 RELOADER_PORT = 8050
@@ -167,3 +174,7 @@ FOLDERS_AND_FILES_TO_EXCLUDE_FROM_PHONE = []
 # Show desktop notifications during compilation and deployment
 # Set to false to disable notifications completely
 SHOW_NOTIFICATIONS = true
+
+# Print file tree of changed/deleted files during hot reload
+# Set to true to see a visual tree of files being transferred
+PRINT_FILE_TREE = false

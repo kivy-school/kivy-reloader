@@ -27,6 +27,7 @@ from kivy.core.window import Window
 from kivy.factory import Factory as F
 from kivy.lang import Builder
 from kivy.logger import Logger
+from kivy.metrics import Metrics
 from kivy.utils import platform
 
 # Watchdog imports (optional dependency)
@@ -47,7 +48,11 @@ from . import __version__
 from .base_app import BaseReloaderApp
 from .config import config
 from .delta_transfer import DeltaTransferManager
-from .utils import get_auto_reloader_paths, get_connected_devices, get_kv_files_paths
+from .utils import (
+    get_auto_reloader_paths,
+    get_connected_devices,
+    get_kv_files_paths,
+)
 
 # Constants
 F5_KEYCODE = 286
@@ -120,7 +125,6 @@ class DesktopApp(BaseReloaderApp, KakiApp):
     def _setup_autoreloader(self):
         """Configure autoreloader paths and settings"""
         self.AUTORELOADER_PATHS = get_auto_reloader_paths()
-        self.HOT_RELOAD_ON_PHONE = config.HOT_RELOAD_ON_PHONE
         self.KV_FILES = get_kv_files_paths()
         self._watched_directories = _extract_watched_directories_from_paths(
             self.AUTORELOADER_PATHS
@@ -153,6 +157,9 @@ class DesktopApp(BaseReloaderApp, KakiApp):
 
         if self.IDLE_DETECTION:
             self.install_idle(timeout=self.IDLE_TIMEOUT)
+
+    def run(self):
+        trio.run(self.async_run, 'trio')
 
     async def async_run(self, async_lib='trio'):
         """Run the app asynchronously using trio"""
@@ -395,6 +402,15 @@ class DesktopApp(BaseReloaderApp, KakiApp):
         Logger.info('Reloader: Rebuilding the application')
 
         try:
+            config.reload()
+            screen_size = config.SCREEN_SIZE
+            if screen_size and 'x' in screen_size:
+                w, h = map(int, screen_size.split('x'))
+                Window.size = (w, h)
+            screen_dpi = config.SCREEN_DPI
+            if screen_dpi:
+                Metrics.density = int(screen_dpi) / 160.0
+
             if not first:
                 self._perform_hot_reload()
 
@@ -423,7 +439,7 @@ class DesktopApp(BaseReloaderApp, KakiApp):
 
     def _handle_android_reload(self):
         """Handle Android hot reload if configured and available."""
-        if not self.HOT_RELOAD_ON_PHONE:
+        if not config.HOT_RELOAD_ON_PHONE:
             return
 
         # Check if any devices are connected before processing
@@ -615,8 +631,26 @@ class DesktopApp(BaseReloaderApp, KakiApp):
         Uses differential transfer to send only changed files for improved performance,
         falling back to full transfer when necessary.
         """
-        # Initialize delta transfer manager
-        delta_manager = DeltaTransferManager(os.getcwd())
+
+        watched = config.WATCHED_FOLDERS_RECURSIVELY
+        _first = watched[0] if watched else '.'
+        _cwd = os.getcwd()
+        if _first == '.':
+            app_name = getattr(config, 'APP_NAME', None)
+            src_candidate = os.path.join(_cwd, 'src', app_name) if app_name else None
+            _delta_root = (
+                src_candidate
+                if src_candidate and os.path.isdir(src_candidate)
+                else _cwd
+            )
+        else:
+            _delta_root = os.path.realpath(os.path.join(_cwd, _first))
+        # Initialize delta transfer manager — zip always lands at CWD for send_app_to_phone.py
+        delta_manager = DeltaTransferManager(
+            _delta_root,
+            zip_root=_cwd,
+            source_package=self.__class__.__module__.split('.')[0],
+        )
 
         # Apply only exclusions (include everything else)
         exclude_patterns = config.FOLDERS_AND_FILES_TO_EXCLUDE_FROM_PHONE
@@ -651,7 +685,8 @@ class DesktopApp(BaseReloaderApp, KakiApp):
         script_directory = os.path.dirname(current_file_path)
         send_app_script = os.path.join(script_directory, 'send_app_to_phone.py')
 
-        completed = subprocess.run(f'python {send_app_script}', shell=True, check=False)
+        completed = subprocess.run([sys.executable, send_app_script], check=False)
+
         return completed.returncode
 
     def _filename_to_module(self, filename: str):
@@ -682,6 +717,10 @@ class DesktopApp(BaseReloaderApp, KakiApp):
         # Remove leading separator
         if filename.startswith(prefix):
             filename = filename[1:]
+
+        # strip src/ prefix for ksproject src layout
+        if filename.startswith('src' + os.path.sep):
+            filename = filename[len('src' + os.path.sep) :]
 
         # Convert to module notation (remove .py extension and replace separators)
         module = filename[:-3].replace(prefix, '.')

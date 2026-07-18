@@ -37,7 +37,7 @@ version = 0.1
 
 # (list) Application requirements
 # comma separated e.g. requirements = sqlite3,kivy
-requirements = hostpython3==3.11.13, python3==3.11.13, kivy, kivy_reloader, android, tomlkit, trio, attrs, outcome, sniffio, sortedcontainers, exceptiongroup
+requirements = python3, kivy, kivy_reloader, android, tomlkit, trio, attrs, outcome, sniffio, sortedcontainers, exceptiongroup
 
 # (str) Custom source folders for requirements
 # Sets custom source for any requirements with recipes
@@ -316,25 +316,23 @@ android.allow_backup = True
 # Python for android (p4a) specific
 #
 
-# Temporary pin to a p4a fork with the Android pyproject wheel-build fix.
-# Remove these overrides once the fix lands upstream.
 # (str) python-for-android URL to use for checkout
-p4a.url = https://github.com/kivy-school/python-for-android.git
+#p4a.url =
 
 # (str) python-for-android fork to use in case if p4a.url is not specified, defaults to upstream (kivy)
 #p4a.fork = kivy
 
 # (str) python-for-android branch to use, defaults to master
-p4a.branch = kr3301-minimal-fix
+p4a.branch = develop
 
 # (str) python-for-android specific commit to use, defaults to HEAD, must be within p4a.branch
-p4a.commit = ab5c8a7bbed77b71d4ed7237843518252d9ac357
+#p4a.commit = HEAD
 
 # (str) python-for-android git clone directory (if empty, it will be automatically cloned from github)
 #p4a.source_dir =
 
 # (str) The directory in which python-for-android should look for your own build recipes (if any)
-#p4a.local_recipes = ./p4a-recipes
+p4a.local_recipes = ./p4a-recipes
 
 # (str) Filename to the hook for p4a
 #p4a.hook =

@@ -1,0 +1,386 @@
+<CommandButton>:
+    size_hint_y: None
+    height: dp(44)
+    spacing: dp(12)
+    padding: [dp(4), 0]
+
+    Button:
+        text: root.label
+        font_size: font_size_sm
+        size_hint_x: 0.45
+        size_hint_y: None
+        height: dp(36)
+        background_normal: ''
+        background_down: ''
+        background_color: 0, 0, 0, 0
+        color: primary_foreground_color
+        on_release: root.run()
+        canvas.before:
+            Color:
+                rgba: primary_active_color if self.state == 'down' else primary_color
+            SmoothRoundedRectangle:
+                pos: self.pos
+                size: self.size
+                radius: [border_radius_sm]
+
+
+
+    Label:
+        text: root.display_command or root.command
+        font_size: font_size_xs
+        color: muted_foreground_color
+        halign: 'left'
+        valign: 'middle'
+        text_size: self.width, self.height
+        shorten: True
+        shorten_from: 'right'
+
+    Label:
+        text: root.count
+        font_size: font_size_xs
+        color: muted_foreground_color
+        size_hint_x: None
+        width: dp(40)
+        halign: 'right'
+        valign: 'middle'
+        text_size: self.width, self.height
+
+
+<QuickCommandsCard>:
+    orientation: 'vertical'
+    size_hint_y: None
+    height: self.minimum_height
+
+    Card:
+        title: f'[size=16][font={emoji_font}]⚡[/font][/size] Quick Commands'
+        description: 'Frequently commands. Click to run and track usage. These are auto saved, the rest of reloader is not.'
+
+        BoxLayout:
+            orientation: 'vertical'
+            spacing: dp(12)
+            size_hint_y: None
+            height: self.minimum_height
+
+            Separator:
+
+            # Period filter tabs
+            BoxLayout:
+                size_hint_y: None
+                height: dp(36)
+                spacing: dp(8)
+
+                Button:
+                    text: '1 day'
+                    font_size: font_size_xs
+                    background_color: primary_color if root.active_period == '1 day' else muted_color
+                    color: primary_foreground_color if root.active_period == '1 day' else foreground_color
+                    on_release: root.set_period('1 day')
+
+                Button:
+                    text: '1 week'
+                    font_size: font_size_xs
+                    background_color: primary_color if root.active_period == '1 week' else muted_color
+                    color: primary_foreground_color if root.active_period == '1 week' else foreground_color
+                    on_release: root.set_period('1 week')
+
+                Button:
+                    text: '1 month'
+                    font_size: font_size_xs
+                    background_color: primary_color if root.active_period == '1 month' else muted_color
+                    color: primary_foreground_color if root.active_period == '1 month' else foreground_color
+                    on_release: root.set_period('1 month')
+
+                Widget:
+
+                Button:
+                    text: 'Reset'
+                    font_size: font_size_xs
+                    size_hint_x: None
+                    width: dp(60)
+                    background_color: destructive_color
+                    color: destructive_foreground_color
+                    on_release: root.reset_history()
+
+
+            # Command list — rebuilt when commands changes
+            BoxLayout:
+                id: command_list
+                orientation: 'vertical'
+                size_hint_y: None
+                height: self.minimum_height
+                spacing: dp(4)
+
+            Separator:
+
+            # Quick Settings
+            BoxLayout:
+                orientation: 'vertical'
+                size_hint_y: None
+                height: self.minimum_height
+                spacing: dp(8)
+
+                Label:
+                    text: 'Quick Settings'
+                    font_size: font_size_xs
+                    bold: True
+                    color: muted_foreground_color
+                    halign: 'left'
+                    valign: 'middle'
+                    text_size: self.width, None
+                    size_hint_y: None
+                    height: dp(20)
+
+                # HOT_RELOAD_ON_PHONE
+                BoxLayout:
+                    orientation: 'horizontal'
+                    size_hint_y: None
+                    height: dp(36)
+                    spacing: dp(12)
+
+                    Label:
+                        text: 'Hot reload on phone'
+                        font_size: font_size_sm
+                        color: foreground_color
+                        halign: 'left'
+                        valign: 'middle'
+                        text_size: self.size
+
+                    Widget:
+                        size_hint: None, None
+                        size: dp(44), dp(24)
+                        pos_hint: {'center_y': 0.5}
+                        on_touch_down:
+                            if self.collide_point(*args[1].pos): root.toggle_hot_reload()
+                        canvas.before:
+                            Color:
+                                rgba: primary_color if root.hot_reload_on_phone else muted_color
+                            SmoothRoundedRectangle:
+                                pos: self.pos
+                                size: self.size
+                                radius: [dp(12)]
+                            Color:
+                                rgba: white
+                            SmoothEllipse:
+                                pos: [self.x + dp(22) if root.hot_reload_on_phone else self.x + dp(2), self.center_y - dp(10)]
+                                size: [dp(20), dp(20)]
+
+                # STREAM_USING
+                BoxLayout:
+                    orientation: 'horizontal'
+                    size_hint_y: None
+                    height: dp(36)
+                    spacing: dp(12)
+
+                    Label:
+                        text: 'Stream using'
+                        font_size: font_size_sm
+                        color: foreground_color
+                        halign: 'left'
+                        valign: 'middle'
+                        text_size: self.size
+
+                    BoxLayout:
+                        size_hint_x: None
+                        width: dp(120)
+                        spacing: dp(4)
+
+                        Button:
+                            text: 'USB'
+                            font_size: font_size_xs
+                            background_color: primary_color if root.stream_using == 'USB' else muted_color
+                            color: primary_foreground_color if root.stream_using == 'USB' else foreground_color
+                            on_release: root.set_stream_using('USB')
+
+                        Button:
+                            text: 'WIFI'
+                            font_size: font_size_xs
+                            background_color: primary_color if root.stream_using == 'WIFI' else muted_color
+                            color: primary_foreground_color if root.stream_using == 'WIFI' else foreground_color
+                            on_release: root.set_stream_using('WIFI')
+
+                # SCREEN_SIZE
+                BoxLayout:
+                    orientation: 'horizontal'
+                    size_hint_y: None
+                    height: dp(36)
+                    spacing: dp(12)
+
+                    Label:
+                        text: 'Screen size (set this then F5 on desktop app to update)'
+                        font_size: font_size_sm
+                        color: foreground_color
+                        halign: 'left'
+                        valign: 'middle'
+                        text_size: self.size
+
+                    BoxLayout:
+                        size_hint_x: None
+                        width: dp(290)
+                        spacing: dp(4)
+
+                        Button:
+                            text: 'off'
+                            font_size: font_size_xs
+                            background_color: primary_color if root.screen_size == '' else muted_color
+                            color: primary_foreground_color if root.screen_size == '' else foreground_color
+                            on_release: root.set_screen_size('')
+
+                        Button:
+                            text: '360x640'
+                            font_size: font_size_xs
+                            background_color: primary_color if root.screen_size == '360x640' else muted_color
+                            color: primary_foreground_color if root.screen_size == '360x640' else foreground_color
+                            on_release: root.set_screen_size('360x640')
+                        
+                        Button:
+                            text: '360x780'
+                            font_size: font_size_xs
+                            background_color: primary_color if root.screen_size == '360x780' else muted_color
+                            color: primary_foreground_color if root.screen_size == '360x780' else foreground_color
+                            on_release: root.set_screen_size('360x780')
+
+                        Button:
+                            text: '412x915'
+                            font_size: font_size_xs
+                            background_color: primary_color if root.screen_size == '412x915' else muted_color
+                            color: primary_foreground_color if root.screen_size == '412x915' else foreground_color
+                            on_release: root.set_screen_size('412x915')
+
+                        Button:
+                            text: '600x1024'
+                            font_size: font_size_xs
+                            background_color: primary_color if root.screen_size == '600x1024' else muted_color
+                            color: primary_foreground_color if root.screen_size == '600x1024' else foreground_color
+                            on_release: root.set_screen_size('600x1024')
+
+                Label:
+                    text: {'360x640': 'Small/budget phone — compact', '360x780': 'Pixel 4a — compact standard', '412x915': 'Pixel 6 Pro reference — compact large', '600x1024': '7" tablet — medium breakpoint'}.get(root.screen_size, '')
+                    font_size: font_size_xs
+                    color: muted_foreground_color
+                    size_hint_y: None
+                    height: dp(16) if root.screen_size else 0
+                    opacity: 1 if root.screen_size else 0
+                    halign: 'right'
+                    text_size: self.width, self.height
+
+
+                # SCREEN_DPI
+                BoxLayout:
+                    orientation: 'horizontal'
+                    size_hint_y: None
+                    height: dp(36)
+                    spacing: dp(12)
+
+                    Label:
+                        text: 'Screen DPI'
+                        font_size: font_size_sm
+                        color: foreground_color
+                        halign: 'left'
+                        valign: 'middle'
+                        text_size: self.size
+
+                    BoxLayout:
+                        size_hint_x: None
+                        width: dp(290)
+                        spacing: dp(4)
+
+                        Button:
+                            text: 'off'
+                            font_size: font_size_xs
+                            background_color: primary_color if root.screen_dpi == '' else muted_color
+                            color: primary_foreground_color if root.screen_dpi == '' else foreground_color
+                            on_release: root.set_screen_dpi('')
+
+                        Button:
+                            text: '240'
+                            font_size: font_size_xs
+                            background_color: primary_color if root.screen_dpi == '240' else muted_color
+                            color: primary_foreground_color if root.screen_dpi == '240' else foreground_color
+                            on_release: root.set_screen_dpi('240')
+
+                        Button:
+                            text: '320'
+                            font_size: font_size_xs
+                            background_color: primary_color if root.screen_dpi == '320' else muted_color
+                            color: primary_foreground_color if root.screen_dpi == '320' else foreground_color
+                            on_release: root.set_screen_dpi('320')
+
+                        Button:
+                            text: '420'
+                            font_size: font_size_xs
+                            background_color: primary_color if root.screen_dpi == '420' else muted_color
+                            color: primary_foreground_color if root.screen_dpi == '420' else foreground_color
+                            on_release: root.set_screen_dpi('420')
+
+                        Button:
+                            text: '480'
+                            font_size: font_size_xs
+                            background_color: primary_color if root.screen_dpi == '480' else muted_color
+                            color: primary_foreground_color if root.screen_dpi == '480' else foreground_color
+                            on_release: root.set_screen_dpi('480')
+
+                Label:
+                    text: {'240': '1.5× density · tablets, old hdpi phones', '320': '2.0× density · mid-range xhdpi phones', '420': '2.625× density · Pixel 6 Pro, 412dp phones', '480': '3.0× density · Pixel 4a, most 360dp phones'}.get(root.screen_dpi, '')
+                    font_size: font_size_xs
+                    color: muted_foreground_color
+                    size_hint_y: None
+                    height: dp(16) if root.screen_dpi else 0
+                    opacity: 1 if root.screen_dpi else 0
+                    halign: 'right'
+                    text_size: self.width, self.height
+
+                # TARGET_IP
+                BoxLayout:
+                    orientation: 'horizontal'
+                    size_hint_y: None
+                    height: dp(36)
+                    spacing: dp(12)
+
+                    Label:
+                        text: 'Target IP'
+                        font_size: font_size_sm
+                        color: foreground_color
+                        halign: 'left'
+                        valign: 'middle'
+                        size_hint_x: None
+                        width: dp(80)
+                        text_size: self.size
+
+                    TextInput:
+                        id: target_ip_input
+                        text: root.target_ip
+                        hint_text: '192.168.x.x'
+                        font_size: font_size_sm
+                        multiline: False
+                        background_color: card_color
+                        foreground_color: foreground_color
+                        padding: [dp(8), dp(6), dp(8), dp(6)]
+                        on_text_validate: root.set_target_ip(self.text)
+                        on_focus: if not self.focus: root.set_target_ip(self.text)
+
+                # Recipe name for clean_recipe
+                BoxLayout:
+                    orientation: 'horizontal'
+                    size_hint_y: None
+                    height: dp(36)
+                    spacing: dp(8)
+
+                    Label:
+                        text: 'Recipe name'
+                        font_size: font_size_xs
+                        color: muted_foreground_color
+                        size_hint_x: None
+                        width: dp(90)
+                        halign: 'left'
+                        valign: 'middle'
+                        text_size: self.size
+
+                    TextInput:
+                        hint_text: 'e.g. pillow, numpy'
+                        font_size: font_size_xs
+                        multiline: False
+                        background_color: card_color
+                        foreground_color: foreground_color
+                        on_text_validate: root.recipe_name = self.text
+                        on_focus: if not self.focus: root.recipe_name = self.text
+

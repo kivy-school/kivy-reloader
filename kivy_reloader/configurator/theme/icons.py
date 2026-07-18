@@ -18,6 +18,7 @@ twemoji_mozilla_font_path = os.path.join(
     os.path.dirname(__file__), 'assets', 'twemoji-subset.ttf'
 )
 
+
 icon_unicodes = {
     'ab-testing': '\U000f01c9',
     'abacus': '\U000f16e0',

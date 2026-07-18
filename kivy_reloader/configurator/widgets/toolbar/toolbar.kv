@@ -167,3 +167,46 @@
                 pos: self.pos
                 size: self.size
                 radius: [border_radius_md]
+
+
+    # Discord support button
+    Button:
+        text: f"[font={icon_font}]{unicode['headset']}[/font] Support Discord"
+        markup: True
+        size_hint: None, None
+        size: self.texture_size[0] + dp(24), dp(40)
+        background_color: transparent
+        color: (1, 1, 1, 1)
+        font_size: font_size_sm
+        on_release: root.handle_discord()
+
+        canvas.before:
+            Color:
+                rgba: (0.27, 0.31, 0.79, 1) if self.state == 'down' else (0.345, 0.396, 0.949, 1)
+            SmoothRoundedRectangle:
+                pos: self.pos
+                size: self.size
+                radius: [border_radius_md]
+
+
+    # Dark mode toggle (far right)
+    Button:
+        # text: '\U000f0594 Light' if root.is_dark_mode else '\U000f0599 Dark'
+        text: unicode['weather-sunny'] if root.is_dark_mode else unicode['weather-night']
+        font_name: icon_font
+        font_size: font_size_xl
+        size_hint: None, None
+        size: [dp(56), dp(40)]
+        background_color: transparent
+        color: foreground_color
+        on_release: root.handle_toggle_dark_mode()
+
+        canvas.before:
+            Color:
+                rgba: muted_color if self.state == 'normal' else muted_active_color
+            SmoothRoundedRectangle:
+                pos: self.pos
+                size: self.size
+                radius: [border_radius_md]
+
+

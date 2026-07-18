@@ -1,12 +1,11 @@
 #:import cards kivy_reloader.configurator.widgets.cards
+#:import command_panel_mod kivy_reloader.configurator.widgets.command_panel 
 
-
-<SectionBox@BoxLayout>:
+<SectionBox>:
     orientation: 'vertical'
     padding: [dp(32), dp(24), dp(32), dp(24)]
     spacing: dp(16)
     size_hint_y: None
-    height: self.minimum_height
 
     canvas.before:
         Color:
@@ -37,6 +36,7 @@
     toolbar: toolbar.__self__
     sidebar: sidebar.__self__
     section_manager: section_manager.__self__
+    command_panel: command_panel.__self__
 
     canvas.before:
         Color:
@@ -46,57 +46,54 @@
             size: self.size
     
     BoxLayout:
-        # Sidebar
-        SideBar:
-            id: sidebar
-        
-        # Main content area
+        orientation: 'vertical'
+
+        Toolbar:
+            id: toolbar
+
+        # Sidebar + main content (horizontal), fills remaining height
         BoxLayout:
-            orientation: 'vertical'
-            
-            # Toolbar at the top
-            Toolbar:
-                id: toolbar
-
-            ScreenManager:
-                id: section_manager
-
-                SectionScreen:
-                    card_cls: cards.CoreCard
-                    name: 'Core'
-
-                SectionScreen:
-                    card_cls: cards.ServicesCard
-                    name: 'Services'
-
-                SectionScreen:
-                    card_cls: cards.DeviceCard
-                    name: 'Device'
-
-                SectionScreen:
-                    card_cls: cards.WindowCard
-                    name: 'Window'
-
-                SectionScreen:
-                    card_cls: cards.DisplayCard
-                    name: 'Display'
-
-                SectionScreen:
-                    card_cls: cards.AudioCard
-                    name: 'Audio'
-
-                SectionScreen:
-                    card_cls: cards.PerformanceCard
-                    name: 'Performance'
-
-                SectionScreen:
-                    card_cls: cards.AdvancedCard
-                    name: 'Advanced'
-
-                SectionScreen:
-                    card_cls: cards.DeploymentCard
-                    name: 'Deployment'
-
-                SectionScreen:
-                    card_cls: cards.NotificationsCard
-                    name: 'Notifications'
+            SideBar:
+                id: sidebar
+            BoxLayout:
+                orientation: 'vertical'
+                ScreenManager:
+                    id: section_manager
+                    SectionScreen:
+                        card_cls: cards.QuickCommandsCard
+                        name: 'Quick Commands'
+                    SectionScreen:
+                        card_cls: cards.StatusCard
+                        name: 'Status'
+                    SectionScreen:
+                        card_cls: cards.CoreCard
+                        name: 'Core'
+                    SectionScreen:
+                        card_cls: cards.ServicesCard
+                        name: 'Services'
+                    SectionScreen:
+                        card_cls: cards.DeviceCard
+                        name: 'Device'
+                    SectionScreen:
+                        card_cls: cards.WindowCard
+                        name: 'scrcpy window'
+                    SectionScreen:
+                        card_cls: cards.DisplayCard
+                        name: 'Display'
+                    SectionScreen:
+                        card_cls: cards.AudioCard
+                        name: 'Audio'
+                    SectionScreen:
+                        card_cls: cards.PerformanceCard
+                        name: 'Performance'
+                    SectionScreen:
+                        card_cls: cards.AdvancedCard
+                        name: 'Advanced'
+                    SectionScreen:
+                        card_cls: cards.DeploymentCard
+                        name: 'Deployment'
+                    SectionScreen:
+                        card_cls: cards.NotificationsCard
+                        name: 'Notifications'
+                CommandPanel:
+                    id: command_panel

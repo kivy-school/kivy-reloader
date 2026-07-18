@@ -8,11 +8,14 @@ Handles hot reload on Android devices:
 """
 
 # Standard library imports
+import contextlib
 import hashlib
 import importlib
 import json
 import os
+import pathlib
 import socket
+import socket as _socket
 import sys
 import traceback
 import zipfile
@@ -69,6 +72,32 @@ class AndroidApp(BaseReloaderApp, KivyApp):
         # Serialize update application to avoid concurrent extract/delete races
         self._update_lock = trio.Lock()
 
+    def _get_app_root(self):
+        """The project root is wherever the actual entry point (__main__)
+        lives — ask Python directly via sys.modules. This works for both
+        buildozer (executes main.py at the project root) and ksproject
+        (runs `python -m <package>`, landing on the package dir itself),
+        since each backend's entry point sits exactly at the boundary its
+        own zip-extraction layout expects."""
+        main_mod = sys.modules.get('__main__')
+        if main_mod and getattr(main_mod, '__file__', None):
+            return str(pathlib.Path(main_mod.__file__).resolve().parent)
+        return os.getcwd()
+
+    @contextlib.contextmanager
+    def _app_root_cwd(self):
+        """Temporarily set CWD to the app root for hot-reload operations only."""
+        target = self._app_root
+        original = os.getcwd()
+        if original == target:
+            yield
+            return
+        os.chdir(target)
+        try:
+            yield
+        finally:
+            os.chdir(original)
+
     def _initialize_file_hashing(self):
         """Initialize file hash tracking for hot reload detection."""
         main_py_file_path = os.path.join(os.getcwd(), 'main.py')
@@ -108,6 +137,9 @@ class AndroidApp(BaseReloaderApp, KivyApp):
 
     # ==================== APP LIFECYCLE ====================
 
+    def run(self):
+        trio.run(self.async_run, 'trio')
+
     async def async_run(self, async_lib='trio'):
         """
         Run the Android app asynchronously with TCP server.
@@ -118,6 +150,10 @@ class AndroidApp(BaseReloaderApp, KivyApp):
         async with trio.open_nursery() as nursery:
             Logger.info('Reloader: Starting Async Kivy app')
             self.nursery = nursery
+            self._app_root = self._get_app_root()
+            import kivy_reloader.lang as krl
+
+            krl.base_dir = self._app_root
             self.initialize_server()
             self._run_prepare()
             await async_runTouchApp(async_lib=async_lib)
@@ -541,9 +577,14 @@ class AndroidApp(BaseReloaderApp, KivyApp):
             f'Reloader: Reloading {len(modules_to_reload)} modules '
             f'({MODULE_RELOAD_PASSES} passes)'
         )
-
         for pass_num in range(MODULE_RELOAD_PASSES):
             for module in modules_to_reload:
+                # importlib.reload requires sys.modules[spec.name] to be the exact
+                # same object. Skip modules where that isn't true — e.g. __main__
+                # aliasing where spec.name='capp.__main__' but the key is '__main__'.
+                spec = getattr(module, '__spec__', None)
+                if spec is None or sys.modules.get(spec.name) is not module:
+                    continue
                 try:
                     importlib.reload(module)
                 except Exception as e:
@@ -560,6 +601,7 @@ class AndroidApp(BaseReloaderApp, KivyApp):
         The server runs in the background to receive file updates from
         the desktop development environment.
         """
+        Logger.info('starting async server')
         self.nursery.start_soon(self.start_async_server)
 
     async def start_async_server(self):
@@ -569,18 +611,49 @@ class AndroidApp(BaseReloaderApp, KivyApp):
         The server listens on the configured port and automatically
         discovers the device's IP address for network communication.
         """
-        PORT = config.RELOADER_PORT
+        import errno as _errno
 
-        try:
-            # Discover device IP address
-            device_ip = self._get_device_ip()
-            Logger.info(f'Smartphone IP: {device_ip}')
+        PORT = int(config.RELOADER_PORT)
+        host = '0.0.0.0'
 
-            # Start TCP server
-            await trio.serve_tcp(self.data_receiver, PORT)
+        max_attempts = 60
+        for attempt in range(max_attempts):
+            try:
+                Logger.info(f'Kivy-Reloader: starting server on host{host},port:{PORT}')
+                raw_sock = _socket.socket(_socket.AF_INET, _socket.SOCK_STREAM)
+                raw_sock.setsockopt(_socket.SOL_SOCKET, _socket.SO_REUSEADDR, 1)
+                raw_sock.setsockopt(_socket.SOL_SOCKET, _socket.SO_REUSEPORT, 1)
+                raw_sock.bind((host, PORT))
+                raw_sock.listen(5)
+                raw_sock.setblocking(False)
+                trio_sock = trio.socket.from_stdlib_socket(raw_sock)
+                listener = trio.SocketListener(trio_sock)
+                await trio.serve_listeners(self.data_receiver, [listener])
+                return
+            except OSError as e:
+                if e.errno == _errno.EADDRINUSE and attempt < max_attempts - 1:
+                    Logger.info(
+                        f'Port {PORT} still in use (old process not dead yet - might be duplicate app on phone), '
+                        f'retrying in 1s... ({attempt + 1}/{max_attempts})'
+                    )
+                    await trio.sleep(1)
+                else:
+                    import traceback
 
-        except Exception as e:
-            self._log_server_startup_error(e)
+                    full_trace = traceback.format_exc()
+                    Logger.info(f'I python full trace, {full_trace}')
+                    Logger.info(f'I python error detail, {repr(e)}')
+                    self._log_server_startup_error(repr(e), full_trace)
+                    return
+            except Exception as e:
+                import traceback
+
+                full_trace = traceback.format_exc()
+                error_detail = repr(e)
+                Logger.info(f'I python full trace, {full_trace}')
+                Logger.info(f'I python error detail, {error_detail}')
+                self._log_server_startup_error(error_detail, full_trace)
+                return
 
     def _get_device_ip(self):
         """
@@ -593,7 +666,7 @@ class AndroidApp(BaseReloaderApp, KivyApp):
             probe.connect((DNS_SERVER_IP, DNS_SERVER_PORT))
             return probe.getsockname()[0]
 
-    def _log_server_startup_error(self, error):
+    def _log_server_startup_error(self, error, traceback_error):
         """Log detailed error information when server fails to start."""
         Logger.info(
             'It was not possible to start the server, check if the '
@@ -603,7 +676,12 @@ class AndroidApp(BaseReloaderApp, KivyApp):
             'Another possible cause is that the port is already in use '
             'by another app. Check if the port is free and try again'
         )
+        Logger.info(f'Error details: {type(error)}')
         Logger.info(f'Error details: {error}')
+        # Logger.error(f"Reloader: Full Traceback:\n{traceback_error}")
+        # Split traceback into lines — Logger handles single lines much better on Android
+        for line in traceback_error.splitlines():
+            Logger.error(f'Reloader: Full Traceback: {line}')
 
     async def data_receiver(self, data_stream):
         """
@@ -615,90 +693,251 @@ class AndroidApp(BaseReloaderApp, KivyApp):
         Args:
             data_stream: The incoming TCP data stream
         """
+        Logger.info('Reloader: CHANGE IS LIVE FOR TESTING USB CONNECTION')
         Logger.info('Reloader: ************** SERVER **************')
         Logger.info('Reloader: Server started: receiving data from computer...')
+        try:  # noqa: PLR1702
+            # Wrap everything in an extra try/except specifically for stream issues
+            async with data_stream:
+                Logger.info('Reloader: Server started: receiving data...')
+                Logger.info('Reloader: THE CHANGE IS LIVE')
+                success_path = None
+                zip_size = None
 
-        try:
-            # Ensure only one update is applied at a time
-            async with self._update_lock:
-                # Use a unique filename per connection to prevent collisions
-                zip_file_path = os.path.join(os.getcwd(), f'app_copy_{uuid4().hex}.zip')
+                async with self._update_lock:
+                    # Read header first to get size
+                    header = b''
+                    with trio.move_on_after(5):
+                        while not header.endswith(b'\n'):
+                            chunk = await data_stream.receive_some(1)
+                            if not chunk:
+                                return
+                            header += chunk
 
-                # Receive and save the zip file
-                await self._receive_zip_file(data_stream, zip_file_path)
+                    if not header.strip():
+                        Logger.warning('Reloader: Header timeout or empty, aborting')
+                        return
 
-                # Process the received update
-                await self._process_app_update(zip_file_path)
+                    try:
+                        zip_size = int(header.strip())
+                    except ValueError:
+                        Logger.warning(f'Reloader: Invalid header: {header!r}')
+                        return
 
-                # Send ACK back to the desktop after successful processing
-                try:
-                    await data_stream.send_all(b'OK')
-                except Exception as ack_err:
-                    Logger.warning(
-                        f'Reloader: Failed to send ACK to desktop: {ack_err}'
+                    # Read file tree flag (1 byte)
+                    print_file_tree = False
+                    with trio.move_on_after(5):
+                        flag_byte = await data_stream.receive_some(1)
+                        if flag_byte:
+                            print_file_tree = flag_byte == b'\x01'
+
+                    Logger.info(f'Reloader: print_file_tree={print_file_tree}')
+
+                    # Calculate timeout: assume minimum 1 MB/s over USB, plus 30s buffer
+                    min_speed_bytes_per_sec = 0.5 * 1024 * 1024
+                    timeout = (zip_size / min_speed_bytes_per_sec) + 30
+
+                    Logger.info(
+                        f'Reloader: expecting {zip_size} bytes, timeout={timeout:.0f}s'
                     )
 
+                    with trio.move_on_after(timeout):
+                        zip_file_path = os.path.join(
+                            os.getcwd(), f'app_copy_{uuid4().hex}.zip'
+                        )
+                        success_path = await self._receive_zip_file(
+                            data_stream, zip_file_path, zip_size=zip_size
+                        )
+
+                # CRITICAL GUARD: Only update if the file actually exists
+                if success_path and os.path.exists(success_path):
+                    await data_stream.send_all(b'OK')
+                    Logger.info(
+                        f'Reloader: Zip saved to {success_path}. Starting update...'
+                    )
+                    await trio.sleep(
+                        0.5
+                    )  # let ACK flush before reload kills the stream
+                    self.nursery.start_soon(
+                        self._process_app_update, success_path, print_file_tree
+                    )
+                else:
+                    Logger.warning(
+                        'Reloader: No valid zip received. Ignoring update request.'
+                    )
+                    # If the file was partially created, clean it up
+                    if success_path and os.path.exists(success_path):
+                        os.remove(success_path)
+                    return  # Exit cleanly, nursery stays alive!
+
+        except (trio.BrokenResourceError, trio.ClosedResourceError, Exception) as e:
+            # Catch connection resets and "header" exceptions here
+            Logger.warning(f'Reloader: Connection dropped or malformed: {e}')
+            # IMPORTANT: Do NOT re-raise. Just let the function exit.
+            # This keeps the Nursery (and the app) alive.
+
+    async def _receive_zip_file(self, data_stream, zip_file_path, zip_size=None):
+        if zip_size is None:
+            # Read header
+            header = b''
+            while not header.endswith(b'\n'):
+                try:
+                    chunk = await data_stream.receive_some(1)
+                    if not chunk:
+                        Logger.warning(
+                            'Reloader: Connection closed before header received'
+                        )
+                        return None
+                    header += chunk
+                except Exception as e:
+                    Logger.warning(f'Reloader: Socket error during header: {e}')
+                    return None
+
+            try:
+                zip_size = int(header.strip())
+            except ValueError:
+                Logger.warning(f'Reloader: Invalid header received: {header}')
+                return None
+
+        Logger.info(f'Reloader: expecting {zip_size} bytes')
+        received = 0
+        last_logged_mb = 0
+
+        try:
+            with open(zip_file_path, 'wb') as zip_file:
+                while received < zip_size:
+                    data = await data_stream.receive_some(65536)
+                    if not data:
+                        Logger.warning(
+                            'Reloader: Connection closed early while receiving ZIP'
+                        )
+                        return None
+                    zip_file.write(data)
+                    received += len(data)
+
+                    received_mb = received / 1024 / 1024
+                    total_mb = zip_size / 1024 / 1024
+                    if received_mb - last_logged_mb >= 0.5:  # log every 0.5 MB
+                        percent = (received / zip_size) * 100
+                        Logger.info(
+                            f'Reloader: Received {received_mb:.1f} / {total_mb:.1f} MB ({percent:.0f}%)'
+                        )
+                        last_logged_mb = received_mb
         except Exception as e:
-            self._log_server_error(e)
+            Logger.error(f'Reloader: File/Socket error during ZIP receive: {e}')
+            return None
 
-    async def _receive_zip_file(self, data_stream, zip_file_path):
-        """
-        Receive zip file data from the TCP stream.
-
-        Args:
-            data_stream: The incoming TCP data stream
-            zip_file_path: Destination path where to write the received zip
-
-        Returns:
-            str: Path to the saved zip file
-        """
-        with open(zip_file_path, 'wb') as zip_file:
-            Logger.info('Reloader: Server: receiving data')
-            async for data in data_stream:
-                Logger.info(f'Reloader: Data size: {len(data)}')
-                # Data arrives in chunks until client half-closes
-                zip_file.write(data)
+        Logger.info('Reloader: ZIP fully received')
         return zip_file_path
 
-    async def _process_app_update(self, zip_file_path):
+    async def _receive_zip_file_old(self, data_stream, zip_file_path):
+        # 1. Read header until newline
+        header = b''
+        while not header.endswith(b'\n'):
+            chunk = await data_stream.receive_some(1)
+            if not chunk:
+                raise Exception('Connection closed before header received')
+            header += chunk
+
+        zip_size = int(header.strip())
+        Logger.info(f'Reloader: expecting {zip_size} bytes')
+
+        received = 0
+
+        # 2. Receive exactly zip_size bytes
+        with open(zip_file_path, 'wb') as zip_file:
+            while received < zip_size:
+                data = await data_stream.receive_some(65536)
+                if not data:
+                    raise Exception('Connection closed early while receiving ZIP')
+
+                zip_file.write(data)
+                received += len(data)
+
+        Logger.info('Reloader: ZIP fully received')
+
+        # 3. Send OK
+        try:
+            await data_stream.send_all(b'OK')
+            Logger.info('Reloader: OK SENT')
+            await trio.sleep(0.1)
+        except Exception as e:
+            Logger.warning(f'Reloader: Failed to send OK: {e}')
+
+        return zip_file_path
+
+    async def _process_app_update(self, zip_file_path, print_file_tree):
         """
         Process the received app update (delta or full) and trigger reload.
 
         Args:
             zip_file_path: Path to the received zip file
         """
-        Logger.info('Reloader: Finished receiving all files from computer')
-        Logger.info('Reloader: Processing app update')
+        _orig_cwd = os.getcwd()
+        with self._app_root_cwd():
+            Logger.info('Reloader: Finished receiving all files from computer')
+            Logger.info('Reloader: Processing app update')
 
-        # Log zip file information and extract
-        # Check if this is a delta or full transfer
-        transfer_type = self._detect_transfer_type(zip_file_path)
+            # Log zip file information and extract
+            # Check if this is a delta or full transfer
+            transfer_type = self._detect_transfer_type(zip_file_path)
 
-        # Log transfer metadata
-        self._log_transfer_metadata(zip_file_path, transfer_type)
+            # Log transfer metadata
+            if print_file_tree:
+                self._log_transfer_metadata(zip_file_path, transfer_type)
 
-        if transfer_type == 'delta':
-            self._process_delta_update(zip_file_path)
-        else:
-            # Full transfer - extract everything and handle deletions
-            self._process_full_update(zip_file_path)
+            # Reject zips from a different app's desktop reloader
+            with zipfile.ZipFile(zip_file_path, 'r') as _zf:
+                if '_delta_metadata.json' in _zf.namelist():
+                    _meta = json.loads(_zf.read('_delta_metadata.json').decode('utf-8'))
+                    source_pkg = _meta.get('source_package')
+                    my_pkg = self.__class__.__module__.split('.')[0]
+                    if source_pkg and source_pkg != my_pkg:
+                        Logger.warning(
+                            f'Android: Rejecting zip from {source_pkg!r}, '
+                            f'this app is {my_pkg!r}'
+                        )
+                        return
 
-        # Best-effort cleanup of temp file
-        try:
-            if os.path.exists(zip_file_path):
-                os.remove(zip_file_path)
-        except Exception as e:
-            Logger.warning(f'Reloader: Failed to remove temp file {zip_file_path}: {e}')
+            if transfer_type == 'delta':
+                self._process_delta_update(zip_file_path)
+            else:
+                # Full transfer - extract everything and handle deletions
+                self._process_full_update(zip_file_path, print_file_tree)
 
-        Logger.info('Reloader: App updated, triggering hot reload')
-        Logger.info('Reloader: ************** END SERVER **************')
+            # Verify extraction went in-place (no duplicate in original CWD)
+            site_pkg_kv = os.path.join(
+                self._app_root, 'hello_world', 'screens', 'main_screen.kv'
+            )
+            cwd_kv = os.path.join(_orig_cwd, 'hello_world', 'screens', 'main_screen.kv')
+            Logger.info(f'[CWD check] app_root={self._app_root}')
+            Logger.info(f'[CWD check] site_pkg_kv exists={os.path.exists(site_pkg_kv)}')
+            Logger.info(
+                f'[CWD check] cwd_kv (duplicate) exists={os.path.exists(cwd_kv)}'
+            )
 
-        # Trigger hot reload
-        self.unload_python_files_on_android()
-        if self.__module__ != '__main__':
-            importlib.reload(importlib.import_module(self.__module__))
+            # Best-effort cleanup of temp file
+            try:
+                if os.path.exists(zip_file_path):
+                    os.remove(zip_file_path)
+            except Exception as e:
+                Logger.warning(
+                    f'Reloader: Failed to remove temp file {zip_file_path}: {e}'
+                )
 
-        self.reload_app()
+            Logger.info('Reloader: App updated, triggering hot reload')
+            Logger.info('Reloader: ************** END SERVER **************')
+
+            # After unpacking, Python's FileFinder has stale directory caches.
+            # Must invalidate before any importlib.reload call or spec lookups will fail.
+            importlib.invalidate_caches()
+
+            # Trigger hot reload
+            self.unload_python_files_on_android()
+            if self.__module__ != '__main__':
+                importlib.reload(importlib.import_module(self.__module__))
+
+            self.reload_app()
 
     def _detect_transfer_type(self, zip_file_path):
         """
@@ -723,6 +962,16 @@ class AndroidApp(BaseReloaderApp, KivyApp):
 
     def _log_transfer_metadata(self, zip_file_path, transfer_type):
         """Log detailed information about the transfer metadata."""
+        # DEBUG: inspect what we actually received
+        with open(zip_file_path, 'rb') as f:
+            header = f.read(64)
+        file_size = os.path.getsize(zip_file_path)
+        Logger.info(f'Android: zip_file_path={zip_file_path}')
+        Logger.info(f'Android: file size={file_size} bytes')
+        Logger.info(f'Android: first 64 bytes hex={header.hex()}')
+        Logger.info(f'Android: first 64 bytes text={header}')
+        # ZIP magic bytes are 50 4B 03 04 at the start
+        # if it starts with something else, it's not a zip
         try:
             with zipfile.ZipFile(zip_file_path, 'r') as zip_file:
                 if '_delta_metadata.json' in zip_file.namelist():
@@ -818,7 +1067,7 @@ class AndroidApp(BaseReloaderApp, KivyApp):
                     os.remove(full_path)
                     Logger.debug(f'Deleted: {file_path}')
 
-    def _process_full_update(self, zip_file_path):
+    def _process_full_update(self, zip_file_path, print_file_tree):
         """
         Process a full update by synchronizing Android file system with desktop state.
 
@@ -833,11 +1082,13 @@ class AndroidApp(BaseReloaderApp, KivyApp):
         # Step 1: Snapshot current Android file system
         files_on_android_before = self._get_current_project_files()
         Logger.info('Full update: Scanning current Android file system')
-        Logger.info(
-            tree_formatter.format_file_tree(
-                files_on_android_before, 'Android: Files currently on device'
+
+        if print_file_tree:
+            Logger.info(
+                tree_formatter.format_file_tree(
+                    files_on_android_before, 'Android: Files currently on device'
+                )
             )
-        )
 
         # Step 2: Extract new desktop state
         with zipfile.ZipFile(zip_file_path, 'r') as zip_file:
@@ -887,6 +1138,7 @@ class AndroidApp(BaseReloaderApp, KivyApp):
         Returns:
             set: Set of relative file paths that are part of the project
         """
+        Logger.info('Reloader: Walking filesystem to snapshot current files...')
         exclude_patterns = config.FOLDERS_AND_FILES_TO_EXCLUDE_FROM_PHONE + [
             '.kivy',
             'libpybundle.version',
@@ -919,6 +1171,9 @@ class AndroidApp(BaseReloaderApp, KivyApp):
                 if not self._should_exclude_path(rel_path, exclude_patterns):
                     project_files.add(rel_path)
 
+        Logger.info(
+            f'Reloader: Filesystem snapshot done: {len(project_files)} files found'
+        )
         return project_files
 
     def _should_exclude_path(self, rel_path, exclude_patterns):

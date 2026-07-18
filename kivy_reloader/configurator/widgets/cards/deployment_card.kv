@@ -134,3 +134,145 @@
                         text: 'uv.lock'
                     BuiltinExclusionChip:
                         text: '+ more...'
+            Separator:
+
+            CollapsibleSection:
+                title: 'Build Cache'
+                collapsed: False
+
+                # Status
+                Label:
+                    text: root.build_status
+                    font_size: font_size_xs
+                    color: success_color if root.build_status else transparent
+                    size_hint_y: None
+                    height: dp(20) if root.build_status else 0
+                    opacity: 1 if root.build_status else 0
+                    halign: 'left'
+                    text_size: self.width, self.height
+
+                # Clean single recipe (buildozer only — no p4a-recipe equivalent in ksproject)
+                Label:
+                    text: 'Clean single recipe'
+                    font_size: font_size_sm
+                    bold: True
+                    color: foreground_color
+                    size_hint_y: None
+                    height: dp(28) if root.backend == 'buildozer' else 0
+                    opacity: 1 if root.backend == 'buildozer' else 0
+                    disabled: root.backend != 'buildozer'
+                    halign: 'left'
+                    text_size: self.width, self.height
+
+                BoxLayout:
+                    size_hint_y: None
+                    height: dp(36) if root.backend == 'buildozer' else 0
+                    opacity: 1 if root.backend == 'buildozer' else 0
+                    disabled: root.backend != 'buildozer'
+                    spacing: dp(8)
+
+                    TextInput:
+                        text: root.recipe_name
+                        hint_text: 'recipe name (e.g. numpy, pillow)'
+                        font_size: font_size_sm
+                        multiline: False
+                        background_color: card_color
+                        foreground_color: foreground_color
+                        padding: [dp(8), dp(6), dp(8), dp(6)]
+                        on_text: root.recipe_name = self.text
+
+                    Button:
+                        text: 'Clean'
+                        size_hint: None, None
+                        size: dp(64), dp(36)
+                        font_size: font_size_sm
+                        background_color: destructive_color
+                        color: destructive_foreground_color
+                        on_release: root.clean_recipe()
+
+                    Button:
+                        text: 'List'
+                        size_hint: None, None
+                        size: dp(48), dp(36)
+                        font_size: font_size_sm
+                        background_color: secondary_color
+                        color: foreground_color
+                        on_release: root.list_recipes()
+
+                Label:
+                    text: 'Recipe names differ from PyPI names — use List to see all available names'
+                    font_size: font_size_xs
+                    color: muted_foreground_color
+                    size_hint_y: None
+                    height: dp(18) if root.backend == 'buildozer' else 0
+                    opacity: 1 if root.backend == 'buildozer' else 0
+                    disabled: root.backend != 'buildozer'
+                    halign: 'left'
+                    text_size: self.width, self.height
+
+                Separator:
+                    size_hint_y: None
+                    height: dp(1) if root.backend == 'buildozer' else 0
+                    opacity: 1 if root.backend == 'buildozer' else 0
+
+
+                # Full clean
+                Label:
+                    text: 'Android clean (keeps downloads)' if root.backend == 'buildozer' else 'Full clean (keeps downloads)'
+                    font_size: font_size_sm
+                    bold: True
+                    color: foreground_color
+                    size_hint_y: None
+                    height: dp(28)
+                    halign: 'left'
+                    text_size: self.width, self.height
+
+                Label:
+                    text: 'Deletes compiled platform artifacts. Downloaded tarballs are preserved so re-downloads are skipped.' if root.backend == 'buildozer' else 'Clears the ksproject site-packages cache and runs gradlew clean. SDK/Gradle downloads are preserved.'
+                    font_size: font_size_xs
+                    color: muted_foreground_color
+                    size_hint_y: None
+                    height: self.texture_size[1]
+                    halign: 'left'
+                    text_size: self.width, None
+
+                Button:
+                    text: 'buildozer android clean' if root.backend == 'buildozer' else 'clear cache + gradle clean'
+                    size_hint_y: None
+                    height: dp(36)
+                    font_size: font_size_sm
+                    background_color: destructive_color
+                    color: destructive_foreground_color
+                    on_release: root.clean_all()
+
+                Separator:
+
+                # App clean
+                Label:
+                    text: 'App clean (re-downloads everything)' if root.backend == 'buildozer' else 'App clean (rebuild gradle project)'
+                    font_size: font_size_sm
+                    bold: True
+                    color: foreground_color
+                    size_hint_y: None
+                    height: dp(28)
+                    halign: 'left'
+                    text_size: self.width, self.height
+
+                Label:
+                    text: 'Wipes the full .buildozer folder including downloads. Forces a complete SDK re-download on next build.' if root.backend == 'buildozer' else 'Removes project_dist/gradle entirely. It will be regenerated from scratch on next compile (no signing keys are stored there).'
+                    font_size: font_size_xs
+                    color: muted_foreground_color
+                    size_hint_y: None
+                    height: self.texture_size[1]
+                    halign: 'left'
+                    text_size: self.width, None
+
+                Button:
+                    text: 'buildozer appclean' if root.backend == 'buildozer' else 'rm -rf project_dist/gradle'
+                    size_hint_y: None
+                    height: dp(36)
+                    font_size: font_size_sm
+                    background_color: destructive_color
+                    color: destructive_foreground_color
+                    on_release: root.app_clean()
+

@@ -3,7 +3,12 @@ name: Nightly Build
 on:
   schedule:
     - cron: "0 3 * * *"   # 3 AM UTC daily
-  workflow_dispatch:        # manual trigger
+  workflow_dispatch:
+    inputs:
+      force_fail:
+        description: "Force failure (for testing notifications)"
+        required: false
+        default: "false"
 
 jobs:
   smoke-test:
@@ -11,6 +16,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Force failure (notification test)
+        if: ${{ github.event.inputs.force_fail == 'true' }}
+        run: exit 1
 
       - name: Install system dependencies
         run: |

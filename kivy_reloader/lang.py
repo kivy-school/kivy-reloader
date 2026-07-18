@@ -63,13 +63,68 @@ def load_kv_path(path: str, encoding='utf8', **kwargs):
         kv_path = os.path.join(base_dir, path)
     if kv_path is None:
         logging.error(f'failed to load kv path: {path}')
-    if kv_path in Builder.files:
-        Builder.unload_file(kv_path)
+        return
+
+    # Resolve to canonical path — avoids symlink/relative mismatches on Android
+    kv_path = str(pathlib.Path(kv_path).resolve())
+
+    # Investigated ksproject vs kivy-reloader .kv loading on Android:
+    # - ksproject apps: .kv resolves via pkg.__file__ →
+    #     /data/user/0/<pkg>/files/app/.site-packages/<module>/
+    # - kivy-reloader (__main__): resolves via os.getcwd() →
+    #     /data/user/0/<pkg>/files/app/
+    # Builder.files check below prevents double-loading when both paths
+    # refer to the same .kv (e.g. site-packages copy already loaded).
+
+    # logging.debug(f'[load_kv_path] kv_path={kv_path}')
+    # logging.debug(f'[load_kv_path] Builder.files={Builder.files}')
+    # logging.debug(f'[load_kv_path] already_loaded={kv_path in Builder.files}')
+
+    # First try exact match
+    unloaded = False
+    for existing in list(Builder.files):
+        if str(pathlib.Path(existing).resolve()) == kv_path:
+            logging.info(f'[load_kv_path] UNLOADING (exact): {existing}')
+            Builder.unload_file(existing)
+            unloaded = True
+            break
+
+    # If no exact match, the KV may have been loaded from a different root
+    # (e.g. site-packages on Android while hot reload delivers to CWD).
+    # Use sys.modules to find the module that owns this KV and unload its copy.
+    if not unloaded:  # noqa: PLR1702
+        try:
+            base_resolved = str(pathlib.Path(base_dir).resolve())
+            rel_kv = str(pathlib.Path(kv_path).relative_to(base_resolved))
+            # 'hello_world/screens/main_screen.kv' -> 'hello_world.screens.main_screen'
+            kv_module_suffix = rel_kv.replace(os.sep, '.')[:-3]  # strip .kv
+        except ValueError:
+            kv_module_suffix = None
+
+        if kv_module_suffix:
+            for mod_name, mod in list(sys.modules.items()):
+                if mod_name == kv_module_suffix or mod_name.endswith(
+                    '.' + kv_module_suffix
+                ):
+                    mod_file = getattr(mod, '__file__', None) or ''
+                    mod_kv = mod_file.replace('.pyc', '.kv').replace('.py', '.kv')
+                    mod_kv = mod_file.replace('.pyc', '.kv').replace('.py', '.kv')
+                    mod_kv_resolved = str(pathlib.Path(mod_kv).resolve())
+                    for bf in list(Builder.files):
+                        if str(pathlib.Path(bf).resolve()) == mod_kv_resolved:
+                            logging.info(
+                                f'[load_kv_path] UNLOADING (module {mod_name}): {bf}'
+                            )
+                            Builder.unload_file(bf)
+                            unloaded = True
+                            break
+                    if unloaded:
+                        break
 
     if kv_path not in Builder.files:
         filename = resource_find(path) or path
 
-        kwargs['filename'] = filename
+        kwargs['filename'] = kv_path  # store resolved path, not resource_find result
         with open(filename, 'r', encoding=encoding) as fd:
             data = fd.read()
             return Builder.load_string(data, **kwargs)

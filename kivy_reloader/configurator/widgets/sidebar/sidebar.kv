@@ -9,9 +9,10 @@
         Color:
             rgba: sidebar_primary_color if self.is_selected else transparent
         SmoothRoundedRectangle:
-            pos: self.pos
-            size: self.size
+            pos: self.x + dp(4), self.y + dp(2)
+            size: self.width - dp(8), self.height - dp(4)
             radius: [border_radius_sm]
+
     
     Label:
         text: root.icon
@@ -127,3 +128,105 @@
                 size_hint_y: None
                 height: self.minimum_height
                 spacing: dp(2)
+
+    # Bottom separator
+    Widget:
+        size_hint_y: None
+        height: dp(1)
+        canvas.before:
+            Color:
+                rgba: sidebar_border_color
+            Rectangle:
+                pos: self.pos
+                size: self.size
+
+    # FlightDeck power switch
+    BoxLayout:
+        orientation: 'horizontal'
+        size_hint_y: None
+        height: dp(44)
+        padding: [dp(8), dp(8), dp(8), dp(8)]
+        spacing: dp(8)
+
+        Label:
+            text: '🛩️'
+            font_name: emoji_font
+            size_hint: None, None
+            size: dp(20), dp(28)
+            font_size: dp(16)
+            halign: 'center'
+            valign: 'middle'
+            text_size: self.size
+            color: sidebar_foreground_color if root.flightdeck_active else muted_foreground_color
+
+        Label:
+            text: 'Open on CLI startup'
+            font_size: font_size_xs
+            color: sidebar_foreground_color if root.flightdeck_active else muted_foreground_color
+            halign: 'left'
+            valign: 'middle'
+            text_size: self.size
+
+        Widget:
+            size_hint: None, None
+            size: dp(44), dp(24)
+            pos_hint: {'center_y': 0.5}
+            on_touch_down:
+                if self.collide_point(*args[1].pos): root.toggle_flightdeck()
+            canvas.before:
+                Color:
+                    rgba: primary_color if root.flightdeck_active else muted_color
+                SmoothRoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [dp(12)]
+                Color:
+                    rgba: white
+                SmoothEllipse:
+                    pos: [self.x + dp(22) if root.flightdeck_active else self.x + dp(2), self.center_y - dp(10)]
+                    size: [dp(20), dp(20)]
+
+    BoxLayout:
+        orientation: 'horizontal'
+        size_hint_y: None
+        height: dp(44)
+        padding: [dp(8), dp(8), dp(8), dp(8)]
+        spacing: dp(8)
+
+        Label:
+            text: '📌'
+            font_name: emoji_font
+            size_hint: None, None
+            size: dp(20), dp(28)
+            font_size: dp(16)
+            halign: 'center'
+            valign: 'middle'
+            text_size: self.size
+            color: sidebar_foreground_color if root.flightdeck_always_on_top else muted_foreground_color
+
+        Label:
+            text: 'Always on top'
+            font_size: font_size_xs
+            color: sidebar_foreground_color if root.flightdeck_always_on_top else muted_foreground_color
+            halign: 'left'
+            valign: 'middle'
+            text_size: self.size
+
+        Widget:
+            size_hint: None, None
+            size: dp(44), dp(24)
+            pos_hint: {'center_y': 0.5}
+            on_touch_down:
+                if self.collide_point(*args[1].pos): root.toggle_flightdeck_always_on_top()
+            canvas.before:
+                Color:
+                    rgba: primary_color if root.flightdeck_always_on_top else muted_color
+                SmoothRoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [dp(12)]
+                Color:
+                    rgba: white
+                SmoothEllipse:
+                    pos: [self.x + dp(22) if root.flightdeck_always_on_top else self.x + dp(2), self.center_y - dp(10)]
+                    size: [dp(20), dp(20)]

@@ -57,6 +57,7 @@ class Config:  # noqa: PLR0904
         'README.md',
         '_python_bundle',
         'app_copy.zip',
+        '*.kivy_reloader_state.json',
         'bin',
         'build',
         'buildozer.spec',
@@ -78,38 +79,64 @@ class Config:  # noqa: PLR0904
         'uv.lock',
         'venv',
         'venv.bak',
+        'kivy-reloader',  # for development and used as editable install
     ]
 
     def __init__(self, config_path: Union[str, Path] = None):
-        """
-        Initialize configuration manager.
-
-        Args:
-            config_path: Optional path to config file. Defaults to current directory.
-        """
         self.config_file = self._determine_config_path(config_path)
         self.config: Dict[str, Any] = {}
 
-        # Initialize configuration if not in PyInstaller environment
         if not self._is_pyinstaller_environment():
-            self._load_and_validate_config()
+            try:
+                import sys as _sys
+
+                on_android = (
+                    _sys.platform == 'android'
+                    or 'ANDROID_ARGUMENT' in __import__('os').environ
+                )
+            except Exception:
+                on_android = False
+
+            # The toml is a desktop concept — Android receives code updates via zip from
+            # the desktop, so no local config is needed. All properties fall back to their
+            # coded defaults (e.g. RELOADER_PORT=8050), which is correct for Android.
+            if on_android:
+                pass  # use empty defaults — config is desktop-only
+            else:
+                self._load_and_validate_config()
         else:
             self._handle_pyinstaller_environment()
 
     @staticmethod
     def _determine_config_path(config_path: Union[str, Path] = None) -> Path:
-        """
-        Determines the configuration file path.
-
-        Args:
-            config_path: Optional custom config path
-
-        Returns:
-            Path: Resolved path to configuration file
-        """
         if config_path:
             return Path(config_path)
-        return Path.cwd() / 'kivy-reloader.toml'
+        cwd_toml = Path.cwd() / 'kivy-reloader.toml'
+        if cwd_toml.exists():
+            return cwd_toml
+        # On Android/packaged apps, CWD is not the package dir.
+        # Try __main__.__file__ first (same dir, one up, one down), then
+        # fall back to __file__ (config.py's own location) to find site-packages root.
+        search_roots = []
+        main_module = sys.modules.get('__main__')
+        if main_module and getattr(main_module, '__file__', None):
+            search_roots.append(Path(main_module.__file__).parent)
+        # Path(__file__) = .../site-packages/kivy_reloader/config.py
+        # .parent.parent     = .../site-packages/
+        search_roots.append(Path(__file__).parent.parent)
+        for root in search_roots:
+            candidate = root / 'kivy-reloader.toml'
+            if candidate.exists():
+                return candidate
+            candidate = root.parent / 'kivy-reloader.toml'
+            if candidate.exists():
+                return candidate
+            for subdir in root.iterdir():
+                if subdir.is_dir():
+                    candidate = subdir / 'kivy-reloader.toml'
+                    if candidate.exists():
+                        return candidate
+        return cwd_toml
 
     @staticmethod
     def _is_pyinstaller_environment() -> bool:
@@ -153,6 +180,13 @@ class Config:  # noqa: PLR0904
         except Exception as e:
             raise ConfigurationError(f'Failed to read config file: {e}') from e
 
+    def reload(self) -> None:
+        """Re-read the TOML from disk so live edits (e.g. from FlightDeck) are picked up."""
+        try:
+            self._load_config()
+        except Exception:
+            pass
+
     def _validate_config(self) -> None:
         """Validate configuration values."""
         # Validate streaming method
@@ -162,7 +196,7 @@ class Config:  # noqa: PLR0904
             self.config['STREAM_USING'] = 'USB'
 
         # Validate port numbers
-        for port_key in ('ADB_PORT', 'RELOADER_PORT'):
+        for port_key in ('ADB_PORT', 'RELOADER_PORT', 'WIN_ADB_PORT'):
             port = self.config.get(port_key)
             if port is not None and not (
                 self.MIN_PORT_NUMBER <= port <= self.MAX_PORT_NUMBER
@@ -354,9 +388,23 @@ class Config:  # noqa: PLR0904
         return self.get('SHOW_NOTIFICATIONS', True)
 
     @property
+    def PERSISTENT_FLIGHTDECK(self) -> bool:
+        """Open FlightDeck configurator on startup instead of running the app directly."""
+        return self.get('PERSISTENT_FLIGHTDECK', True)
+
+    @property
+    def FLIGHTDECK_ALWAYS_ON_TOP(self) -> bool:
+        return self.get('FLIGHTDECK_ALWAYS_ON_TOP', False)
+
+    @property
     def ADB_PORT(self) -> int:
         """ADB TCP/IP port number."""
         return self.get('ADB_PORT', 5555)
+
+    @property
+    def WIN_ADB_PORT(self) -> int:
+        """ADB port on Windows (Win 10 compatibility)."""
+        return self.get('WIN_ADB_PORT', 5037)
 
     @property
     def RELOADER_PORT(self) -> int:
@@ -462,9 +510,24 @@ class Config:  # noqa: PLR0904
         return self.get('PRINT_FPS', False)
 
     @property
+    def PRINT_FILE_TREE(self) -> bool:
+        """Print file tree when deploying to phone."""
+        return self.get('PRINT_FILE_TREE', False)
+
+    @property
     def RENDER_DRIVER(self) -> str:
         """SDL render driver. Use 'software' for VMs, or 'opengl'/'direct3d'/'metal'."""
         return self.get('RENDER_DRIVER', '')
+
+    @property
+    def SCREEN_SIZE(self) -> str:
+        """Simulated Android screen size for desktop testing (e.g. '360x780'). Empty = system default."""
+        return self.get('SCREEN_SIZE', '')
+
+    @property
+    def SCREEN_DPI(self) -> str:
+        """Simulated Android DPI for desktop testing (e.g. '420'). Empty = system default."""
+        return self.get('SCREEN_DPI', '')
 
     @property
     def NO_MOUSE_HOVER(self) -> bool:

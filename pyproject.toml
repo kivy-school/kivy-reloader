@@ -1,10 +1,10 @@
 [project]
 name = "kivy-reloader"
-version = "0.8.7"
+version = "0.9.0"
 description = "Hot reload your Kivy app on multiple Android phones and computer in real-time."
 readme = "README.md"
 requires-python = ">=3.10"
-authors = [{ name = "filipemarch", email = "filipe.marchesini@gmail.com" }]
+authors = [{ name = "filipemarch", email = "filipe.marchesini@gmail.com" }, {email = "138998466+AccelQuasarDragon@users.noreply.github.com"}]
 urls = { Homepage = "https://kivyschool.com/kivy-reloader/", Repository = "https://github.com/kivy-school/kivy-reloader" }
 dependencies = [
     "tomlkit>=0.13.3",
@@ -19,16 +19,17 @@ desktop = [
     "kaki>=0.1.9",
     "kivy>=2.3.1",
     "pip>=25.1.1",
+    "pyobjus>=1.2.0; sys_platform == 'darwin'",
     "plyer>=2.1.0",
     "psutil>=7.0.0",
     "readchar>=4.2.1",
     "typer>=0.16.0",
+    "setuptools>=75.0; python_version >= '3.12'", # buildozer needs this
 ]
-
 [dependency-groups]
 dev = [
     "isort>=6.0.1",
-    "ruff>=0.12.5",
+    "ruff>=0.13.0",
     "pytest>=8.0.0",
     "fonttools>=4.61.1",
     "brotli>=1.2.0",
@@ -46,6 +47,8 @@ extend-exclude = ['.venv']
 [tool.ruff.lint]
 preview = true
 select = ['I', 'F', 'E', 'W', 'PL', 'PT']
+ignore = ["PLR0915", "PLR0912", "PLW0717", "E501", "PLR6301", "PLC0415", "PLR2004", "PLC2701"]
+
 
 [tool.ruff.format]
 preview = true

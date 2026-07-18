@@ -1,1 +1,1 @@
-from .app import ConfiguratorUI
+from .app import ConfiguratorUI as ConfiguratorUI

@@ -304,6 +304,15 @@ FIELD_DEFS: list[FieldDef] = [
         max_value=65535,
     ),
     FieldDef(
+        'WIN_ADB_PORT',
+        FieldType.INT,
+        5037,
+        'Device',
+        help_short='ADB port on Windows (Win 10 compatibility)',
+        min_value=1,
+        max_value=65535,
+    ),
+    FieldDef(
         'RELOADER_PORT',
         FieldType.INT,
         8050,
@@ -423,6 +432,29 @@ FIELD_DEFS: list[FieldDef] = [
         examples=['"1280:720:0:0"'],
         advanced=True,
     ),
+    FieldDef(
+        'DARK_MODE',
+        FieldType.BOOL,
+        False,
+        'Display',
+        help_short='Dark mode for the configurator UI',
+    ),
+    FieldDef(
+        'PERSISTENT_FLIGHTDECK',
+        FieldType.BOOL,
+        False,
+        'Display',
+        help_short='Open FlightDeck on startup',
+        help_long='When true, python main.py and kivy-reloader run open FlightDeck instead of launching the app directly.',
+    ),
+    FieldDef(
+        'FLIGHTDECK_ALWAYS_ON_TOP',
+        FieldType.BOOL,
+        False,
+        'Display',
+        help_short='Keep FlightDeck window on top',
+        help_long='When true, the FlightDeck window stays above all other windows.',
+    ),
     # ---------------------------------------------------------------------------
     # 🎵 Audio
     # ---------------------------------------------------------------------------
@@ -481,6 +513,14 @@ FIELD_DEFS: list[FieldDef] = [
         False,
         'Performance',
         help_short='Print FPS to console',
+        advanced=True,
+    ),
+    FieldDef(
+        'PRINT_FILE_TREE',
+        FieldType.BOOL,
+        False,
+        'Performance',
+        help_short='Print file tree when deploying to phone',
         advanced=True,
     ),
     FieldDef(
@@ -577,6 +617,27 @@ FIELD_DEFS: list[FieldDef] = [
         'Advanced',
         help_short='Recording output file',
         advanced=True,
+    ),
+    # ---------------------------------------------------------------------------
+    # 🖥️ Desktop Screen Testing
+    # ---------------------------------------------------------------------------
+    FieldDef(
+        'SCREEN_SIZE',
+        FieldType.STR,
+        '',
+        'Core',
+        help_short='Simulated screen size (desktop testing)',
+        help_long='Set Window.size on each hot-reload to simulate an Android screen. Format: WxH in dp (e.g. 360x780). Empty = system default.',
+        examples=['"360x780"', '"412x915"', '"600x1024"'],
+    ),
+    FieldDef(
+        'SCREEN_DPI',
+        FieldType.STR,
+        '',
+        'Core',
+        help_short='Simulated DPI (desktop testing)',
+        help_long='Override Metrics.density on each hot-reload. 420 = Pixel 6 Pro (2.625×), 480 = Pixel 4a (3.0×). Empty = system default.',
+        examples=['"240"', '"320"', '"420"', '"480"'],
     ),
     # ---------------------------------------------------------------------------
     # 🔔 Notifications

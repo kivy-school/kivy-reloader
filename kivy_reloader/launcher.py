@@ -1,0 +1,31 @@
+from __future__ import annotations
+
+import hashlib
+import socket
+from pathlib import Path
+
+
+def _should_launch_flightdeck() -> bool:
+    try:
+        import tomlkit  # noqa: PLC0415
+
+        t = Path.cwd() / 'kivy-reloader.toml'
+        if not t.exists():
+            return False
+        data = tomlkit.loads(t.read_text())
+        return bool(data.get('kivy_reloader', {}).get('PERSISTENT_FLIGHTDECK', False))
+    except Exception:
+        return False
+
+
+def _acquire_flightdeck_lock(cwd: Path) -> socket.socket | None:
+    tag = int(hashlib.md5(str(cwd).encode()).hexdigest()[:4], 16)
+    port = 49152 + (tag % 16383)
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        s.bind(('127.0.0.1', port))
+        s.listen(1)
+        return s
+    except OSError:
+        s.close()
+        return None

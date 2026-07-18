@@ -6,11 +6,7 @@ from pathlib import Path
 from kivy.properties import DictProperty, ObjectProperty, StringProperty
 from kivy.uix.boxlayout import BoxLayout
 
-from kivy_reloader.configurator.widgets.common import CustomSwitch, RadioGroup
-from kivy_reloader.configurator.widgets.common.box_chip_input import BoxChipInput
-from kivy_reloader.configurator.widgets.common.card import Card
-from kivy_reloader.configurator.widgets.common.chip_input import ChipInput
-from kivy_reloader.configurator.widgets.picker import (
+from kivy_reloader.configurator.widgets.picker import (  # noqa: F401
     DropdownPicker,
     FolderOnlyDropdownPicker,
 )
