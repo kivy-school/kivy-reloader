@@ -703,9 +703,6 @@ def deploy_app_to_devices(
             else:
                 result = _do_install(device['serial'], reinstall=True)
 
-            if win_temp:
-                subprocess.run(['rm', '-f', win_temp], check=False)
-
             logging.info(f'Install stdout: {result.stdout.strip()}')
             logging.info(f'Install stderr: {result.stderr.strip()}')
             # ── signature mismatch detection (safety net if uninstall failed) ──
@@ -725,6 +722,9 @@ def deploy_app_to_devices(
                 result = _do_install(device['serial'], reinstall=False)
                 logging.info(f'Retry stdout: {result.stdout.strip()}')
             # ─────────────────────────────────────────────────────────────────
+
+            if win_temp:
+                subprocess.run(['rm', '-f', win_temp], check=False)
 
             if 'Success' not in result.stdout + result.stderr:
                 logging.error(f'Install failed: {result.stdout} {result.stderr}')
@@ -1028,7 +1028,9 @@ def compile_app(buildozer_compiled: Event = None):
         is_ksproject=_is_ksp,
     )
 
-    buildozer_compiled.set()
+    if buildozer_compiled is not None:
+        buildozer_compiled.set()
+
 
 
 def debug_and_livestream(buildozer_compiled: Event = None) -> None:
