@@ -1,6 +1,6 @@
 [project]
 name = "kivy-reloader"
-version = "0.9.1"
+version = "0.9.111"
 description = "Hot reload your Kivy app on multiple Android phones and computer in real-time."
 readme = "README.md"
 license = { text = "MIT" }
