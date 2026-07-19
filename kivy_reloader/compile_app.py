@@ -1032,7 +1032,6 @@ def compile_app(buildozer_compiled: Event = None):
         buildozer_compiled.set()
 
 
-
 def debug_and_livestream(buildozer_compiled: Event = None) -> None:
     """
     Executes `adb logcat` and `scrcpy` in parallel.
