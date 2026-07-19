@@ -697,10 +697,14 @@ def main():
             _raise_missing_desktop_extra(args.command, exc.name)
 
         if getattr(args, 'action', None) == 'build':
+            from threading import Event
+
             from .compile_app import compile_app, debug_and_livestream
 
-            compile_app()
-            debug_and_livestream()
+            buildozer_compiled = Event()
+            compile_app(buildozer_compiled)
+            debug_and_livestream(buildozer_compiled)
+
         elif getattr(args, 'action', None) == 'debug':
             from .compile_app import debug_and_livestream
 
