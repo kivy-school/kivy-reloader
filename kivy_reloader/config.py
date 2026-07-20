@@ -390,7 +390,7 @@ class Config:  # noqa: PLR0904
     @property
     def PERSISTENT_FLIGHTDECK(self) -> bool:
         """Open FlightDeck configurator on startup instead of running the app directly."""
-        return self.get('PERSISTENT_FLIGHTDECK', True)
+        return self.get('PERSISTENT_FLIGHTDECK', False)
 
     @property
     def FLIGHTDECK_ALWAYS_ON_TOP(self) -> bool:

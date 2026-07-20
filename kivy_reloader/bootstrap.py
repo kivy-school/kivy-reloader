@@ -196,7 +196,7 @@ HOT_RELOAD_ON_PHONE = true
 FULL_RELOAD_FILES = ["main.py", "{full_reload_app_path}/app.py"]
 WATCHED_FOLDERS_RECURSIVELY = ["."]
 STREAM_USING = "WIFI"
-PERSISTENT_FLIGHTDECK = true
+PERSISTENT_FLIGHTDECK = false
 """
 
 
