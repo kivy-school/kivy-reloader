@@ -99,12 +99,14 @@ Button:
     text: "Hello World"
 """
 
+
 class MainApp(App):
     def build(self):
         return Builder.load_string(kv)
 
+
 app = MainApp()
-trio.run(app.async_run, "trio")
+trio.run(app.async_run, 'trio')
 ```
 
 #### Advanced (recommended package structure)
@@ -138,7 +140,7 @@ import trio
 from hello_world import HelloWorldApp
 
 app = HelloWorldApp()
-trio.run(app.async_run, "trio")
+trio.run(app.async_run, 'trio')
 ```
 
 `hello_world/app.py`
@@ -146,6 +148,7 @@ trio.run(app.async_run, "trio")
 ```python
 from kivy_reloader.app import App
 from hello_world.screens.main_screen import MainScreen
+
 
 class HelloWorldApp(App):
     def build(self):
@@ -169,6 +172,7 @@ from kivy.uix.screenmanager import Screen
 from kivy_reloader.lang import Builder
 
 Builder.load_file(__file__)
+
 
 class MainScreen(Screen):
     pass
