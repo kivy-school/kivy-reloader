@@ -583,6 +583,13 @@ class AndroidApp(BaseReloaderApp, KivyApp):
             f'Reloader: Reloading {len(modules_to_reload)} modules '
             f'({MODULE_RELOAD_PASSES} passes)'
         )
+        Logger.info(
+            'Reloader: Modules selected: '
+            + ', '.join(
+                getattr(module, '__name__', repr(module))
+                for module in modules_to_reload
+            )
+        )
         for pass_num in range(MODULE_RELOAD_PASSES):
             for module in modules_to_reload:
                 # importlib.reload requires sys.modules[spec.name] to be the exact
