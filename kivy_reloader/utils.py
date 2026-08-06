@@ -101,6 +101,44 @@ def module_name_for_file(filename, package_name=None):
     return module_name
 
 
+def include_dependent_modules(modules, package_name):
+    """Include app modules that still reference reloaded module objects.
+
+    ``importlib.reload`` updates a module in place, but names imported with
+    ``from module import Name`` remain bound to the old class or function in
+    the importing module. Find those modules so the caller can reload them as
+    well. Restrict the search to the application package to avoid reloading
+    unrelated third-party modules.
+    """
+    selected = list(modules)
+    selected_ids = {id(module) for module in selected}
+    dependency_names = {module.__name__ for module in selected}
+
+    changed = True
+    while changed:
+        changed = False
+        for module_name, module in list(sys.modules.items()):
+            if module is None or id(module) in selected_ids:
+                continue
+            if module_name != package_name and not module_name.startswith(
+                f'{package_name}.'
+            ):
+                continue
+
+            references_dependency = any(
+                getattr(value, '__module__', None) in dependency_names
+                or any(value is dependency for dependency in selected)
+                for value in vars(module).values()
+            )
+            if references_dependency:
+                selected.append(module)
+                selected_ids.add(id(module))
+                dependency_names.add(module_name)
+                changed = True
+
+    return selected
+
+
 def get_auto_reloader_paths():
     """
     Returns a list of paths to watch for changes,

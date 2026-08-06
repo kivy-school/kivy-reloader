@@ -48,7 +48,11 @@ from . import __version__
 from .base_app import BaseReloaderApp
 from .config import config
 from .tree_formatter import format_file_tree
-from .utils import get_kv_files_paths, module_name_for_file
+from .utils import (
+    get_kv_files_paths,
+    include_dependent_modules,
+    module_name_for_file,
+)
 
 # Constants
 CTRL_R_KEYCODE = 114
@@ -522,6 +526,7 @@ class AndroidApp(BaseReloaderApp, KivyApp):
             if to_reload is not None:
                 modules_to_reload.append(to_reload)
 
+        modules_to_reload = include_dependent_modules(modules_to_reload, package_name)
         return modules_to_reload
 
     def unload_python_files_on_android(self):
