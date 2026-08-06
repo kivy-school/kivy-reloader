@@ -48,7 +48,11 @@ from . import __version__
 from .base_app import BaseReloaderApp
 from .config import config
 from .tree_formatter import format_file_tree
-from .utils import get_kv_files_paths
+from .utils import (
+    get_kv_files_paths,
+    include_dependent_modules,
+    module_name_for_file,
+)
 
 # Constants
 CTRL_R_KEYCODE = 114
@@ -465,7 +469,7 @@ class AndroidApp(BaseReloaderApp, KivyApp):
         Returns:
             The module object if successfully unloaded, None otherwise
         """
-        if module == 'main':
+        if module in {'main', '__main__'}:
             return None
 
         if module in sys.modules:
@@ -515,12 +519,14 @@ class AndroidApp(BaseReloaderApp, KivyApp):
             List of module objects that need to be reloaded
         """
         modules_to_reload = []
+        package_name = self.__module__.split('.', 1)[0]
         for filename in files:
-            module_name = os.path.relpath(filename).replace(os.path.sep, '.')[:-3]
+            module_name = module_name_for_file(filename, package_name)
             to_reload = self.unload_python_file(filename, module_name)
             if to_reload is not None:
                 modules_to_reload.append(to_reload)
 
+        modules_to_reload = include_dependent_modules(modules_to_reload, package_name)
         return modules_to_reload
 
     def unload_python_files_on_android(self):
@@ -576,6 +582,13 @@ class AndroidApp(BaseReloaderApp, KivyApp):
         Logger.info(
             f'Reloader: Reloading {len(modules_to_reload)} modules '
             f'({MODULE_RELOAD_PASSES} passes)'
+        )
+        Logger.info(
+            'Reloader: Modules selected: '
+            + ', '.join(
+                getattr(module, '__name__', repr(module))
+                for module in modules_to_reload
+            )
         )
         for pass_num in range(MODULE_RELOAD_PASSES):
             for module in modules_to_reload:
