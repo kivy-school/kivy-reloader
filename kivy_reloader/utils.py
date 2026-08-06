@@ -1,4 +1,5 @@
 import base64
+import importlib.util
 import ipaddress
 import logging
 import os
@@ -6,6 +7,7 @@ import platform
 import re
 import socket
 import subprocess
+import sys
 import time
 from fnmatch import fnmatch
 from typing import Optional
@@ -31,6 +33,72 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s',
 )
 base_dir = os.getcwd()
+
+
+def _module_file_matches(module_file, source_file):
+    """Return whether an imported module belongs to a source file."""
+    try:
+        module_path = os.path.realpath(module_file)
+        source_path = os.path.realpath(source_file)
+        if module_path == source_path:
+            return True
+
+        # A byte-compiled module may expose its cache path through
+        # ``__file__``. Resolve it back to the corresponding source path.
+        if module_path.endswith(('.pyc', '.pyo')):
+            try:
+                return (
+                    os.path.realpath(importlib.util.source_from_cache(module_path))
+                    == source_path
+                )
+            except (ImportError, ValueError):
+                return False
+    except (AttributeError, OSError, TypeError):
+        return False
+
+    return False
+
+
+def module_name_for_file(filename, package_name=None):
+    """Resolve a project file to the name Python used to import it.
+
+    Buildozer normally places the project root on ``sys.path``. ksproject can
+    instead execute a package entry point from inside the package directory.
+    In that layout ``uix/shader.py`` is still imported as
+    ``baby_lights.uix.shader``. Matching ``module.__file__`` supports both
+    layouts without making assumptions about the application package name.
+    """
+    source_file = filename
+    if not os.path.isabs(source_file):
+        source_file = os.path.join(os.getcwd(), source_file)
+
+    for module_name, module in list(sys.modules.items()):
+        module_file = getattr(module, '__file__', None)
+        if module_file and _module_file_matches(module_file, source_file):
+            return module_name
+
+    relative_path = os.path.relpath(filename)
+    module_name = relative_path.replace(os.path.sep, '.')
+    if module_name.endswith('.py'):
+        module_name = module_name[:-3]
+    if module_name.endswith('.__init__'):
+        module_name = module_name[:-9]
+
+    # Preserve the existing behavior when the path already corresponds to an
+    # imported module, and support package-root execution as a fallback if the
+    # module's __file__ cannot be matched (for example, on a bytecode-only
+    # deployment).
+    if module_name in sys.modules:
+        return module_name
+
+    if package_name:
+        if module_name == '__init__':
+            return package_name
+        package_module_name = f'{package_name}.{module_name}'
+        if package_module_name in sys.modules:
+            return package_module_name
+
+    return module_name
 
 
 def get_auto_reloader_paths():
