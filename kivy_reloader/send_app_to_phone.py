@@ -165,7 +165,6 @@ async def send_app():  # noqa:PLR0914
     acked_count = 0
 
     for IP, port, serial, model in targets:
-
         client_socket = await connect_to_server(IP, port)
 
         if not client_socket:
@@ -253,8 +252,7 @@ async def send_app():  # noqa:PLR0914
 
         if ack_ok:
             print(
-                f'{green}ACK received from {model} '
-                f'({serial or IP}), {formatted_time}'
+                f'{green}ACK received from {model} ({serial or IP}), {formatted_time}'
             )
             acked_count += 1
         else:
