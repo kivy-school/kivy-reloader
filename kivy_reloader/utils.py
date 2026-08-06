@@ -518,11 +518,25 @@ def _validate_wifi_ip_ifconfig(ip: str, interface: str, serial: str) -> Optional
     return None
 
 
-def adb_forward(port: int, serial: str = None) -> int:
+def adb_forward(port: int, serial: str = None, remote_port: int = None) -> int:
+    """Forward a host port to a device port.
+
+    The local host port may differ from the device-side port. This is
+    required when forwarding the same reloader port for multiple devices.
+    """
+    if remote_port is None:
+        remote_port = port
     if serial:
-        cmd = ['adb', '-s', serial, 'forward', f'tcp:{port}', f'tcp:{port}']
+        cmd = [
+            'adb',
+            '-s',
+            serial,
+            'forward',
+            f'tcp:{port}',
+            f'tcp:{remote_port}',
+        ]
     else:
-        cmd = ['adb', 'forward', f'tcp:{port}', f'tcp:{port}']
+        cmd = ['adb', 'forward', f'tcp:{port}', f'tcp:{remote_port}']
     logging.info(' '.join(cmd))
     try:
         result = subprocess.run(cmd, timeout=10, check=False)
