@@ -39,7 +39,7 @@ curl -LsSf https://kivyschool.com/kivy-android-ubuntu.sh | bash
 
 # System deps + OpenJDK 17 and symlink so macOS tools can find it
 brew install android-platform-tools openjdk@17 autoconf automake libtool pkg-config cmake openssl
-sudo ln -sfn /opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk \
+sudo ln -sfn $(brew --prefix openjdk@17)/libexec/openjdk.jdk \
   /Library/Java/JavaVirtualMachines/openjdk-17.jdk
 
 # Kivy Reloader setup
@@ -47,6 +47,9 @@ curl -LsSf https://kivyschool.com/kivy-android-macos.sh | sh
 ```
 
 #### Windows
+
+[![Watch the video](https://img.youtube.com/vi/fQfUx5eXBMQ/maxresdefault.jpg)](https://youtu.be/fQfUx5eXBMQ)
+
 
 Run **PowerShell as Administrator**:
 
@@ -74,7 +77,7 @@ curl -LsSf https://kivyschool.com/kivy-android-wsl2.sh | bash
 mkdir kivyschool-hello
 cd kivyschool-hello
 uv init
-uv add "kivy-reloader[desktop]"
+uv add --dev "kivy-reloader[desktop]>=0.9.112"
 ```
 
 Project tree:
@@ -113,7 +116,7 @@ trio.run(app.async_run, "trio")
 mkdir -p kivyschool-hello/hello_world/screens
 cd kivyschool-hello
 uv init
-uv add "kivy-reloader[desktop]"
+uv add --dev "kivy-reloader[desktop]>=0.9.112"
 ```
 
 Project tree:
