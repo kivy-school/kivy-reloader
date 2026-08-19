@@ -1682,7 +1682,7 @@ def livestream(adb_logcat_ready: Event = None):
     """
 
     # Wait up to 30 seconds
-    if not adb_logcat_ready.wait(timeout=30):
+    if not adb_logcat_ready.wait(timeout=120):
         logging.error('Logcat did not become ready in time')
         return
 
