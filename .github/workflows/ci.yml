@@ -16,6 +16,7 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
+          cache-dependency-glob: "pyproject.toml"
       - run: uv sync --group dev
       - run: uv run ruff check .
       - run: uv run ruff format --check .
@@ -38,6 +39,7 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
+          cache-dependency-glob: "pyproject.toml"
       - run: uv sync --extra desktop
       - name: Run smoke test (Linux)
         if: runner.os == 'Linux'
@@ -66,6 +68,7 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
+          cache-dependency-glob: "pyproject.toml"
       - run: uv sync --extra desktop
       - name: Run hot-reload test
         run: xvfb-run -a uv run python tests/test_hot_reload.py
