@@ -636,13 +636,22 @@ class DesktopApp(BaseReloaderApp, KakiApp):
         _first = watched[0] if watched else '.'
         _cwd = os.getcwd()
         if _first == '.':
-            app_name = getattr(config, 'APP_NAME', None)
-            src_candidate = os.path.join(_cwd, 'src', app_name) if app_name else None
-            _delta_root = (
-                src_candidate
-                if src_candidate and os.path.isdir(src_candidate)
-                else _cwd
+            # Resolve the delta root the same way Android resolves its app
+            # root (see AndroidApp._get_app_root): via the actual entry-point
+            # module's file location (sys.modules['__main__']). This keeps
+            # the archive's internal relative paths aligned with the
+            # directory Android extracts into, whether the project uses a
+            # flat/Buildozer layout (main.py at the project root, so the
+            # entry point's directory *is* the project root) or a ksproject
+            # src-layout (`python -m <package>`, which lands inside
+            # src/<package>, matching where Android's own entry point runs
+            # from). Falls back to CWD if the entry point can't be resolved.
+            main_mod = sys.modules.get('__main__')
+            main_file = getattr(main_mod, '__file__', None)
+            entry_dir = (
+                os.path.dirname(os.path.realpath(main_file)) if main_file else None
             )
+            _delta_root = entry_dir if entry_dir and os.path.isdir(entry_dir) else _cwd
         else:
             _delta_root = os.path.realpath(os.path.join(_cwd, _first))
         # Initialize delta transfer manager — zip always lands at CWD for send_app_to_phone.py

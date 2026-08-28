@@ -919,15 +919,13 @@ class AndroidApp(BaseReloaderApp, KivyApp):
                 self._process_full_update(zip_file_path, print_file_tree)
 
             # Verify extraction went in-place (no duplicate in original CWD)
-            site_pkg_kv = os.path.join(
-                self._app_root, 'hello_world', 'screens', 'main_screen.kv'
-            )
-            cwd_kv = os.path.join(_orig_cwd, 'hello_world', 'screens', 'main_screen.kv')
             Logger.info(f'[CWD check] app_root={self._app_root}')
-            Logger.info(f'[CWD check] site_pkg_kv exists={os.path.exists(site_pkg_kv)}')
-            Logger.info(
-                f'[CWD check] cwd_kv (duplicate) exists={os.path.exists(cwd_kv)}'
-            )
+            if self._app_root != _orig_cwd:
+                Logger.info(
+                    f'[CWD check] extraction root ({self._app_root}) differs from '
+                    f'original CWD ({_orig_cwd}); this is expected for src-layout '
+                    'projects where the entry point lives under a package directory.'
+                )
 
             # Best-effort cleanup of temp file
             try:
