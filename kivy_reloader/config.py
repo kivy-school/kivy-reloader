@@ -63,6 +63,7 @@ class Config:  # noqa: PLR0904
         'buildozer.spec',
         'coverage',
         'dist',
+        'project_dist',
         'dmypy.json',
         'docs',
         'env',
