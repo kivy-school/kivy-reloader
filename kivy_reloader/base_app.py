@@ -9,7 +9,6 @@ from kivy.core.window import Window
 from kivy.factory import Factory as F
 from kivy.lang import Builder
 from kivy.logger import Logger
-from kivy.utils import platform
 
 
 class BaseReloaderApp:
@@ -33,30 +32,41 @@ class BaseReloaderApp:
             del F.classes[name]
 
     def build_root_and_add_to_window(self):
-        """Common UI building logic for both platforms"""
-        Logger.info('Reloader: Building root widget and adding to window')
-        if self.root is not None:
-            self.root.clear_widgets()
+        """Rebuild the root widget and attach exactly one instance to Window.
 
-            # Handle window children removal differently per platform
-            if platform == 'android':
-                if Window.children:
-                    Window.remove_widget(Window.children[0])
-            else:
-                while Window.children:
-                    Window.remove_widget(Window.children[0])
+        Only the previously built root (self.root) is removed, so unrelated
+        Window children (overlays, popups, etc.) survive a hot reload.
+        """
+        Logger.info('Reloader: Building root widget and adding to window')
+
+        old_root = self.root
+
+        # Cancel any build left over from a previous reload: without this,
+        # two rapid reloads would both run delayed_build() and attach two
+        # roots to the Window.
+        Clock.unschedule(self.delayed_build)
+
+        # Never remove Window.children[0]: it is not guaranteed to be the
+        # app root (e.g. ksproject/src-package layouts on Android), which
+        # leaves the old root attached and duplicates the UI. Remove the
+        # exact previous root instead.
+        if old_root is not None and old_root in Window.children:
+            Window.remove_widget(old_root)
 
         Clock.schedule_once(self.delayed_build)
 
     def delayed_build(self, *args):
-        """Common delayed build logic for both platforms"""
-        # Unload any KV files that build() loaded last time.
-        # Handles the standard Kivy pattern of calling Builder.load_file inside build()
-        # without requiring users to change their code.
+        """Build the root widget and add it to the Window.
+
+        Unloads the KV files that build() loaded last time, handling the
+        standard Kivy pattern of calling Builder.load_file() inside build()
+        without requiring users to change their code. The file list is
+        cleared before rebuilding so a build() failure keeps the stale rules
+        unloadable on the next reload instead of losing track of them.
         """
-        First call: _build_kv_files doesn't exist → no unloading → build() runs → records which files it loaded. Every subsequent reload: unloads exactly those files → build() re-loads them fresh. Zero files from outside build() are touched.
-        """
-        for f in getattr(self, '_build_kv_files', []):
+        build_kv_files = getattr(self, '_build_kv_files', set())
+        self._build_kv_files = set()
+        for f in build_kv_files:
             Builder.unload_file(f)
 
         files_before = set(Builder.files)
@@ -68,4 +78,5 @@ class BaseReloaderApp:
                 Logger.critical('App.root must be an _instance_ of Widget')
                 raise Exception('Invalid instance in App.root')
 
-            Window.add_widget(self.root)
+            if self.root not in Window.children:
+                Window.add_widget(self.root)
