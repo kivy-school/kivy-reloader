@@ -52,6 +52,7 @@ from .utils import (
     get_auto_reloader_paths,
     get_connected_devices,
     get_kv_files_paths,
+    resolve_delta_root,
 )
 
 # Constants
@@ -632,19 +633,8 @@ class DesktopApp(BaseReloaderApp, KakiApp):
         falling back to full transfer when necessary.
         """
 
-        watched = config.WATCHED_FOLDERS_RECURSIVELY
-        _first = watched[0] if watched else '.'
         _cwd = os.getcwd()
-        if _first == '.':
-            app_name = getattr(config, 'APP_NAME', None)
-            src_candidate = os.path.join(_cwd, 'src', app_name) if app_name else None
-            _delta_root = (
-                src_candidate
-                if src_candidate and os.path.isdir(src_candidate)
-                else _cwd
-            )
-        else:
-            _delta_root = os.path.realpath(os.path.join(_cwd, _first))
+        _delta_root = resolve_delta_root(config.WATCHED_FOLDERS_RECURSIVELY, _cwd)
         # Initialize delta transfer manager — zip always lands at CWD for send_app_to_phone.py
         delta_manager = DeltaTransferManager(
             _delta_root,

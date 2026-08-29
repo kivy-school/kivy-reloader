@@ -139,6 +139,42 @@ def include_dependent_modules(modules, package_name):
     return selected
 
 
+def resolve_delta_root(watched_folders_recursively, cwd=None):
+    """Resolve the root directory used to build the phone-transfer archive.
+
+    Mirrors how ``AndroidApp._get_app_root`` resolves the extraction root on
+    device: via the real entry-point module's file location
+    (``sys.modules['__main__']``). Keeping both sides in lockstep ensures the
+    archive's internal relative paths line up with the directory Android
+    extracts into, regardless of whether the project uses a flat/Buildozer
+    layout (``main.py`` at the project root, so the entry point's directory
+    *is* the project root) or a ksproject src-layout (``python -m <package>``,
+    which lands inside ``src/<package>``, matching where Android's own entry
+    point runs from).
+
+    Args:
+        watched_folders_recursively: The configured
+            ``WATCHED_FOLDERS_RECURSIVELY`` list. When it explicitly names a
+            folder (anything other than the default ``'.'``), that folder is
+            used as-is and no entry-point detection is attempted.
+        cwd: The current working directory (defaults to ``os.getcwd()``).
+
+    Returns:
+        The absolute path to use as the delta transfer's project root.
+    """
+    cwd = cwd if cwd is not None else os.getcwd()
+    first = watched_folders_recursively[0] if watched_folders_recursively else '.'
+
+    if first != '.':
+        return os.path.realpath(os.path.join(cwd, first))
+
+    main_mod = sys.modules.get('__main__')
+    main_file = getattr(main_mod, '__file__', None)
+    entry_dir = os.path.dirname(os.path.realpath(main_file)) if main_file else None
+
+    return entry_dir if entry_dir and os.path.isdir(entry_dir) else cwd
+
+
 def get_auto_reloader_paths():
     """
     Returns a list of paths to watch for changes,
