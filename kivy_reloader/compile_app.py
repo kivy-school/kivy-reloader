@@ -912,7 +912,7 @@ def _clear_ksproject_cache() -> None:
 
 def _gradle_clean() -> None:
     gradle_dir = Path('project_dist/gradle')
-    gradlew = gradle_dir / 'gradlew' if os.name == "nt" else gradle_dir/ 'gradlew.bat'
+    gradlew = gradle_dir / 'gradlew.bat' if os.name == "nt" else gradle_dir/ 'gradlew'
     if not gradlew.exists():
         return
     logging.info('Running gradle clean')
