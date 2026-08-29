@@ -916,7 +916,7 @@ def _gradle_clean() -> None:
     if not gradlew.exists():
         return
     logging.info('Running gradle clean')
-    subprocess.run(['./gradlew', 'clean'], cwd=str(gradle_dir), check=False)
+    subprocess.run([gradlew, 'clean'], cwd=str(gradle_dir), check=False)
 
 
 def _check_pypi_indexes_reachable() -> None:
