@@ -525,7 +525,7 @@ def validate_compilation_environment(_is_ksp: bool = False) -> None:
     Raises:
         SystemExit: If running on Windows platform
     """
-    if (_is_ksp == False) && platform == 'win':
+    if (_is_ksp == False) and platform == 'win':
         logging.error('Windows can not run buildozer')
         logging.error('Please, use WSL2')
         print(
