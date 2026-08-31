@@ -51,6 +51,46 @@ def test_explicit_watched_folder_is_used_as_is(monkeypatch, tmp_path):
     assert resolve_delta_root(['app_src'], str(tmp_path)) == str(watched_dir.resolve())
 
 
+def test_non_src_explicit_watch_does_not_descend_to_source_package(tmp_path):
+    watched_dir = tmp_path / 'app_src'
+    (watched_dir / 'demo_app').mkdir(parents=True)
+
+    resolved = resolve_delta_root(
+        ['app_src'],
+        str(tmp_path),
+        source_package='demo_app',
+    )
+
+    assert resolved == str(watched_dir.resolve())
+
+
+def test_ksproject_src_watch_descends_to_source_package(monkeypatch, tmp_path):
+    """A ksproject desktop run starts at project/main.py and watches ``src``.
+
+    Android extracts into the package directory, so transfer paths must be
+    relative to ``src/<package>`` rather than carrying the package prefix and
+    creating ``<package>/<package>/app.kv`` on the device.
+    """
+    (tmp_path / 'main.py').touch()
+    package_dir = tmp_path / 'src' / 'hello_world_reloader'
+    package_dir.mkdir(parents=True)
+    (package_dir / '__main__.py').touch()
+    (package_dir / 'app.kv').write_text('<IntroScreen>:\n')
+
+    main_mod = ModuleType('__main__')
+    main_mod.__file__ = str(tmp_path / 'main.py')
+    monkeypatch.setitem(sys.modules, '__main__', main_mod)
+    monkeypatch.chdir(tmp_path)
+
+    resolved = resolve_delta_root(
+        ['src'],
+        str(tmp_path),
+        source_package='hello_world_reloader',
+    )
+
+    assert resolved == str(package_dir.resolve())
+
+
 def test_defaults_to_dot_when_watched_folders_empty(monkeypatch, tmp_path):
     monkeypatch.delitem(sys.modules, '__main__', raising=False)
 

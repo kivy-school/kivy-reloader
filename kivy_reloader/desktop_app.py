@@ -634,12 +634,17 @@ class DesktopApp(BaseReloaderApp, KakiApp):
         """
 
         _cwd = os.getcwd()
-        _delta_root = resolve_delta_root(config.WATCHED_FOLDERS_RECURSIVELY, _cwd)
+        source_package = self.__class__.__module__.split('.')[0]
+        _delta_root = resolve_delta_root(
+            config.WATCHED_FOLDERS_RECURSIVELY,
+            _cwd,
+            source_package=source_package,
+        )
         # Initialize delta transfer manager — zip always lands at CWD for send_app_to_phone.py
         delta_manager = DeltaTransferManager(
             _delta_root,
             zip_root=_cwd,
-            source_package=self.__class__.__module__.split('.')[0],
+            source_package=source_package,
         )
 
         # Apply only exclusions (include everything else)
