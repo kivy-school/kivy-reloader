@@ -6,6 +6,8 @@
   <img src="https://kivyschool.com/kivy-reloader/assets/kivy-reloader.gif" alt="Kivy Reloader Demo" width="720" />
 </p>
 
+[![Watch the video](https://img.youtube.com/vi/UiuSkGHWvWc/maxresdefault.jpg)](https://youtu.be/UiuSkGHWvWc)
+
 This tool allows you to instantly update your Kivy app on multiple devices simultaneously by pressing <kbd>Ctrl</kbd> + <kbd>S</kbd>, without having to restart / recompile every time you make a change, saving your precious development time and effort.
 It uses **[Kaki]** (file watching via `watchdog`) under the hood and a small **Trio** server on-device to receive file updates.
 
@@ -30,6 +32,7 @@ curl -LsSf https://kivyschool.com/kivy-android-ubuntu.sh | bash
 ```
 
 #### macOS
+[![Watch the video](https://img.youtube.com/vi/yDhIwEMg1VE/maxresdefault.jpg)](https://youtu.be/yDhIwEMg1VE)
 
 > After installing Homebrew, **close & reopen** the terminal so `brew` is in PATH.
 
