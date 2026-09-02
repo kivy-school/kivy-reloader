@@ -47,6 +47,7 @@ BUILTIN_EXCLUSIONS = [
     'buildozer.spec',
     'coverage',
     'dist',
+    'project_dist',
     'dmypy.json',
     'docs',
     'env',

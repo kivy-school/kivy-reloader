@@ -1,4 +1,5 @@
 import base64
+import importlib.util
 import ipaddress
 import logging
 import os
@@ -6,6 +7,7 @@ import platform
 import re
 import socket
 import subprocess
+import sys
 import time
 from fnmatch import fnmatch
 from typing import Optional
@@ -31,6 +33,146 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s',
 )
 base_dir = os.getcwd()
+
+
+def _module_file_matches(module_file, source_file):
+    """Return whether an imported module belongs to a source file."""
+    try:
+        module_path = os.path.realpath(module_file)
+        source_path = os.path.realpath(source_file)
+        if module_path == source_path:
+            return True
+
+        # A byte-compiled module may expose its cache path through
+        # ``__file__``. Resolve it back to the corresponding source path.
+        if module_path.endswith(('.pyc', '.pyo')):
+            try:
+                return (
+                    os.path.realpath(importlib.util.source_from_cache(module_path))
+                    == source_path
+                )
+            except (ImportError, ValueError):
+                return False
+    except (AttributeError, OSError, TypeError):
+        return False
+
+    return False
+
+
+def module_name_for_file(filename, package_name=None):
+    """Resolve a project file to the name Python used to import it.
+
+    Buildozer normally places the project root on ``sys.path``. ksproject can
+    instead execute a package entry point from inside the package directory.
+    In that layout ``uix/shader.py`` is still imported as
+    ``baby_lights.uix.shader``. Matching ``module.__file__`` supports both
+    layouts without making assumptions about the application package name.
+    """
+    source_file = filename
+    if not os.path.isabs(source_file):
+        source_file = os.path.join(os.getcwd(), source_file)
+
+    for module_name, module in list(sys.modules.items()):
+        module_file = getattr(module, '__file__', None)
+        if module_file and _module_file_matches(module_file, source_file):
+            return module_name
+
+    relative_path = os.path.relpath(filename)
+    module_name = relative_path.replace(os.path.sep, '.')
+    if module_name.endswith('.py'):
+        module_name = module_name[:-3]
+    if module_name.endswith('.__init__'):
+        module_name = module_name[:-9]
+
+    # Preserve the existing behavior when the path already corresponds to an
+    # imported module, and support package-root execution as a fallback if the
+    # module's __file__ cannot be matched (for example, on a bytecode-only
+    # deployment).
+    if module_name in sys.modules:
+        return module_name
+
+    if package_name:
+        if module_name == '__init__':
+            return package_name
+        package_module_name = f'{package_name}.{module_name}'
+        if package_module_name in sys.modules:
+            return package_module_name
+
+    return module_name
+
+
+def include_dependent_modules(modules, package_name):
+    """Include app modules that still reference reloaded module objects.
+
+    ``importlib.reload`` updates a module in place, but names imported with
+    ``from module import Name`` remain bound to the old class or function in
+    the importing module. Find those modules so the caller can reload them as
+    well. Restrict the search to the application package to avoid reloading
+    unrelated third-party modules.
+    """
+    selected = list(modules)
+    selected_ids = {id(module) for module in selected}
+    dependency_names = {module.__name__ for module in selected}
+
+    changed = True
+    while changed:
+        changed = False
+        for module_name, module in list(sys.modules.items()):
+            if module is None or id(module) in selected_ids:
+                continue
+            if module_name != package_name and not module_name.startswith(
+                f'{package_name}.'
+            ):
+                continue
+
+            references_dependency = any(
+                getattr(value, '__module__', None) in dependency_names
+                or any(value is dependency for dependency in selected)
+                for value in vars(module).values()
+            )
+            if references_dependency:
+                selected.append(module)
+                selected_ids.add(id(module))
+                dependency_names.add(module_name)
+                changed = True
+
+    return selected
+
+
+def resolve_delta_root(watched_folders_recursively, cwd=None):
+    """Resolve the root directory used to build the phone-transfer archive.
+
+    Mirrors how ``AndroidApp._get_app_root`` resolves the extraction root on
+    device: via the real entry-point module's file location
+    (``sys.modules['__main__']``). Keeping both sides in lockstep ensures the
+    archive's internal relative paths line up with the directory Android
+    extracts into, regardless of whether the project uses a flat/Buildozer
+    layout (``main.py`` at the project root, so the entry point's directory
+    *is* the project root) or a ksproject src-layout (``python -m <package>``,
+    which lands inside ``src/<package>``, matching where Android's own entry
+    point runs from).
+
+    Args:
+        watched_folders_recursively: The configured
+            ``WATCHED_FOLDERS_RECURSIVELY`` list. When it explicitly names a
+            folder (anything other than the default ``'.'``), that folder is
+            used as-is and no entry-point detection is attempted.
+        cwd: The current working directory (defaults to ``os.getcwd()``).
+
+    Returns:
+        The absolute path to use as the delta transfer's project root.
+    """
+    cwd = cwd if cwd is not None else os.getcwd()
+    first = watched_folders_recursively[0] if watched_folders_recursively else '.'
+
+    if first != '.':
+        return os.path.realpath(os.path.join(cwd, first))
+
+    main_mod = sys.modules.get('__main__')
+    main_file = getattr(main_mod, '__file__', None)
+    entry_dir = os.path.dirname(os.path.realpath(main_file)) if main_file else None
+
+    return entry_dir if entry_dir and os.path.isdir(entry_dir) else cwd
 
 
 def get_auto_reloader_paths():
@@ -518,11 +660,25 @@ def _validate_wifi_ip_ifconfig(ip: str, interface: str, serial: str) -> Optional
     return None
 
 
-def adb_forward(port: int, serial: str = None) -> int:
+def adb_forward(port: int, serial: str = None, remote_port: int = None) -> int:
+    """Forward a host port to a device port.
+
+    The local host port may differ from the device-side port. This is
+    required when forwarding the same reloader port for multiple devices.
+    """
+    if remote_port is None:
+        remote_port = port
     if serial:
-        cmd = ['adb', '-s', serial, 'forward', f'tcp:{port}', f'tcp:{port}']
+        cmd = [
+            'adb',
+            '-s',
+            serial,
+            'forward',
+            f'tcp:{port}',
+            f'tcp:{remote_port}',
+        ]
     else:
-        cmd = ['adb', 'forward', f'tcp:{port}', f'tcp:{port}']
+        cmd = ['adb', 'forward', f'tcp:{port}', f'tcp:{remote_port}']
     logging.info(' '.join(cmd))
     try:
         result = subprocess.run(cmd, timeout=10, check=False)

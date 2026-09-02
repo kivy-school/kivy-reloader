@@ -157,7 +157,7 @@ FOLDERS_AND_FILES_TO_EXCLUDE_FROM_PHONE = []
 
 # 📋 Built-in Exclusions: 
 # The following patterns are automatically excluded from watching and deployment:
-# .git, .venv, *.pyc, __pycache__, .buildozer, build/, dist/, tests/, docs/,
+# .git, .venv, *.pyc, __pycache__, .buildozer, build/, dist/, project_dist/, tests/, docs/,
 # node_modules/, .vscode/, *.log, *.db, buildozer.spec, poetry.lock, and many more.
 # 
 

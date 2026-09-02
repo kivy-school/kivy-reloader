@@ -23,8 +23,8 @@ white = Fore.WHITE
 init(autoreset=True)
 
 
-async def connect_to_server(IP):
-    PORT = int(config.RELOADER_PORT)
+async def connect_to_server(IP, port=None):
+    PORT = int(port or config.RELOADER_PORT)
     timeout = 60  # Total time we are willing to wait for a success
     start_time = trio.current_time()
     UAC_count = 0
@@ -69,6 +69,26 @@ async def connect_to_server(IP):
         f'\n{red}Could not connect to {IP} after {attempt_count} attempts in  ({timeout}s)'
     )
     return None
+
+
+def build_usb_targets(devices, remote_port, host_ip, forward=adb_forward):
+    """Create uniquely forwarded host targets for USB-connected devices."""
+    targets = []
+    for index, device in enumerate(devices):
+        host_port = remote_port + index
+        result = forward(
+            host_port,
+            serial=device['serial'],
+            remote_port=remote_port,
+        )
+        if result != 0:
+            print(
+                f'{yellow}Could not forward port for '
+                f'{device["model"]} ({device["serial"]})'
+            )
+            continue
+        targets.append((host_ip, host_port, device['serial'], device['model']))
+    return targets
 
 
 def wsl_network_dead(timeout=1.0):
@@ -131,29 +151,27 @@ async def send_app():  # noqa:PLR0914
         return 1
 
     if config.STREAM_USING == 'USB':
-        PORT = config.RELOADER_PORT
+        remote_port = int(config.RELOADER_PORT)
         usb_devices = [d for d in devices if d['transport'] == 'usb']
-        for d in usb_devices:
-            adb_forward(PORT, serial=d['serial'])
         host_ip = get_adb_host_ip()
-        unique_physical = {(host_ip, d['model']) for d in usb_devices}
+        targets = build_usb_targets(usb_devices, remote_port, host_ip)
     else:
-        unique_physical = {
-            (d['wifi_ip'], d['model']) for d in devices if d['wifi_ip'] is not None
-        }
+        targets = [
+            (device['wifi_ip'], int(config.RELOADER_PORT), None, device['model'])
+            for device in devices
+            if device['wifi_ip'] is not None
+        ]
 
     acked_count = 0
 
-    for device in unique_physical:
-        IP = device[0]
-
-        client_socket = await connect_to_server(IP)
+    for IP, port, serial, model in targets:
+        client_socket = await connect_to_server(IP, port)
 
         if not client_socket:
-            print(f"{yellow}Couldn't connect to smartphone: {IP}")
+            print(f"{yellow}Couldn't connect to {model} ({serial or IP})")
             continue
 
-        print(f'{yellow} Phone connected successfully: {IP}')
+        print(f'{yellow} Phone connected successfully: {model} ({serial or IP})')
         print(f'\n{green}Sending app to smartphone...')
 
         zip_path = 'app_copy.zip'
@@ -207,7 +225,7 @@ async def send_app():  # noqa:PLR0914
         # 3. Wait for OK
         min_speed_bytes_per_sec = 0.5 * 1024 * 1024  # 1 MB/s
         timeout = (zip_size / min_speed_bytes_per_sec) + 30
-        print(f'{yellow}Waiting ({timeout} seconds) for ACK from smartphone {IP}...')
+        print(f'{yellow}Waiting ({timeout} seconds) for ACK from {model}...')
         ack_ok = False
 
         start_wait = trio.current_time()
@@ -233,10 +251,15 @@ async def send_app():  # noqa:PLR0914
         formatted_time = datetime.datetime.now().strftime('%m-%d %H:%M:%S.%f')[:-3]
 
         if ack_ok:
-            print(f'{green}ACK received from {IP}, {formatted_time}')
+            print(
+                f'{green}ACK received from {model} ({serial or IP}), {formatted_time}'
+            )
             acked_count += 1
         else:
-            print(f'{yellow}No ACK received from {IP}, {formatted_time}')
+            print(
+                f'{yellow}No ACK received from {model} '
+                f'({serial or IP}), {formatted_time}'
+            )
 
         # Close socket gracefully
         try:
@@ -245,7 +268,7 @@ async def send_app():  # noqa:PLR0914
             pass
 
     print('\n')
-    print(yellow + f'Sent app to {len(unique_physical)} smartphone(s)')
+    print(yellow + f'Sent app to {len(targets)} device(s)')
     if acked_count:
         print(green + f'ACK confirmed on {acked_count} smartphone(s)')
     else:
