@@ -10,6 +10,7 @@ import subprocess
 import sys
 import time
 from fnmatch import fnmatch
+from pathlib import Path
 from typing import Optional
 
 import trio
@@ -139,7 +140,11 @@ def include_dependent_modules(modules, package_name):
     return selected
 
 
-def resolve_delta_root(watched_folders_recursively, cwd=None):
+def resolve_delta_root(
+    watched_folders_recursively,
+    cwd=None,
+    source_package=None,
+):
     """Resolve the root directory used to build the phone-transfer archive.
 
     Mirrors how ``AndroidApp._get_app_root`` resolves the extraction root on
@@ -156,8 +161,11 @@ def resolve_delta_root(watched_folders_recursively, cwd=None):
         watched_folders_recursively: The configured
             ``WATCHED_FOLDERS_RECURSIVELY`` list. When it explicitly names a
             folder (anything other than the default ``'.'``), that folder is
-            used as-is and no entry-point detection is attempted.
+            used as the source root. For a ksproject ``src`` root containing
+            ``source_package``, the package directory is used so archive
+            entries are relative to the directory Android extracts into.
         cwd: The current working directory (defaults to ``os.getcwd()``).
+        source_package: Top-level application package name, when known.
 
     Returns:
         The absolute path to use as the delta transfer's project root.
@@ -166,7 +174,12 @@ def resolve_delta_root(watched_folders_recursively, cwd=None):
     first = watched_folders_recursively[0] if watched_folders_recursively else '.'
 
     if first != '.':
-        return os.path.realpath(os.path.join(cwd, first))
+        watched_root = Path(cwd, first).resolve()
+        if source_package and watched_root.name == 'src':
+            package_root = watched_root.joinpath(*source_package.split('.'))
+            if package_root.is_dir():
+                return str(package_root)
+        return str(watched_root)
 
     main_mod = sys.modules.get('__main__')
     main_file = getattr(main_mod, '__file__', None)
