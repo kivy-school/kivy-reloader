@@ -525,7 +525,7 @@ def validate_compilation_environment(_is_ksp: bool = False) -> None:
     Raises:
         SystemExit: If running on Windows platform
     """
-    if (_is_ksp == False) and platform == 'win':
+    if (not _is_ksp) and platform == 'win':
         logging.error('Windows can not run buildozer')
         logging.error('Please, use WSL2')
         print(
@@ -912,7 +912,7 @@ def _clear_ksproject_cache() -> None:
 
 def _gradle_clean() -> None:
     gradle_dir = Path('project_dist/gradle')
-    gradlew = gradle_dir / 'gradlew.bat' if os.name == "nt" else gradle_dir/ 'gradlew'
+    gradlew = gradle_dir / 'gradlew.bat' if os.name == "nt" else gradle_dir / 'gradlew'
     if not gradlew.exists():
         return
     logging.info('Running gradle clean')
