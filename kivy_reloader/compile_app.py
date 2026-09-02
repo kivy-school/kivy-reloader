@@ -518,14 +518,14 @@ def select_option(option: str, app_name: str) -> None:
         logging.error(f'An error occurred during compilation: {e}')
 
 
-def validate_compilation_environment() -> None:
+def validate_compilation_environment(_is_ksp: bool = False) -> None:
     """
     Validates that the current platform supports buildozer compilation.
 
     Raises:
         SystemExit: If running on Windows platform
     """
-    if platform == 'win':
+    if (not _is_ksp) and platform == 'win':
         logging.error('Windows can not run buildozer')
         logging.error('Please, use WSL2')
         print(
@@ -912,11 +912,11 @@ def _clear_ksproject_cache() -> None:
 
 def _gradle_clean() -> None:
     gradle_dir = Path('project_dist/gradle')
-    gradlew = gradle_dir / 'gradlew'
+    gradlew = gradle_dir / 'gradlew.bat' if os.name == 'nt' else gradle_dir / 'gradlew'
     if not gradlew.exists():
         return
     logging.info('Running gradle clean')
-    subprocess.run(['./gradlew', 'clean'], cwd=str(gradle_dir), check=False)
+    subprocess.run([gradlew, 'clean'], cwd=str(gradle_dir), check=False)
 
 
 def _check_pypi_indexes_reachable() -> None:
@@ -983,8 +983,6 @@ def compile_app(buildozer_compiled: Event = None):
     This function coordinates platform validation, buildozer compilation,
     device filtering, and app deployment to connected Android devices.
     """
-    # Step 1: Validate environment
-    validate_compilation_environment()
 
     # detect ksproject and use it as the build backend if present
     _is_ksp = False
@@ -995,6 +993,9 @@ def compile_app(buildozer_compiled: Event = None):
             _is_ksp = bool(tomlkit.load(_f).get('tool', {}).get('kivy-school', {}))
     except Exception:
         pass
+
+    # Step 1: Validate environment
+    validate_compilation_environment(_is_ksp)
 
     if _is_ksp:
         run_ksproject_build()
