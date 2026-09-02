@@ -282,42 +282,6 @@ class DesktopApp(BaseReloaderApp, KakiApp):
 
         Window.bind(on_keyboard=_on_keyboard)
 
-    def build_root_and_add_to_window(self):
-        """
-        Clear existing widgets and rebuild the root widget.
-
-        This method handles the UI teardown and rebuilding process,
-        ensuring clean widget hierarchy during hot reload.
-        """
-        Logger.info('Reloader: Building root widget and adding to window')
-
-        # Clear existing root widget
-        if self.root is not None:
-            self.root.clear_widgets()
-
-        # Remove all children from window
-        while Window.children:
-            Window.remove_widget(Window.children[0])
-
-        # Schedule delayed build to ensure proper cleanup
-        Clock.schedule_once(self.delayed_build)
-
-    def delayed_build(self, *args):
-        """
-        Build and validate the root widget, then add it to the window.
-
-        This method is called with a slight delay to ensure proper
-        widget cleanup before rebuilding.
-        """
-        self.root = self.build()
-
-        if self.root:
-            if not isinstance(self.root, F.Widget):
-                Logger.critical('App.root must be an _instance_ of Widget')
-                raise Exception('Invalid instance in App.root')
-
-            Window.add_widget(self.root)
-
     # ==================== HOT RELOAD CORE ====================
 
     def unload_python_file(self, filename, module_name):
