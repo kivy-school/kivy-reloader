@@ -105,10 +105,19 @@ def _run(token, repo_name, workflow_file, on_status, on_done):
 def _adb_install(apk_path, on_status, on_done):
     # Delegates entirely to compile_app.install_apk_from_path — same chain as
     # the regular compile+install flow, just with the buildozer build step skipped.
-    from kivy_reloader.compile_app import install_apk_from_path
+    # On success, fires debug_and_livestream (logcat + scrcpy) the same way
+    # compile_app() does after a local build.
+    from threading import Event
+
+    from kivy_reloader.compile_app import debug_and_livestream, install_apk_from_path
 
     ok = install_apk_from_path(apk_path, status_callback=on_status)
     on_done(str(apk_path) if ok else None)
+
+    if ok:
+        already_installed = Event()
+        already_installed.set()  # APK is on device — skip the wait
+        debug_and_livestream(already_installed)
 
 
 def _wait_for_run(repo, timeout_s: int, poll_s: int):
