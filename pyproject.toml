@@ -28,6 +28,7 @@ desktop = [
     "setuptools>=75.0; python_version >= '3.12'", # buildozer needs this
     "PyGithub>=2.0.0",   # Build APK button — trigger workflow, poll status, download artifact
     "requests>=2.32.0",  # Build APK button — artifact download + OAuth device flow
+    "keyring>=25.0.0",  # OAuth tokens stored in OS keychain (Win: Credential Manager, Mac: Keychain, Linux: libsecret); plaintext toml fallback if unavailable
 ]
 [dependency-groups]
 dev = [

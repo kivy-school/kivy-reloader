@@ -301,6 +301,8 @@ Open Flightdeck → Quick Commands → **Build APK (GitHub)**. On first use you'
 
 > **Tip:** If your build fails with `charset_normalizer` wheel errors, add `charset-normalizer==2.1.1` to your `buildozer.spec` requirements.
 
+> **Security:** GitHub tokens are stored in your OS keychain (Windows Credential Manager, macOS Keychain, Linux libsecret) when available. If the keychain is unavailable, tokens fall back to `~/.config/kivy-reloader/credentials.toml`.
+
 ---
 
 ## How it works (high level)

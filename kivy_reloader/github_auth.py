@@ -19,27 +19,57 @@ import tomlkit
 CLIENT_ID = "Ov23lisOd7Mj47PzCmiM"
 
 CREDENTIALS_PATH = Path.home() / ".config" / "kivy-reloader" / "credentials.toml"
+_KR_SERVICE = "kivy-reloader"
 
 _DEVICE_CODE_URL = "https://github.com/login/device/code"
 _TOKEN_URL = "https://github.com/login/oauth/access_token"
 
 
-def get_stored_token() -> str | None:
-    """Return access token if stored and not expired. No network calls."""
-    if not CREDENTIALS_PATH.exists():
-        return None
+def _kr_get(key: str) -> str | None:
     try:
-        doc = tomlkit.parse(CREDENTIALS_PATH.read_text(encoding="utf-8"))
-        gh = doc.get("github", {})
-        token = gh.get("token")
-        expires_at = gh.get("expires_at")
-        if not token:
-            return None
-        if expires_at and time.time() > float(expires_at) - 300:
-            return None  # expired or within 5-min buffer
-        return token
+        import keyring
+        return keyring.get_password(_KR_SERVICE, key)
     except Exception:
         return None
+
+
+def _kr_set(key: str, value: str) -> bool:
+    try:
+        import keyring
+        keyring.set_password(_KR_SERVICE, key, value)
+        return True
+    except Exception:
+        return False
+
+
+def _kr_delete(key: str) -> None:
+    try:
+        import keyring
+        keyring.delete_password(_KR_SERVICE, key)
+    except Exception:
+        pass
+
+
+def get_stored_token() -> str | None:
+    """Return access token if stored and not expired. No network calls."""
+    # Check expiry from toml first (timestamps are not sensitive)
+    expires_at = None
+    if CREDENTIALS_PATH.exists():
+        try:
+            doc = tomlkit.parse(CREDENTIALS_PATH.read_text(encoding="utf-8"))
+            expires_at = doc.get("github", {}).get("expires_at")
+        except Exception:
+            pass
+    if expires_at and time.time() > float(expires_at) - 300:
+        return None  # expired or within 5-min buffer
+
+    # Try keyring first, fall back to toml
+    token = _kr_get("access_token") or (
+        tomlkit.parse(CREDENTIALS_PATH.read_text(encoding="utf-8"))
+        .get("github", {}).get("token")
+        if CREDENTIALS_PATH.exists() else None
+    )
+    return token or None
 
 
 def ensure_auth(on_token, on_error, on_status=None) -> None:
@@ -77,20 +107,30 @@ def _ensure_auth_thread(on_token, on_error, on_status):
 
 def _try_silent_refresh() -> str | None:
     """Use stored refresh_token to get a new access_token silently."""
-    if not CREDENTIALS_PATH.exists():
-        print("[github_auth] no credentials file, skipping refresh")
+    # Check expiry from toml (timestamps not sensitive)
+    refresh_expires_at = None
+    if CREDENTIALS_PATH.exists():
+        try:
+            doc = tomlkit.parse(CREDENTIALS_PATH.read_text(encoding="utf-8"))
+            refresh_expires_at = doc.get("github", {}).get("refresh_expires_at")
+        except Exception:
+            pass
+    if refresh_expires_at and time.time() > float(refresh_expires_at) - 300:
+        print("[github_auth] refresh_token expired")
+        return None
+
+    # Try keyring first, fall back to toml
+    refresh_token = _kr_get("refresh_token")
+    if not refresh_token and CREDENTIALS_PATH.exists():
+        try:
+            doc = tomlkit.parse(CREDENTIALS_PATH.read_text(encoding="utf-8"))
+            refresh_token = doc.get("github", {}).get("refresh_token")
+        except Exception:
+            pass
+    if not refresh_token:
+        print("[github_auth] no refresh_token stored")
         return None
     try:
-        doc = tomlkit.parse(CREDENTIALS_PATH.read_text(encoding="utf-8"))
-        gh = doc.get("github", {})
-        refresh_token = gh.get("refresh_token")
-        refresh_expires_at = gh.get("refresh_expires_at")
-        if not refresh_token:
-            print("[github_auth] no refresh_token stored")
-            return None
-        if refresh_expires_at and time.time() > float(refresh_expires_at) - 300:
-            print("[github_auth] refresh_token expired")
-            return None
         print("[github_auth] trying silent refresh...")
         r = requests.post(
             _TOKEN_URL,
@@ -207,13 +247,17 @@ def _run_device_flow(status) -> str:
 
 def clear_token() -> None:
     """Remove all stored credentials (force re-auth on next build)."""
+    _kr_delete("access_token")
+    _kr_delete("refresh_token")
     if CREDENTIALS_PATH.exists():
         CREDENTIALS_PATH.unlink()
         print("[github_auth] credentials cleared")
 
 
 def _store_token_response(data: dict) -> None:
-    """Persist access_token, refresh_token, and expiry timestamps."""
+    """Persist access_token + refresh_token in keyring (with toml fallback).
+    Timestamps (expires_at, refresh_expires_at) always go to toml — not sensitive.
+    """
     CREDENTIALS_PATH.parent.mkdir(parents=True, exist_ok=True)
     if CREDENTIALS_PATH.exists():
         doc = tomlkit.parse(CREDENTIALS_PATH.read_text(encoding="utf-8"))
@@ -222,19 +266,28 @@ def _store_token_response(data: dict) -> None:
     if "github" not in doc:
         doc.add("github", tomlkit.table())
 
-    doc["github"]["token"] = data["access_token"]
+    access_token = data["access_token"]
+    # Try keyring; fall back to toml if unavailable
+    if not _kr_set("access_token", access_token):
+        doc["github"]["token"] = access_token
+    else:
+        # Remove plaintext token if it previously existed
+        doc["github"].pop("token", None)
+
+    refresh_token = data.get("refresh_token")
+    if refresh_token:
+        if not _kr_set("refresh_token", refresh_token):
+            doc["github"]["refresh_token"] = refresh_token
+        else:
+            doc["github"].pop("refresh_token", None)
 
     expires_in = data.get("expires_in")
     if expires_in:
         doc["github"]["expires_at"] = str(time.time() + int(expires_in))
-
-    refresh_token = data.get("refresh_token")
-    if refresh_token:
-        doc["github"]["refresh_token"] = refresh_token
 
     refresh_expires_in = data.get("refresh_token_expires_in")
     if refresh_expires_in:
         doc["github"]["refresh_expires_at"] = str(time.time() + int(refresh_expires_in))
 
     CREDENTIALS_PATH.write_text(tomlkit.dumps(doc), encoding="utf-8")
-    print(f"[github_auth] credentials saved to {CREDENTIALS_PATH}")
+    print(f"[github_auth] credentials saved (keyring={'ok' if _kr_get('access_token') else 'fallback→toml'})")
