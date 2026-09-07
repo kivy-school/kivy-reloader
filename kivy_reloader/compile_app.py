@@ -238,8 +238,9 @@ def _terminate(proc: subprocess.Popen) -> None:
             proc.terminate()
 
 
-def wait_for_authorization(timeout=30):
+def wait_for_authorization(timeout=30, status_callback=print):
     start = time.time()
+    reconnect_tried = set()  # serials we've already tried reconnect offline on
     while time.time() - start < timeout:
         output = (
             subprocess
@@ -290,29 +291,47 @@ def wait_for_authorization(timeout=30):
             serial, state = parts[0], parts[1]
             if ':' not in serial:  # physical USB
                 if serial in authorized_hardware_serials:
-                    print(f'Device {serial} is authorized. Proceeding...')
-                    return True
+                    status_callback(f'Device {serial} is authorized. Proceeding...')
+                    return serial
 
         elapsed = time.time() - start
-        # serial_list = [parts[0] for parts in devices if len(parts) >= 2 and ":" not in parts[0]]
-        # print(f"[+{elapsed:0.2f}s] waiting for authorization on {','.join(serial_list)}...")
+
+        # After 5s stuck on unauthorized, try reconnect offline once per serial.
+        # Only targets stuck devices — won't disturb healthy WiFi or USB connections.
+        if elapsed > 5:
+            for parts in devices:
+                if len(parts) < 2:
+                    continue
+                serial, state = parts[0], parts[1]
+                if ':' not in serial and state == 'unauthorized' and serial not in reconnect_tried:
+                    reconnect_tried.add(serial)
+                    status_callback(f'  Reconnecting {serial} (stuck unauthorized)...')
+                    try:
+                        subprocess.run(
+                            ['adb', '-s', serial, 'reconnect', 'offline'],
+                            capture_output=True,
+                            timeout=5,
+                        )
+                    except Exception:
+                        pass
+
         state_list = [
             f'{parts[0]}({parts[1]})'
             for parts in devices
             if len(parts) >= 2 and ':' not in parts[0]
         ]
-        print(
+        status_callback(
             f'[+{elapsed:0.2f}s] waiting for authorization on {",".join(state_list)}...'
         )
         if elapsed > 10:
-            print('  No prompt on your phone? Unplug and replug the USB cable.')
+            status_callback('  No prompt on your phone? Unplug and replug the USB cable.')
         if elapsed > 20:
-            print(
+            status_callback(
                 '  Still no prompt? Settings → Developer Options → Revoke USB debugging authorizations, then replug.'
             )
         time.sleep(1)
 
-    return False
+    return None
 
 
 def validate_devices_connected() -> list:

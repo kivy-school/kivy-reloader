@@ -26,6 +26,8 @@ desktop = [
     "readchar>=4.2.1",
     "typer>=0.16.0",
     "setuptools>=75.0; python_version >= '3.12'", # buildozer needs this
+    "PyGithub>=2.0.0",   # Build APK button — trigger workflow, poll status, download artifact
+    "requests>=2.32.0",  # Build APK button — artifact download + OAuth device flow
 ]
 [dependency-groups]
 dev = [

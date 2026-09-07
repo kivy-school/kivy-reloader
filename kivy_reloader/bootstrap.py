@@ -197,6 +197,13 @@ FULL_RELOAD_FILES = ["main.py", "{full_reload_app_path}/app.py"]
 WATCHED_FOLDERS_RECURSIVELY = ["."]
 STREAM_USING = "WIFI"
 PERSISTENT_FLIGHTDECK = false
+
+# Uncomment to enable the "Build APK" button in Flightdeck.
+# repo     = your GitHub repo (owner/repo-name)
+# workflow = the GitHub Actions workflow file that builds your APK
+# [github]
+# repo = "your-username/your-repo"
+# workflow = "build-apk.yml"
 """
 
 

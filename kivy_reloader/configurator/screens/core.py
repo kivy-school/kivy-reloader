@@ -103,6 +103,7 @@ class CoreScreen(Screen):
         toolbar.on_toggle_sidebar = self.toggle_sidebar
         toolbar.on_toggle_dark_mode = self.handle_toggle_dark_mode
         toolbar.on_discord = lambda: webbrowser.open('https://discord.gg/kEEA7gkPvG')
+        toolbar.on_build_apk = self.handle_build_apk
 
         sidebar = self.sidebar
         self._sidebar_default_width = sidebar.width
@@ -220,6 +221,66 @@ class CoreScreen(Screen):
     def _clear_popup(self):
         """Clear the current popup reference."""
         self._current_popup = None
+
+    # ==================== GITHUB BUILD ====================
+
+    def handle_build_apk(self):
+        """Entry point for Build APK button. Checks for stored token first."""
+        from kivy_reloader import github_auth
+        token = github_auth.get_stored_token()
+        if token:
+            self._start_build(token)
+        else:
+            self._start_oauth()
+
+    def _start_oauth(self):
+        from kivy_reloader import github_auth
+        self.toolbar.build_status = "Connecting GitHub..."
+        github_auth.ensure_auth(
+            on_token=self._on_authenticated,
+            on_error=lambda msg: setattr(self.toolbar, 'build_status', f'Auth failed: {msg}'),
+            on_status=lambda msg: setattr(self.toolbar, 'build_status', msg),
+        )
+
+    def _on_authenticated(self, token):
+        self.toolbar.github_connected = True
+        self.toolbar.build_status = ""
+        self._start_build(token)
+
+    def _start_build(self, token):
+        from kivy_reloader import build_manager
+        import tomlkit
+
+        # Read [github] section from project's kivy-reloader.toml
+        repo = None
+        workflow = "build-apk.yml"
+        if self.config_model and self.config_model.config_path:
+            try:
+                raw = tomlkit.parse(
+                    self.config_model.config_path.read_text(encoding="utf-8")
+                )
+                github_cfg = raw.get("github", {})
+                repo = github_cfg.get("repo")
+                workflow = github_cfg.get("workflow", workflow)
+            except Exception:
+                pass
+
+        if not repo:
+            self.toolbar.build_status = "Add [github] repo = ... to kivy-reloader.toml"
+            return
+
+        def on_status(msg):
+            Clock.schedule_once(lambda dt: setattr(self.toolbar, 'build_status', msg))
+
+        def on_done(path):
+            if path:
+                Clock.schedule_once(
+                    lambda dt: setattr(self.toolbar, 'build_status', ''), 4
+                )
+
+        build_manager.trigger_build(token, repo, workflow, on_status, on_done)
+
+    # ==================== DARK MODE ====================
 
     def handle_toggle_dark_mode(self):
         app = App.get_running_app()
