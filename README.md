@@ -242,6 +242,67 @@ When you save a watched file:
 
 ---
 
+## Build APK via GitHub Actions
+
+Build your APK on GitHub's servers — no local Buildozer install needed. Flightdeck downloads the finished APK and installs it on your phone automatically.
+
+### Step 1 — Workflow file
+
+`kivy-reloader init project` creates `.github/workflows/build-apk.yml` automatically. If it's missing, create it manually:
+
+```yaml
+name: Build APK
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: kivy/buildozer
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Cache buildozer
+        uses: actions/cache@v6
+        with:
+          path: |
+            .buildozer
+            /github/home/.buildozer
+          key: buildozer-${{ hashFiles('buildozer.spec') }}
+          restore-keys: buildozer-
+
+      - run: yes | buildozer android debug
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: app-debug.apk
+          path: bin/*.apk
+```
+
+### Step 2 — Add `[github]` to your `kivy-reloader.toml`
+
+```toml
+[github]
+repo = "your-username/your-repo"
+workflow = "build-apk.yml"
+```
+
+### Step 3 — Click Build APK in Flightdeck
+
+Open Flightdeck → Quick Commands → **Build APK (GitHub)**. On first use you'll be asked to authenticate with GitHub (one-time only). After that:
+
+1. GitHub Actions triggers the build on their servers (~10–15 min)
+2. Flightdeck polls until the run completes
+3. APK downloads automatically
+4. Installs on your connected phone via ADB
+5. scrcpy + logcat start immediately
+6. First build is around ~10-15min. The process after the first build takes ~3 minutes.
+
+> **Tip:** If your build fails with `charset_normalizer` wheel errors, add `charset-normalizer==2.1.1` to your `buildozer.spec` requirements.
+
+---
+
 ## How it works (high level)
 
 - Watches files using **watchdog** (via **Kaki**).

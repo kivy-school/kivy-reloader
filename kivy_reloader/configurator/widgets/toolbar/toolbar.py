@@ -25,9 +25,6 @@ class Toolbar(BoxLayout):
     has_unsaved_changes = BooleanProperty(False)
     is_dark_mode = BooleanProperty(False)
     on_discord = ObjectProperty(None)
-    on_build_apk = ObjectProperty(None)
-    build_status = StringProperty("")   # "" = idle; any string = shown on button
-    github_connected = BooleanProperty(False)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -84,6 +81,3 @@ class Toolbar(BoxLayout):
         if self.on_toggle_dark_mode:
             self.on_toggle_dark_mode()
 
-    def handle_build_apk(self):
-        if self.on_build_apk:
-            self.on_build_apk()

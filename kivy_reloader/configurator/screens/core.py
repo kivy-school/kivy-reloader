@@ -103,14 +103,15 @@ class CoreScreen(Screen):
         toolbar.on_toggle_sidebar = self.toggle_sidebar
         toolbar.on_toggle_dark_mode = self.handle_toggle_dark_mode
         toolbar.on_discord = lambda: webbrowser.open('https://discord.gg/kEEA7gkPvG')
-        toolbar.on_build_apk = self.handle_build_apk
-
         sidebar = self.sidebar
         self._sidebar_default_width = sidebar.width
         sidebar.bind(on_section_select=self._on_sidebar_section_select)
 
         self._collect_section_cards()
         self._attach_model_to_cards()
+
+        if self.quick_commands_card:
+            self.quick_commands_card.build_apk_handler = self.handle_build_apk
 
         initial_section = sidebar.selected_section or 'Quick Commands'
 
@@ -233,18 +234,21 @@ class CoreScreen(Screen):
         else:
             self._start_oauth()
 
+    def _set_build_status(self, msg):
+        if self.quick_commands_card:
+            self.quick_commands_card.set_build_apk_status(msg)
+
     def _start_oauth(self):
         from kivy_reloader import github_auth
-        self.toolbar.build_status = "Connecting GitHub..."
+        self._set_build_status("Connecting GitHub...")
         github_auth.ensure_auth(
             on_token=self._on_authenticated,
-            on_error=lambda msg: setattr(self.toolbar, 'build_status', f'Auth failed: {msg}'),
-            on_status=lambda msg: setattr(self.toolbar, 'build_status', msg),
+            on_error=lambda msg: self._set_build_status(f'Auth failed: {msg}'),
+            on_status=lambda msg: self._set_build_status(msg),
         )
 
     def _on_authenticated(self, token):
-        self.toolbar.github_connected = True
-        self.toolbar.build_status = ""
+        self._set_build_status("")
         self._start_build(token)
 
     def _start_build(self, token):
@@ -260,25 +264,46 @@ class CoreScreen(Screen):
                     self.config_model.config_path.read_text(encoding="utf-8")
                 )
                 github_cfg = raw.get("github", {})
-                repo = github_cfg.get("repo")
+                repo = (github_cfg.get("repo") or "").strip().rstrip("/") or None
                 workflow = github_cfg.get("workflow", workflow)
             except Exception:
                 pass
 
         if not repo:
-            self.toolbar.build_status = "Add [github] repo = ... to kivy-reloader.toml"
+            self._show_github_config_popup()
             return
 
         def on_status(msg):
-            Clock.schedule_once(lambda dt: setattr(self.toolbar, 'build_status', msg))
+            Clock.schedule_once(lambda dt: self._set_build_status(msg))
 
         def on_done(path):
             if path:
-                Clock.schedule_once(
-                    lambda dt: setattr(self.toolbar, 'build_status', ''), 4
-                )
+                Clock.schedule_once(lambda dt: self._set_build_status(''), 4)
 
         build_manager.trigger_build(token, repo, workflow, on_status, on_done)
+
+    def _show_github_config_popup(self):
+        TUTORIAL_URL = "https://github.com/kivy-school/kivy-reloader#build-apk-via-github-actions"
+        TOML_SNIPPET = '[github]\nrepo = "owner/your-repo"\nworkflow = "build-apk.yml"'
+        popup = ConfirmPopup(
+            title='GitHub Config Missing',
+            message=(
+                'Add this to your kivy-reloader.toml:\n\n'
+                '[github]\n'
+                'repo = "owner/your-repo"\n'
+                'workflow = "build-apk.yml"\n\n'
+                'Then click Build APK again.'
+            ),
+            copy_text=TOML_SNIPPET,
+            confirm_text='Watch Tutorial',
+            cancel_text='OK',
+            is_destructive=False,
+            on_confirm=lambda: webbrowser.open(TUTORIAL_URL),
+            on_cancel=self._clear_popup,
+        )
+        popup.bind(on_dismiss=lambda *args: self._clear_popup())
+        self._current_popup = popup
+        popup.open()
 
     # ==================== DARK MODE ====================
 
@@ -479,6 +504,7 @@ class CoreScreen(Screen):
         self._section_cards = cards
         self.core_card = cards.get('Core')
         self.services_card = cards.get('Services')
+        self.quick_commands_card = cards.get('Quick Commands')
 
         # Wire up config change callbacks to update unsaved indicator
         def on_any_config_change(config):
