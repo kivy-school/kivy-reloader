@@ -103,26 +103,12 @@ def _run(token, repo_name, workflow_file, on_status, on_done):
 
 
 def _adb_install(apk_path, on_status, on_done):
-    from kivy_reloader.compile_app import wait_for_authorization
+    # Delegates entirely to compile_app.install_apk_from_path — same chain as
+    # the regular compile+install flow, just with the buildozer build step skipped.
+    from kivy_reloader.compile_app import install_apk_from_path
 
-    serial = wait_for_authorization(timeout=30, status_callback=on_status)
-    if serial is None:
-        on_status("Timed out waiting for device — connect phone and try again")
-        on_done(None)
-        return
-
-    result = subprocess.run(
-        ["adb", "-s", serial, "install", "-r", str(apk_path)],
-        capture_output=True,
-        timeout=60,
-    )
-    if result.returncode == 0:
-        on_status("Installed!")
-        on_done(str(apk_path))
-    else:
-        stderr = result.stderr.decode(errors="replace").strip()
-        on_status(f"Install failed: {stderr[:80]}")
-        on_done(None)
+    ok = install_apk_from_path(apk_path, status_callback=on_status)
+    on_done(str(apk_path) if ok else None)
 
 
 def _wait_for_run(repo, timeout_s: int, poll_s: int):

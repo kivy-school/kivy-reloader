@@ -334,6 +334,90 @@ def wait_for_authorization(timeout=30, status_callback=print):
     return None
 
 
+def _get_package_from_apk(apk_path) -> str | None:
+    """Extract Android package name from APK using pure Python (no aapt needed).
+
+    APKs are ZIP files. AndroidManifest.xml inside is binary AXML, not plain XML.
+    The string pool in binary AXML contains all string values. Package names are
+    lowercase Java identifiers separated by dots — that regex excludes class names
+    (which have uppercase letters like PythonActivity).
+    """
+    import re
+    import struct
+    import zipfile
+
+    try:
+        with zipfile.ZipFile(str(apk_path)) as z:
+            data = z.read('AndroidManifest.xml')
+    except Exception:
+        return None
+
+    # Binary AXML layout: 8-byte file header, then string pool chunk
+    pos = 8
+    try:
+        header_size = struct.unpack_from('<H', data, pos + 2)[0]
+        str_count   = struct.unpack_from('<I', data, pos + 8)[0]
+        flags       = struct.unpack_from('<I', data, pos + 16)[0]
+        str_offset  = struct.unpack_from('<I', data, pos + 20)[0]
+    except struct.error:
+        return None
+
+    is_utf8      = bool(flags & 0x100)
+    offsets_base = pos + header_size
+    string_base  = pos + str_offset
+    pkg_pattern  = re.compile(r'^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$')
+
+    for i in range(str_count):
+        try:
+            off = struct.unpack_from('<I', data, offsets_base + i * 4)[0]
+            p   = string_base + off
+            if is_utf8:
+                clen = data[p]; p += 1
+                if clen & 0x80: clen = ((clen & 0x7f) << 8) | data[p]; p += 1
+                blen = data[p]; p += 1
+                if blen & 0x80: blen = ((blen & 0x7f) << 8) | data[p]; p += 1
+                s = data[p:p + blen].decode('utf-8', errors='replace')
+            else:
+                clen = struct.unpack_from('<H', data, p)[0]; p += 2
+                s = data[p:p + clen * 2].decode('utf-16-le', errors='replace')
+        except Exception:
+            continue
+
+        if pkg_pattern.match(s):
+            return s
+
+    return None
+
+
+def install_apk_from_path(apk_file_path, status_callback=print) -> bool:
+    """Install a pre-built APK using the same chain as compile_app(), skipping the build step.
+
+    Extracts the package name from the APK itself (single source of truth),
+    then runs: wait_for_authorization → get_connected_devices → filter_target_devices
+    → deploy_app_to_devices. All WSL path handling, signature-mismatch uninstall,
+    and retry logic live in that existing chain — nothing is duplicated here.
+
+    Returns True if deploy was attempted (individual device failures logged internally).
+    """
+    package = _get_package_from_apk(apk_file_path)
+    if not package:
+        status_callback('Could not read package name from APK — is it a valid APK?')
+        return False
+
+    status_callback(f'Package: {package}')
+    wait_for_authorization(status_callback=status_callback)
+
+    fetch_wifi_ip = config.STREAM_USING == 'WIFI'
+    devices = get_connected_devices(fetch_wifi_ip)
+    if not devices:
+        status_callback('No connected devices found.')
+        return False
+
+    target_devices = filter_target_devices(devices)
+    deploy_app_to_devices(target_devices, str(apk_file_path), package)
+    return True
+
+
 def validate_devices_connected() -> list:
     """
     Validates that devices are connected and returns them.
