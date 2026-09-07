@@ -176,6 +176,11 @@ class QuickCommandsCard(BoxLayout):
             for qa in getattr(card, 'quick_actions', []):
                 card_actions.append(qa)
 
+        display_map = {
+            **_STATIC_DISPLAY,
+            **{qa['command']: qa.get('display', '') for qa in card_actions},
+        }
+
         # Whitelist: only surface history for commands that come from known sources.
         # Prevents buggy or accidental commands from appearing in Quick Commands.
         allowed = (
@@ -183,6 +188,9 @@ class QuickCommandsCard(BoxLayout):
             | {qa['command'] for qa in card_actions}
         )
         top_filtered = [item for item in top if item['command'] in allowed]
+        for item in top_filtered:
+            if not item.get('display'):
+                item['display'] = display_map.get(item['command'], '')
         history_cmds = {item['command'] for item in top_filtered}
 
         static = [c for c in _STATIC_COMMANDS if c['command'] not in history_cmds]
