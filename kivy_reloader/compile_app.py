@@ -2045,6 +2045,10 @@ def highlight_selected_option(option: str):
     typer.echo(option_text)
 
 
+def _clear_screen() -> None:
+    os.system('cls' if os.name == 'nt' else 'clear')
+
+
 def render_option_menu(current_selection: str) -> None:
     """
     Renders the option menu with the current selection highlighted.
@@ -2052,6 +2056,7 @@ def render_option_menu(current_selection: str) -> None:
     Args:
         current_selection: Currently selected option string
     """
+    _clear_screen()
     typer.echo('\nSelect one of the 6 options below:\n')
 
     flightdeck_option = compiler_options[0]

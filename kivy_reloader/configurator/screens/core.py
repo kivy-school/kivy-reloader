@@ -225,8 +225,34 @@ class CoreScreen(Screen):
 
     # ==================== GITHUB BUILD ====================
 
+    def _is_ksproject(self) -> bool:
+        if not self.config_model or not self.config_model.config_path:
+            return False
+        pyproject = self.config_model.config_path.parent / 'pyproject.toml'
+        if not pyproject.exists():
+            return False
+        try:
+            import tomlkit
+            data = tomlkit.parse(pyproject.read_text(encoding='utf-8'))
+            return bool(data.get('tool', {}).get('kivy-school', {}).get('app_name'))
+        except Exception:
+            return False
+
     def handle_build_apk(self):
         """Entry point for Build APK button. Checks for stored token first."""
+        if self._is_ksproject():
+            popup = ConfirmPopup(
+                title='Not supported yet',
+                message='Build APK via GitHub Actions does not support ksproject yet. Coming soon.',
+                confirm_text='OK',
+                cancel_text='',
+                is_destructive=False,
+                on_confirm=self._clear_popup,
+            )
+            popup.bind(on_dismiss=lambda *args: self._clear_popup())
+            self._current_popup = popup
+            popup.open()
+            return
         from kivy_reloader import github_auth
         token = github_auth.get_stored_token()
         if token:
