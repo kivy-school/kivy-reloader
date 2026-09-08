@@ -180,9 +180,24 @@ def _copy_to_clipboard(text: str) -> None:
         pass  # clipboard unavailable — user reads from button
 
 
+def _open_browser(url: str) -> None:
+    """Open URL in default browser. In WSL, webbrowser.open() → xdg-open → no browser.
+    Register cmd.exe as a GenericBrowser so webbrowser handles it uniformly."""
+    import sys, webbrowser
+    if sys.platform == "linux":
+        try:
+            with open("/proc/version") as _f:
+                _is_wsl = "microsoft" in _f.read().lower()
+        except OSError:
+            _is_wsl = False
+        if _is_wsl:
+            webbrowser.GenericBrowser(["cmd.exe", "/c", "start", "%s"]).open(url)
+            return
+    webbrowser.open(url)
+
+
 def _run_device_flow(status) -> str:
     """Device flow: open browser, poll until user authorizes. Returns access_token."""
-    import webbrowser
 
     status("Connecting to GitHub...")
     r = requests.post(
@@ -207,7 +222,7 @@ def _run_device_flow(status) -> str:
     _copy_to_clipboard(user_code)
     status(f"Code: {user_code} (copied) — paste in browser")
     print(f"[github_auth] opening browser: {verification_uri}")
-    webbrowser.open(verification_uri)
+    _open_browser(verification_uri)
 
     deadline = time.time() + expires_in
     while time.time() < deadline:
