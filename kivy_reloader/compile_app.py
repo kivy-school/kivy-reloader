@@ -216,6 +216,14 @@ if platform != 'win':
 
     def _restore_terminal() -> None:
         """Return terminal to the settings captured at startup."""
+        try:
+            # Reset ANSI color/attribute state and move cursor to column 0.
+            # logcat streams colored output; a mid-line kill leaves open escape sequences
+            # that corrupt all subsequent terminal output until reset.
+            sys.stdout.write('\033[0m\r\n')
+            sys.stdout.flush()
+        except Exception:
+            pass
         if _ORIGINAL_STTY is not None:
             subprocess.run(['stty', _ORIGINAL_STTY], check=False)
 
@@ -224,7 +232,16 @@ if platform != 'win':
         logging.info('Received interrupt signal (Ctrl+C)')
         safe_exit(130)
 
+    def _sigterm_handler(_sig, _frame) -> None:
+        """Handle SIGTERM (e.g. X button on Windows kills WSL process): same cleanup as Ctrl+C."""
+        logging.info('Received SIGTERM — cleaning up')
+        safe_exit(143)
+
     signal.signal(signal.SIGINT, _sigint_handler)
+    signal.signal(signal.SIGTERM, _sigterm_handler)
+
+    import atexit
+    atexit.register(_restore_terminal)
 else:
 
     def _restore_terminal() -> None:
@@ -240,7 +257,10 @@ def _terminate(proc: subprocess.Popen) -> None:
 
 def wait_for_authorization(timeout=30, status_callback=print):
     start = time.time()
-    reconnect_tried = set()  # serials we've already tried reconnect offline on
+    reconnect_tried = set()
+    prev_states = {}  # serial → state from last iteration, for change detection
+    first_iteration = True
+
     while time.time() - start < timeout:
         output = (
             subprocess
@@ -250,6 +270,16 @@ def wait_for_authorization(timeout=30, status_callback=print):
             .splitlines()[1:]
         )
         devices = [line.split() for line in output if line.strip()]
+        curr_states = {
+            parts[0]: parts[1] for parts in devices if len(parts) >= 2
+        }
+
+        # Log any state transitions immediately (e.g. unauthorized → device)
+        for serial, state in curr_states.items():
+            prev = prev_states.get(serial)
+            if prev and prev != state:
+                status_callback(f'  [{serial}] state changed: {prev} → {state}')
+        prev_states = curr_states
 
         authorized_hardware_serials = set()
         for parts in devices:
@@ -285,27 +315,39 @@ def wait_for_authorization(timeout=30, status_callback=print):
                     )  # ← USB serial is authorized directly
 
         # Now check: any physical USB device authorized?
+        # Must check state directly — authorized_hardware_serials can contain the USB
+        # device's serial via a WiFi connection to the same phone (same ro.serialno),
+        # which would produce a false positive if only checking set membership.
         for parts in devices:
             if len(parts) < 2:
                 continue
             serial, state = parts[0], parts[1]
-            if ':' not in serial:  # physical USB
-                if serial in authorized_hardware_serials:
-                    status_callback(f'Device {serial} is authorized. Proceeding...')
-                    return serial
+            if ':' not in serial and state == 'device':  # physical USB, confirmed authorized
+                status_callback(f'  USB {serial} authorized ✓ Proceeding...')
+                return serial
 
         elapsed = time.time() - start
 
-        # After 5s stuck on unauthorized, try reconnect offline once per serial.
-        # Only targets stuck devices — won't disturb healthy WiFi or USB connections.
-        if elapsed > 5:
+        # On first iteration: immediately reconnect offline any unauthorized USB device
+        # so the authorization dialog appears without waiting 10s.
+        if first_iteration:
+            first_iteration = False
             for parts in devices:
                 if len(parts) < 2:
                     continue
                 serial, state = parts[0], parts[1]
-                if ':' not in serial and state == 'unauthorized' and serial not in reconnect_tried:
+                if ':' not in serial and state in ('unauthorized', 'offline') and serial not in reconnect_tried:
                     reconnect_tried.add(serial)
-                    status_callback(f'  Reconnecting {serial} (stuck unauthorized)...')
+                    wifi_also = any(
+                        p[1] == 'device' for p in devices if len(p) >= 2 and ':' in p[0]
+                    )
+                    wifi_note = (
+                        ' USB connection requested, but phone may also be connected through WiFi.'
+                        if wifi_also else ''
+                    )
+                    status_callback(
+                        f'  Triggering USB auth dialog for {serial} — check your phone.{wifi_note}'
+                    )
                     try:
                         subprocess.run(
                             ['adb', '-s', serial, 'reconnect', 'offline'],
@@ -315,13 +357,40 @@ def wait_for_authorization(timeout=30, status_callback=print):
                     except Exception:
                         pass
 
-        state_list = [
-            f'{parts[0]}({parts[1]})'
+        # After 10s still stuck, try reconnect again as a second nudge.
+        elif elapsed > 10:
+            for parts in devices:
+                if len(parts) < 2:
+                    continue
+                serial, state = parts[0], parts[1]
+                if ':' not in serial and state in ('unauthorized', 'offline') and serial not in reconnect_tried:
+                    reconnect_tried.add(serial)
+                    status_callback(
+                        f'  WARNING: cycling USB connection for {serial} ({state}) — tap Allow quickly after this'
+                    )
+                    try:
+                        subprocess.run(
+                            ['adb', '-s', serial, 'reconnect', 'offline'],
+                            capture_output=True,
+                            timeout=5,
+                        )
+                    except Exception:
+                        pass
+
+        # Status line: show ALL devices (USB + WiFi) so you can see both states
+        usb_parts = [
+            f'USB {parts[0]}={parts[1]}'
             for parts in devices
             if len(parts) >= 2 and ':' not in parts[0]
         ]
+        wifi_parts = [
+            f'WiFi {parts[0]}={parts[1]}'
+            for parts in devices
+            if len(parts) >= 2 and ':' in parts[0]
+        ]
+        all_parts = usb_parts + wifi_parts
         status_callback(
-            f'[+{elapsed:0.2f}s] waiting for authorization on {",".join(state_list)}...'
+            f'[+{elapsed:0.2f}s] Flightdeck mode: {config.STREAM_USING} | {" | ".join(all_parts) if all_parts else "no devices"}'
         )
         if elapsed > 10:
             status_callback('  No prompt on your phone? Unplug and replug the USB cable.')
@@ -331,6 +400,16 @@ def wait_for_authorization(timeout=30, status_callback=print):
             )
         time.sleep(1)
 
+    # Timed out — check if WiFi is available as fallback and explain what happened
+    wifi_devices = [
+        parts[0] for parts in devices
+        if len(parts) >= 2 and ':' in parts[0] and parts[1] == 'device'
+    ]
+    if wifi_devices:
+        status_callback(
+            f'  USB auth timed out. WiFi device available ({wifi_devices[0]}) — '
+            f'continuing on WiFi. To use USB: accept the dialog on your phone, or turn off phone WiFi to force USB.'
+        )
     return None
 
 
@@ -429,7 +508,11 @@ def validate_devices_connected() -> list:
         SystemExit: If no devices are connected
     """
 
-    wait_for_authorization()
+    # Only wait for USB auth when in USB mode — WiFi device is already authorized.
+    # Use a short timeout: start_nodaemon_adb_server already ran a 30s wait.
+    # If USB is already authorized, skip entirely. If not, give 10s more.
+    if config.STREAM_USING != 'WIFI' and not _usb_device_authorized():
+        wait_for_authorization(timeout=10)
 
     if config.STREAM_USING == 'WIFI':
         fetch_wifi_ip = True
@@ -497,18 +580,21 @@ def terminate_processes(*processes) -> None:
     Args:
         *processes: Variable number of Process objects to terminate
     """
-    for proc in processes:
-        if proc and proc.is_alive():
-            logging.info(f'Terminating process {proc.name}')
-            _kill_process_tree(proc.pid)
-            proc.terminate()
+    # Kill grandchildren + signal all processes first so they die in parallel.
+    alive = [p for p in processes if p and p.is_alive()]
+    for proc in alive:
+        logging.info(f'Terminating process {proc.name}')
+        _kill_process_tree(proc.pid)
+        proc.terminate()
 
-            # Give process time to terminate gracefully
-            try:
-                proc.join(timeout=3.0)
-            except Exception:
-                logging.warning(f'Force killing process {proc.name}')
-                proc.kill()
+    # Join after all signals are sent — total wait = max(t_3, t_4), not sum.
+    for proc in alive:
+        proc.join(timeout=1.0)
+        if proc.is_alive():
+            # proc.join() returns None on timeout (no exception) — must check is_alive.
+            logging.warning(f'Force killing process {proc.name}')
+            proc.kill()
+            proc.join(timeout=1.0)
 
 
 def cleanup_background_processes() -> None:
@@ -526,13 +612,27 @@ def safe_exit(exit_code: int = 0) -> None:
     Args:
         exit_code: Exit code to use (0 for success, non-zero for error)
     """
+    import signal
+
     logging.info('Shutting down application...')
 
     # Restore terminal state
     _restore_terminal()
 
-    # clear debug logcat printer and scrcpy now that they're multiprocess
-    cleanup_background_processes()
+    # Shield cleanup from SIGINT so Ctrl+C spam can't orphan grandchild processes
+    # (adb logcat, scrcpy) between killing SpawnProcess-3 and SpawnProcess-4.
+    # signal.signal() is only valid on the main thread; skip silently if called from a thread.
+    _old_sigint = None
+    try:
+        _old_sigint = signal.signal(signal.SIGINT, signal.SIG_IGN)
+    except (OSError, ValueError):
+        pass
+
+    try:
+        cleanup_background_processes()
+    finally:
+        if _old_sigint is not None:
+            signal.signal(signal.SIGINT, _old_sigint)
 
     logging.info('Application shutdown complete')
     sys.exit(exit_code)
@@ -1345,10 +1445,14 @@ def start_nodaemon_adb_server():
         )
         PORT = config.RELOADER_PORT
         if config.STREAM_USING.lower().replace(' ', '') == 'usb':
-            wait_for_authorization()
-            if not adb_has_forward(PORT):
+            usb_serial = wait_for_authorization()
+            if not usb_serial:
+                logging.warning(
+                    'USB auth timed out — skipping adb forward (falling back to WiFi)'
+                )
+            elif not adb_has_forward(PORT):
                 # no port forward means we forward now:
-                adb_forward(PORT)
+                adb_forward(PORT, serial=usb_serial)
             else:
                 logging.info(
                     f'adb forwarded: {adb_has_forward(PORT)} config.RELOADER_PORT: {PORT}'
@@ -1724,8 +1828,10 @@ def build_filter_command() -> list:
         services = [f'{SERVICE_NAME}:V' for SERVICE_NAME in config.SERVICE_NAMES]
         return ['-v', 'time', '-s', 'python:V'] + services + ['*:S']
     else:
+        # Match any logcat priority (D/V/I/W/E/F) for the python tag.
+        # Previously 'I python' only captured INFO — debug/warning/error were silently dropped.
         services = '|'.join(config.SERVICE_NAMES)
-        watch = 'I python' if not services else f'I python|{services}'
+        watch = '[DVIWEF] python' if not services else f'[DVIWEF] python|{services}'
         return ['grep', '--line-buffered', '-E', watch]
 
 
@@ -1900,10 +2006,31 @@ def add_recording_options(scrcpy_cmd: list) -> None:
         scrcpy_cmd.extend(['--record', config.RECORD_FILE_PATH])
 
 
+def _usb_device_authorized() -> bool:
+    """Return True if at least one USB device has state 'device' (authorized)."""
+    try:
+        out = subprocess.check_output(['adb', 'devices'], text=True, timeout=3)
+        for line in out.splitlines()[1:]:
+            parts = line.split()
+            if len(parts) >= 2 and ':' not in parts[0] and parts[1] == 'device':
+                return True
+    except Exception:
+        pass
+    return False
+
+
 def add_connection_options(scrcpy_cmd: list) -> None:
     """Add connection method options to scrcpy command."""
     if config.STREAM_USING == 'USB':
-        scrcpy_cmd.append('-d')
+        if _usb_device_authorized():
+            scrcpy_cmd.append('-d')
+        else:
+            # USB device present but unauthorized — fall back to TCP/IP so scrcpy
+            # doesn't immediately crash with "Device is unauthorized".
+            logging.warning(
+                'USB device unauthorized; falling back to -e (TCP/IP) for scrcpy'
+            )
+            scrcpy_cmd.append('-e')
     elif config.STREAM_USING == 'WIFI':
         scrcpy_cmd.append('-e')
 
