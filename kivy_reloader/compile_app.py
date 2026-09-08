@@ -65,12 +65,21 @@ red = Fore.RED
 
 
 def _read_ksproject_config() -> dict:
-    """Read build config from pyproject.toml [tool.kivy-school] section."""
+    """Read build config from pyproject.toml [tool.kivy-school] section.
+
+    Returns None when the section is absent (i.e. this is a buildozer project).
+    Callers use the return value as a truthiness guard before accessing keys.
+    """
     import tomlkit
 
-    with open('pyproject.toml', 'r', encoding='utf-8') as f:
-        data = tomlkit.load(f)
+    try:
+        with open('pyproject.toml', 'r', encoding='utf-8') as f:
+            data = tomlkit.load(f)
+    except FileNotFoundError:
+        return None
     ks = data.get('tool', {}).get('kivy-school', {})
+    if not ks:
+        return None
     android = ks.get('android', {})
     app_name_val = ks.get('app_name', 'App')
     pkg_name = android.get('package_name', f'org.kivy.{app_name_val.lower()}')
@@ -600,6 +609,10 @@ def terminate_processes(*processes) -> None:
 def cleanup_background_processes() -> None:
     """Terminate any in-flight debug/livestream processes, including their subprocess trees."""
     global _debug_proc, _scrcpy_proc  # noqa:PLW0603
+    logging.info(
+        f'[cleanup] _debug_proc={_debug_proc} alive={_debug_proc.is_alive() if _debug_proc else "N/A"} | '
+        f'_scrcpy_proc={_scrcpy_proc} alive={_scrcpy_proc.is_alive() if _scrcpy_proc else "N/A"}'
+    )
     terminate_processes(_debug_proc, _scrcpy_proc)
     _debug_proc = None
     _scrcpy_proc = None
@@ -1254,7 +1267,18 @@ def debug_and_livestream(buildozer_compiled: Event = None) -> None:
         return
 
     # Early validation - exit immediately if no devices
-    validate_devices_connected()
+    devices = validate_devices_connected()
+
+    # Force-open the app on every device before logcat attaches.
+    # Handles crashed or backgrounded app — am start is a no-op if already in foreground.
+    logging.info(f'[debug_and_livestream] am start on {len(devices)} device(s)')
+    try:
+        from kivy_reloader.send_app_to_phone import _am_start
+        for device in devices:
+            adb_device = device['serial'] if device.get('transport') == 'usb' else f"{device['wifi_ip']}:{config.ADB_PORT}"
+            _am_start(adb_device)
+    except Exception as e:
+        logging.warning(f'[debug_and_livestream] am start failed (non-fatal): {e}')
 
     logging.info('DEBUG RAN!0000!')
 
@@ -1264,15 +1288,19 @@ def debug_and_livestream(buildozer_compiled: Event = None) -> None:
         _ctx = get_context('spawn')
         adb_logcat_ready = _ctx.Event()
         adb_logcat = _ctx.Process(target=debug, args=(adb_logcat_ready,))
+        adb_logcat.daemon = True  # dies when parent exits, not just when cleanup is called
         logging.info('LIVESTREAM RAN!!')
         scrcpy = _ctx.Process(target=livestream, args=(adb_logcat_ready,))
-
-        adb_logcat.start()
-        scrcpy.start()
+        scrcpy.daemon = True
 
         global _debug_proc, _scrcpy_proc  # noqa:PLW0603
         _debug_proc = adb_logcat
         _scrcpy_proc = scrcpy
+        logging.info('[debug_and_livestream] globals set (pre-start) — cleanup can now find these processes')
+
+        adb_logcat.start()
+        scrcpy.start()
+        logging.info(f'[debug_and_livestream] processes started: logcat pid={adb_logcat.pid} scrcpy pid={scrcpy.pid} daemon={adb_logcat.daemon}')
         try:
             adb_logcat.join()
             scrcpy.join()

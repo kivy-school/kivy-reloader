@@ -299,14 +299,69 @@ class CoreScreen(Screen):
             self._show_github_config_popup()
             return
 
-        def on_status(msg):
-            Clock.schedule_once(lambda dt: self._set_build_status(msg))
+        def _do_trigger():
+            def on_status(msg):
+                Clock.schedule_once(lambda dt: self._set_build_status(msg))
 
-        def on_done(path):
-            if path:
-                Clock.schedule_once(lambda dt: self._set_build_status(''), 4)
+            def on_done(path):
+                if path:
+                    Clock.schedule_once(lambda dt: self._set_build_status(''), 4)
 
-        build_manager.trigger_build(token, repo, workflow, on_status, on_done)
+            build_manager.trigger_build(token, repo, workflow, on_status, on_done)
+
+        if self._has_unsynced_changes():
+            popup = ConfirmPopup(
+                title='Unsynced Changes',
+                message=(
+                    'You have local changes not yet on GitHub.\n\n'
+                    'GitHub Actions builds from the remote — '
+                    'your uncommitted or unpushed changes won\'t be included.\n\n'
+                    'Commit and push first, or continue to build the current remote version.'
+                ),
+                confirm_text='Build anyway',
+                cancel_text='Cancel',
+                is_destructive=False,
+                on_confirm=lambda: (self._clear_popup(), _do_trigger()),
+            )
+            popup.bind(on_dismiss=lambda *args: self._clear_popup())
+            self._current_popup = popup
+            popup.open()
+        else:
+            _do_trigger()
+
+    def _has_unsynced_changes(self):
+        """True if local has commits or file changes not yet on GitHub."""
+        import subprocess
+        project_dir = (
+            str(self.config_model.config_path.parent)
+            if self.config_model and self.config_model.config_path
+            else None
+        )
+        try:
+            # 1. Unpushed commits — upstream tracking set
+            r = subprocess.run(
+                ["git", "rev-list", "--count", "HEAD@{upstream}..HEAD"],
+                capture_output=True, text=True, cwd=project_dir,
+            )
+            if r.returncode == 0 and r.stdout.strip() not in ("0", ""):
+                return True
+            # 2. Unpushed commits — no tracking branch (git status -sb shows [ahead N])
+            r2 = subprocess.run(
+                ["git", "status", "-sb"],
+                capture_output=True, text=True, cwd=project_dir,
+            )
+            if r2.returncode == 0 and "ahead" in r2.stdout:
+                return True
+            # 3. Uncommitted changes to tracked files (staged or unstaged)
+            r3 = subprocess.run(
+                ["git", "diff", "HEAD", "--quiet"],
+                capture_output=True, cwd=project_dir,
+            )
+            if r3.returncode != 0:
+                return True
+        except Exception:
+            pass
+        return False
 
     def _show_github_config_popup(self):
         TUTORIAL_URL = "https://github.com/kivy-school/kivy-reloader#build-apk-via-github-actions"

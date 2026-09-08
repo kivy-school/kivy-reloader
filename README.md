@@ -313,6 +313,44 @@ Open Flightdeck → Quick Commands → **Build APK (GitHub)**. On first use you'
 
 ---
 
+## Running kivy-reloader from a local editable clone (dev / contributor setup)
+
+Use this when you want to test changes to kivy-reloader itself — the desktop app, Flightdeck, build logic, etc. — against a real project without publishing to PyPI.
+
+```bash
+cd ~
+mkdir reloadtest && cd reloadtest
+
+uv init --python 3.13
+uv add "kivy>=2.3.1"
+git clone --branch macfix_gaimwsl https://github.com/kivy-school/kivy-reloader
+uv add --editable "./kivy-reloader[desktop]"
+uv run kivy-reloader init project
+```
+
+**To also test on the phone** (so the phone app picks up your local changes too), add the local path to `buildozer.spec` requirements:
+
+```
+# buildozer.spec
+requirements = python3,kivy==2.3.0,...,git+file:///home/youruser/reloadtest/kivy-reloader
+```
+
+Replace `/home/youruser/reloadtest/kivy-reloader` with the path to your local clone.
+
+**Run the app:**
+
+```bash
+# Terminal 1 — Flightdeck + hot reload watcher
+uv run kivy-reloader run
+
+# Terminal 2 — trigger a reload (or just save a watched file)
+uv run python main.py
+```
+
+Both `uv run kivy-reloader run` and `uv run python main.py` work. If the phone app isn't running and the desktop tries to reach it, the connection times out — that's normal behavior, not an error.
+
+---
+
 ## Contribution
 
 Have ideas or found a bug? Please open an **[issue](https://github.com/kivy-school/kivy-reloader/issues)** or a **[pull request](https://github.com/kivy-school/kivy-reloader/pulls)**.
