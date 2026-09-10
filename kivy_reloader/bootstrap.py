@@ -197,6 +197,44 @@ FULL_RELOAD_FILES = ["main.py", "{full_reload_app_path}/app.py"]
 WATCHED_FOLDERS_RECURSIVELY = ["."]
 STREAM_USING = "WIFI"
 PERSISTENT_FLIGHTDECK = false
+
+# Uncomment to enable the "Build APK" button in Flightdeck.
+# repo     = your GitHub repo (owner/repo-name)
+# workflow = the GitHub Actions workflow file that builds your APK
+# [github]
+# repo = "your-username/your-repo"
+# workflow = "build-apk.yml"
+"""
+
+
+BUILD_APK_WORKFLOW_YML = """\
+name: Build APK
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: kivy/buildozer
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Cache buildozer
+        uses: actions/cache@v6
+        with:
+          path: |
+            .buildozer
+            /github/home/.buildozer
+          key: buildozer-${{ hashFiles('buildozer.spec') }}
+          restore-keys: buildozer-
+
+      - run: yes | buildozer android debug
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: app-debug.apk
+          path: bin/*.apk
 """
 
 
@@ -494,6 +532,10 @@ def scaffold_hello_world():
         project_root / 'hello_world' / 'screens' / 'main_screen.kv': MAIN_SCREEN_KV,
         project_root / 'kivy-reloader.toml': _toml('hello_world'),
         project_root / 'main.py': _main_py('hello_world', 'HelloWorld'),
+        project_root
+        / '.github'
+        / 'workflows'
+        / 'build-apk.yml': BUILD_APK_WORKFLOW_YML,
     }
 
     for path, content in files.items():

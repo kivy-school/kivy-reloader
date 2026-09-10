@@ -242,11 +242,112 @@ When you save a watched file:
 
 ---
 
+## Build APK via GitHub Actions
+
+Build your APK on GitHub's servers — no local Buildozer install needed. Flightdeck downloads the finished APK and installs it on your phone automatically.
+
+### Step 1 — Workflow file
+
+`kivy-reloader init project` creates `.github/workflows/build-apk.yml` automatically. If it's missing, create it manually:
+
+```yaml
+name: Build APK
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: kivy/buildozer
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Cache buildozer
+        uses: actions/cache@v6
+        with:
+          path: |
+            .buildozer
+            /github/home/.buildozer
+          key: buildozer-${{ hashFiles('buildozer.spec') }}
+          restore-keys: buildozer-
+
+      - run: yes | buildozer android debug
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: app-debug.apk
+          path: bin/*.apk
+```
+
+### Step 2 — Add `[github]` to your `kivy-reloader.toml`
+
+```toml
+[github]
+repo = "your-username/your-repo"
+workflow = "build-apk.yml"
+```
+
+### Step 3 — Click Build APK in Flightdeck
+
+Open Flightdeck → Quick Commands → **Build APK (GitHub)**. On first use you'll be asked to authenticate with GitHub (one-time only). After that:
+
+1. GitHub Actions triggers the build on their servers (~10–15 min)
+2. Flightdeck polls until the run completes
+3. APK downloads automatically
+4. Installs on your connected phone via ADB
+5. scrcpy + logcat start immediately
+6. First build is around ~10-15min. The process after the first build takes ~3 minutes.
+
+> **Tip:** If your build fails with `charset_normalizer` wheel errors, add `charset-normalizer==2.1.1` to your `buildozer.spec` requirements.
+
+> **Security:** GitHub tokens are stored in your OS keychain (Windows Credential Manager, macOS Keychain, Linux libsecret) when available. If the keychain is unavailable, tokens fall back to `~/.config/kivy-reloader/credentials.toml`.
+
+---
+
 ## How it works (high level)
 
 - Watches files using **watchdog** (via **Kaki**).
 - On change, syncs files and signals your app(s) to reload.
 - An on‑device Trio server receives files during development for instant updates.
+
+---
+
+## Running kivy-reloader from a local editable clone (dev / contributor setup)
+
+Use this when you want to test changes to kivy-reloader itself — the desktop app, Flightdeck, build logic, etc. — against a real project without publishing to PyPI.
+
+```bash
+cd ~
+mkdir reloadtest && cd reloadtest
+
+uv init --python 3.13
+uv add "kivy>=2.3.1"
+git clone --branch macfix_gaimwsl https://github.com/kivy-school/kivy-reloader
+uv add --editable "./kivy-reloader[desktop]"
+uv run kivy-reloader init project
+```
+
+**To also test on the phone** (so the phone app picks up your local changes too), add the local path to `buildozer.spec` requirements:
+
+```
+# buildozer.spec
+requirements = python3,kivy==2.3.0,...,git+file:///home/youruser/reloadtest/kivy-reloader
+```
+
+Replace `/home/youruser/reloadtest/kivy-reloader` with the path to your local clone.
+
+**Run the app:**
+
+```bash
+# Terminal 1 — Flightdeck + hot reload watcher
+uv run kivy-reloader run
+
+# Terminal 2 — trigger a reload (or just save a watched file)
+uv run python main.py
+```
+
+Both `uv run kivy-reloader run` and `uv run python main.py` work. If the phone app isn't running and the desktop tries to reach it, the connection times out — that's normal behavior, not an error.
 
 ---
 

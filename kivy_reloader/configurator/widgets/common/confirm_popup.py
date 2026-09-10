@@ -26,6 +26,8 @@ class ConfirmPopup(ModalView):
     message = StringProperty('Are you sure?')
     confirm_text = StringProperty('Confirm')
     cancel_text = StringProperty('Cancel')
+    copy_text = StringProperty('')
+    copy_label = StringProperty('Copy')
     is_destructive = BooleanProperty(False)
 
     # Callbacks
@@ -48,3 +50,12 @@ class ConfirmPopup(ModalView):
         self.dismiss()
         if self.on_cancel_callback:
             self.on_cancel_callback()
+
+    def do_copy(self):
+        from kivy.core.clipboard import Clipboard
+
+        Clipboard.copy(self.copy_text)
+        self.copy_label = 'Copied!'
+        from kivy.clock import Clock
+
+        Clock.schedule_once(lambda dt: setattr(self, 'copy_label', 'Copy'), 2)

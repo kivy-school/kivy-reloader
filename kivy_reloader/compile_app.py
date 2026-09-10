@@ -65,12 +65,21 @@ red = Fore.RED
 
 
 def _read_ksproject_config() -> dict:
-    """Read build config from pyproject.toml [tool.kivy-school] section."""
+    """Read build config from pyproject.toml [tool.kivy-school] section.
+
+    Returns None when the section is absent (i.e. this is a buildozer project).
+    Callers use the return value as a truthiness guard before accessing keys.
+    """
     import tomlkit
 
-    with open('pyproject.toml', 'r', encoding='utf-8') as f:
-        data = tomlkit.load(f)
+    try:
+        with open('pyproject.toml', 'r', encoding='utf-8') as f:
+            data = tomlkit.load(f)
+    except FileNotFoundError:
+        return None
     ks = data.get('tool', {}).get('kivy-school', {})
+    if not ks:
+        return None
     android = ks.get('android', {})
     app_name_val = ks.get('app_name', 'App')
     pkg_name = android.get('package_name', f'org.kivy.{app_name_val.lower()}')
@@ -216,6 +225,14 @@ if platform != 'win':
 
     def _restore_terminal() -> None:
         """Return terminal to the settings captured at startup."""
+        try:
+            # Reset ANSI color/attribute state and move cursor to column 0.
+            # logcat streams colored output; a mid-line kill leaves open escape sequences
+            # that corrupt all subsequent terminal output until reset.
+            sys.stdout.write('\033[0m\r\n')
+            sys.stdout.flush()
+        except Exception:
+            pass
         if _ORIGINAL_STTY is not None:
             subprocess.run(['stty', _ORIGINAL_STTY], check=False)
 
@@ -224,7 +241,17 @@ if platform != 'win':
         logging.info('Received interrupt signal (Ctrl+C)')
         safe_exit(130)
 
+    def _sigterm_handler(_sig, _frame) -> None:
+        """Handle SIGTERM (e.g. X button on Windows kills WSL process): same cleanup as Ctrl+C."""
+        logging.info('Received SIGTERM — cleaning up')
+        safe_exit(143)
+
     signal.signal(signal.SIGINT, _sigint_handler)
+    signal.signal(signal.SIGTERM, _sigterm_handler)
+
+    import atexit
+
+    atexit.register(_restore_terminal)
 else:
 
     def _restore_terminal() -> None:
@@ -238,8 +265,12 @@ def _terminate(proc: subprocess.Popen) -> None:
             proc.terminate()
 
 
-def wait_for_authorization(timeout=30):
+def wait_for_authorization(timeout=30, status_callback=print):  # noqa: PLR0914
     start = time.time()
+    reconnect_tried = set()
+    prev_states = {}  # serial → state from last iteration, for change detection
+    first_iteration = True
+
     while time.time() - start < timeout:
         output = (
             subprocess
@@ -249,6 +280,14 @@ def wait_for_authorization(timeout=30):
             .splitlines()[1:]
         )
         devices = [line.split() for line in output if line.strip()]
+        curr_states = {parts[0]: parts[1] for parts in devices if len(parts) >= 2}
+
+        # Log any state transitions immediately (e.g. unauthorized → device)
+        for serial, state in curr_states.items():
+            prev = prev_states.get(serial)
+            if prev and prev != state:
+                status_callback(f'  [{serial}] state changed: {prev} → {state}')
+        prev_states = curr_states
 
         authorized_hardware_serials = set()
         for parts in devices:
@@ -284,35 +323,208 @@ def wait_for_authorization(timeout=30):
                     )  # ← USB serial is authorized directly
 
         # Now check: any physical USB device authorized?
+        # Must check state directly — authorized_hardware_serials can contain the USB
+        # device's serial via a WiFi connection to the same phone (same ro.serialno),
+        # which would produce a false positive if only checking set membership.
         for parts in devices:
             if len(parts) < 2:
                 continue
             serial, state = parts[0], parts[1]
-            if ':' not in serial:  # physical USB
-                if serial in authorized_hardware_serials:
-                    print(f'Device {serial} is authorized. Proceeding...')
-                    return True
+            if (
+                ':' not in serial and state == 'device'
+            ):  # physical USB, confirmed authorized
+                status_callback(f'  USB {serial} authorized ✓ Proceeding...')
+                return serial
 
         elapsed = time.time() - start
-        # serial_list = [parts[0] for parts in devices if len(parts) >= 2 and ":" not in parts[0]]
-        # print(f"[+{elapsed:0.2f}s] waiting for authorization on {','.join(serial_list)}...")
-        state_list = [
-            f'{parts[0]}({parts[1]})'
+
+        # On first iteration: immediately reconnect offline any unauthorized USB device
+        # so the authorization dialog appears without waiting 10s.
+        if first_iteration:
+            first_iteration = False
+            for parts in devices:
+                if len(parts) < 2:
+                    continue
+                serial, state = parts[0], parts[1]
+                if (
+                    ':' not in serial
+                    and state in {'unauthorized', 'offline'}
+                    and serial not in reconnect_tried
+                ):
+                    reconnect_tried.add(serial)
+                    wifi_also = any(
+                        p[1] == 'device' for p in devices if len(p) >= 2 and ':' in p[0]
+                    )
+                    wifi_note = (
+                        ' USB connection requested, but phone may also be connected through WiFi.'
+                        if wifi_also
+                        else ''
+                    )
+                    status_callback(
+                        f'  Triggering USB auth dialog for {serial} — check your phone.{wifi_note}'
+                    )
+                    try:
+                        subprocess.run(
+                            ['adb', '-s', serial, 'reconnect', 'offline'],
+                            capture_output=True,
+                            timeout=5,
+                            check=False,
+                        )
+                    except Exception:
+                        pass
+
+        # After 10s still stuck, try reconnect again as a second nudge.
+        elif elapsed > 10:
+            for parts in devices:
+                if len(parts) < 2:
+                    continue
+                serial, state = parts[0], parts[1]
+                if (
+                    ':' not in serial
+                    and state in {'unauthorized', 'offline'}
+                    and serial not in reconnect_tried
+                ):
+                    reconnect_tried.add(serial)
+                    status_callback(
+                        f'  WARNING: cycling USB connection for {serial} ({state}) — tap Allow quickly after this'
+                    )
+                    try:
+                        subprocess.run(  # noqa: PLW1510
+                            ['adb', '-s', serial, 'reconnect', 'offline'],
+                            capture_output=True,
+                            timeout=5,
+                        )
+                    except Exception:
+                        pass
+
+        # Status line: show ALL devices (USB + WiFi) so you can see both states
+        usb_parts = [
+            f'USB {parts[0]}={parts[1]}'
             for parts in devices
             if len(parts) >= 2 and ':' not in parts[0]
         ]
-        print(
-            f'[+{elapsed:0.2f}s] waiting for authorization on {",".join(state_list)}...'
+        wifi_parts = [
+            f'WiFi {parts[0]}={parts[1]}'
+            for parts in devices
+            if len(parts) >= 2 and ':' in parts[0]
+        ]
+        all_parts = usb_parts + wifi_parts
+        status_callback(
+            f'[+{elapsed:0.2f}s] Flightdeck mode: {config.STREAM_USING} | {" | ".join(all_parts) if all_parts else "no devices"}'
         )
         if elapsed > 10:
-            print('  No prompt on your phone? Unplug and replug the USB cable.')
+            status_callback(
+                '  No prompt on your phone? Unplug and replug the USB cable.'
+            )
         if elapsed > 20:
-            print(
+            status_callback(
                 '  Still no prompt? Settings → Developer Options → Revoke USB debugging authorizations, then replug.'
             )
         time.sleep(1)
 
-    return False
+    # Timed out — check if WiFi is available as fallback and explain what happened
+    wifi_devices = [
+        parts[0]
+        for parts in devices
+        if len(parts) >= 2 and ':' in parts[0] and parts[1] == 'device'
+    ]
+    if wifi_devices:
+        status_callback(
+            f'  USB auth timed out. WiFi device available ({wifi_devices[0]}) — '
+            f'continuing on WiFi. To use USB: accept the dialog on your phone, or turn off phone WiFi to force USB.'
+        )
+    return None
+
+
+def _get_package_from_apk(apk_path) -> str | None:
+    """Extract Android package name from APK using pure Python (no aapt needed).
+
+    APKs are ZIP files. AndroidManifest.xml inside is binary AXML, not plain XML.
+    The string pool in binary AXML contains all string values. Package names are
+    lowercase Java identifiers separated by dots — that regex excludes class names
+    (which have uppercase letters like PythonActivity).
+    """
+    import re
+    import struct
+    import zipfile
+
+    try:
+        with zipfile.ZipFile(str(apk_path)) as z:
+            data = z.read('AndroidManifest.xml')
+    except Exception:
+        return None
+
+    # Binary AXML layout: 8-byte file header, then string pool chunk
+    pos = 8
+    try:
+        header_size = struct.unpack_from('<H', data, pos + 2)[0]
+        str_count = struct.unpack_from('<I', data, pos + 8)[0]
+        flags = struct.unpack_from('<I', data, pos + 16)[0]
+        str_offset = struct.unpack_from('<I', data, pos + 20)[0]
+    except struct.error:
+        return None
+
+    is_utf8 = bool(flags & 0x100)
+    offsets_base = pos + header_size
+    string_base = pos + str_offset
+    pkg_pattern = re.compile(r'^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$')
+
+    for i in range(str_count):
+        try:
+            off = struct.unpack_from('<I', data, offsets_base + i * 4)[0]
+            p = string_base + off
+            if is_utf8:
+                clen = data[p]
+                p += 1
+                if clen & 0x80:
+                    clen = ((clen & 0x7F) << 8) | data[p]
+                    p += 1
+                blen = data[p]
+                p += 1
+                if blen & 0x80:
+                    blen = ((blen & 0x7F) << 8) | data[p]
+                    p += 1
+                s = data[p : p + blen].decode('utf-8', errors='replace')
+            else:
+                clen = struct.unpack_from('<H', data, p)[0]
+                p += 2
+                s = data[p : p + clen * 2].decode('utf-16-le', errors='replace')
+        except Exception:
+            continue
+
+        if pkg_pattern.match(s):
+            return s
+
+    return None
+
+
+def install_apk_from_path(apk_file_path, status_callback=print) -> bool:
+    """Install a pre-built APK using the same chain as compile_app(), skipping the build step.
+
+    Extracts the package name from the APK itself (single source of truth),
+    then runs: wait_for_authorization → get_connected_devices → filter_target_devices
+    → deploy_app_to_devices. All WSL path handling, signature-mismatch uninstall,
+    and retry logic live in that existing chain — nothing is duplicated here.
+
+    Returns True if deploy was attempted (individual device failures logged internally).
+    """
+    package = _get_package_from_apk(apk_file_path)
+    if not package:
+        status_callback('Could not read package name from APK — is it a valid APK?')
+        return False
+
+    status_callback(f'Package: {package}')
+    wait_for_authorization(status_callback=status_callback)
+
+    fetch_wifi_ip = config.STREAM_USING == 'WIFI'
+    devices = get_connected_devices(fetch_wifi_ip)
+    if not devices:
+        status_callback('No connected devices found.')
+        return False
+
+    target_devices = filter_target_devices(devices)
+    deploy_app_to_devices(target_devices, str(apk_file_path), package)
+    return True
 
 
 def validate_devices_connected() -> list:
@@ -326,7 +538,11 @@ def validate_devices_connected() -> list:
         SystemExit: If no devices are connected
     """
 
-    wait_for_authorization()
+    # Only wait for USB auth when in USB mode — WiFi device is already authorized.
+    # Use a short timeout: start_nodaemon_adb_server already ran a 30s wait.
+    # If USB is already authorized, skip entirely. If not, give 10s more.
+    if config.STREAM_USING != 'WIFI' and not _usb_device_authorized():
+        wait_for_authorization(timeout=10)
 
     if config.STREAM_USING == 'WIFI':
         fetch_wifi_ip = True
@@ -394,23 +610,30 @@ def terminate_processes(*processes) -> None:
     Args:
         *processes: Variable number of Process objects to terminate
     """
-    for proc in processes:
-        if proc and proc.is_alive():
-            logging.info(f'Terminating process {proc.name}')
-            _kill_process_tree(proc.pid)
-            proc.terminate()
+    # Kill grandchildren + signal all processes first so they die in parallel.
+    alive = [p for p in processes if p and p.is_alive()]
+    for proc in alive:
+        logging.info(f'Terminating process {proc.name}')
+        _kill_process_tree(proc.pid)
+        proc.terminate()
 
-            # Give process time to terminate gracefully
-            try:
-                proc.join(timeout=3.0)
-            except Exception:
-                logging.warning(f'Force killing process {proc.name}')
-                proc.kill()
+    # Join after all signals are sent — total wait = max(t_3, t_4), not sum.
+    for proc in alive:
+        proc.join(timeout=1.0)
+        if proc.is_alive():
+            # proc.join() returns None on timeout (no exception) — must check is_alive.
+            logging.warning(f'Force killing process {proc.name}')
+            proc.kill()
+            proc.join(timeout=1.0)
 
 
 def cleanup_background_processes() -> None:
     """Terminate any in-flight debug/livestream processes, including their subprocess trees."""
     global _debug_proc, _scrcpy_proc  # noqa:PLW0603
+    logging.info(
+        f'[cleanup] _debug_proc={_debug_proc} alive={_debug_proc.is_alive() if _debug_proc else "N/A"} | '
+        f'_scrcpy_proc={_scrcpy_proc} alive={_scrcpy_proc.is_alive() if _scrcpy_proc else "N/A"}'
+    )
     terminate_processes(_debug_proc, _scrcpy_proc)
     _debug_proc = None
     _scrcpy_proc = None
@@ -423,13 +646,27 @@ def safe_exit(exit_code: int = 0) -> None:
     Args:
         exit_code: Exit code to use (0 for success, non-zero for error)
     """
+    import signal
+
     logging.info('Shutting down application...')
 
     # Restore terminal state
     _restore_terminal()
 
-    # clear debug logcat printer and scrcpy now that they're multiprocess
-    cleanup_background_processes()
+    # Shield cleanup from SIGINT so Ctrl+C spam can't orphan grandchild processes
+    # (adb logcat, scrcpy) between killing SpawnProcess-3 and SpawnProcess-4.
+    # signal.signal() is only valid on the main thread; skip silently if called from a thread.
+    _old_sigint = None
+    try:
+        _old_sigint = signal.signal(signal.SIGINT, signal.SIG_IGN)
+    except (OSError, ValueError):
+        pass
+
+    try:
+        cleanup_background_processes()
+    finally:
+        if _old_sigint is not None:
+            signal.signal(signal.SIGINT, _old_sigint)
 
     logging.info('Application shutdown complete')
     sys.exit(exit_code)
@@ -1051,7 +1288,23 @@ def debug_and_livestream(buildozer_compiled: Event = None) -> None:
         return
 
     # Early validation - exit immediately if no devices
-    validate_devices_connected()
+    devices = validate_devices_connected()
+
+    # Force-open the app on every device before logcat attaches.
+    # Handles crashed or backgrounded app — am start is a no-op if already in foreground.
+    logging.info(f'[debug_and_livestream] am start on {len(devices)} device(s)')
+    try:
+        from kivy_reloader.send_app_to_phone import _am_start
+
+        for device in devices:
+            adb_device = (
+                device['serial']
+                if device.get('transport') == 'usb'
+                else f'{device["wifi_ip"]}:{config.ADB_PORT}'
+            )
+            _am_start(adb_device)
+    except Exception as e:
+        logging.warning(f'[debug_and_livestream] am start failed (non-fatal): {e}')
 
     logging.info('DEBUG RAN!0000!')
 
@@ -1061,15 +1314,25 @@ def debug_and_livestream(buildozer_compiled: Event = None) -> None:
         _ctx = get_context('spawn')
         adb_logcat_ready = _ctx.Event()
         adb_logcat = _ctx.Process(target=debug, args=(adb_logcat_ready,))
+        adb_logcat.daemon = (
+            True  # dies when parent exits, not just when cleanup is called
+        )
         logging.info('LIVESTREAM RAN!!')
         scrcpy = _ctx.Process(target=livestream, args=(adb_logcat_ready,))
-
-        adb_logcat.start()
-        scrcpy.start()
+        scrcpy.daemon = True
 
         global _debug_proc, _scrcpy_proc  # noqa:PLW0603
         _debug_proc = adb_logcat
         _scrcpy_proc = scrcpy
+        logging.info(
+            '[debug_and_livestream] globals set (pre-start) — cleanup can now find these processes'
+        )
+
+        adb_logcat.start()
+        scrcpy.start()
+        logging.info(
+            f'[debug_and_livestream] processes started: logcat pid={adb_logcat.pid} scrcpy pid={scrcpy.pid} daemon={adb_logcat.daemon}'
+        )
         try:
             adb_logcat.join()
             scrcpy.join()
@@ -1242,10 +1505,14 @@ def start_nodaemon_adb_server():
         )
         PORT = config.RELOADER_PORT
         if config.STREAM_USING.lower().replace(' ', '') == 'usb':
-            wait_for_authorization()
-            if not adb_has_forward(PORT):
+            usb_serial = wait_for_authorization()
+            if not usb_serial:
+                logging.warning(
+                    'USB auth timed out — skipping adb forward (falling back to WiFi)'
+                )
+            elif not adb_has_forward(PORT):
                 # no port forward means we forward now:
-                adb_forward(PORT)
+                adb_forward(PORT, serial=usb_serial)
             else:
                 logging.info(
                     f'adb forwarded: {adb_has_forward(PORT)} config.RELOADER_PORT: {PORT}'
@@ -1621,8 +1888,10 @@ def build_filter_command() -> list:
         services = [f'{SERVICE_NAME}:V' for SERVICE_NAME in config.SERVICE_NAMES]
         return ['-v', 'time', '-s', 'python:V'] + services + ['*:S']
     else:
+        # Match any logcat priority (D/V/I/W/E/F) for the python tag.
+        # Previously 'I python' only captured INFO — debug/warning/error were silently dropped.
         services = '|'.join(config.SERVICE_NAMES)
-        watch = 'I python' if not services else f'I python|{services}'
+        watch = '[DVIWEF] python' if not services else f'[DVIWEF] python|{services}'
         return ['grep', '--line-buffered', '-E', watch]
 
 
@@ -1797,10 +2066,31 @@ def add_recording_options(scrcpy_cmd: list) -> None:
         scrcpy_cmd.extend(['--record', config.RECORD_FILE_PATH])
 
 
+def _usb_device_authorized() -> bool:
+    """Return True if at least one USB device has state 'device' (authorized)."""
+    try:
+        out = subprocess.check_output(['adb', 'devices'], text=True, timeout=3)
+        for line in out.splitlines()[1:]:
+            parts = line.split()
+            if len(parts) >= 2 and ':' not in parts[0] and parts[1] == 'device':
+                return True
+    except Exception:
+        pass
+    return False
+
+
 def add_connection_options(scrcpy_cmd: list) -> None:
     """Add connection method options to scrcpy command."""
     if config.STREAM_USING == 'USB':
-        scrcpy_cmd.append('-d')
+        if _usb_device_authorized():
+            scrcpy_cmd.append('-d')
+        else:
+            # USB device present but unauthorized — fall back to TCP/IP so scrcpy
+            # doesn't immediately crash with "Device is unauthorized".
+            logging.warning(
+                'USB device unauthorized; falling back to -e (TCP/IP) for scrcpy'
+            )
+            scrcpy_cmd.append('-e')
     elif config.STREAM_USING == 'WIFI':
         scrcpy_cmd.append('-e')
 
@@ -1942,6 +2232,10 @@ def highlight_selected_option(option: str):
     typer.echo(option_text)
 
 
+def _clear_screen() -> None:
+    os.system('cls' if os.name == 'nt' else 'clear')
+
+
 def render_option_menu(current_selection: str) -> None:
     """
     Renders the option menu with the current selection highlighted.
@@ -1949,6 +2243,7 @@ def render_option_menu(current_selection: str) -> None:
     Args:
         current_selection: Currently selected option string
     """
+    _clear_screen()
     typer.echo('\nSelect one of the 6 options below:\n')
 
     flightdeck_option = compiler_options[0]

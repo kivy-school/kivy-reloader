@@ -17,9 +17,16 @@ Builder.load_file(__file__)
 _PERIODS = {'1 day': 1, '1 week': 7, '1 month': 30}
 
 _STATIC_COMMANDS = [
+    {
+        'label': 'Build APK (GitHub)',
+        'command': '__build_apk__',
+        'display': 'GitHub Actions: build APK on GitHub servers > download APK > install + scrcpy',
+    },
     {'label': 'Compile + deploy', 'command': 'uv run kivy-reloader run build'},
     {'label': 'Hot reload (debug+livestream)', 'command': 'uv run kivy-reloader run'},
 ]
+
+_STATIC_DISPLAY = {c['command']: c.get('display', '') for c in _STATIC_COMMANDS}
 
 
 def _stream_proc_output(proc):
@@ -112,6 +119,7 @@ class QuickCommandsCard(BoxLayout):
     recipe_name = StringProperty('')
     screen_size = StringProperty('')
     screen_dpi = StringProperty('')
+    build_apk_handler = ObjectProperty(None, allownone=True)
 
     def load_from_model(self):
         if not self.config_model:
@@ -166,14 +174,33 @@ class QuickCommandsCard(BoxLayout):
     def refresh(self):
         days = _PERIODS[self.active_period]
         top = get_top(n=8, days=days)
-        history_cmds = {item['command'] for item in top}
-        static = [c for c in _STATIC_COMMANDS if c['command'] not in history_cmds]
+
         card_actions = []
         for card in EventBus.get_cards().values():
             for qa in getattr(card, 'quick_actions', []):
-                if qa['command'] not in history_cmds:
-                    card_actions.append(qa)
-        self.commands = top + static + card_actions
+                card_actions.append(qa)
+
+        display_map = {
+            **_STATIC_DISPLAY,
+            **{qa['command']: qa.get('display', '') for qa in card_actions},
+        }
+
+        # Whitelist: only surface history for commands that come from known sources.
+        # Prevents buggy or accidental commands from appearing in Quick Commands.
+        allowed = {c['command'] for c in _STATIC_COMMANDS} | {
+            qa['command'] for qa in card_actions
+        }
+        top_filtered = [item for item in top if item['command'] in allowed]
+        for item in top_filtered:
+            if not item.get('display'):
+                item['display'] = display_map.get(item['command'], '')
+        history_cmds = {item['command'] for item in top_filtered}
+
+        static = [c for c in _STATIC_COMMANDS if c['command'] not in history_cmds]
+        new_card_actions = [
+            qa for qa in card_actions if qa['command'] not in history_cmds
+        ]
+        self.commands = top_filtered + static + new_card_actions
 
     def reset_history(self):
         from kivy_reloader.configurator.command_history import _history_file
@@ -183,22 +210,46 @@ class QuickCommandsCard(BoxLayout):
             f.unlink()
         self.refresh()
 
+    def set_build_apk_status(self, msg):
+        btn = getattr(self, '_build_apk_btn', None)
+        if btn is None:
+            return
+        if msg:
+            btn.display_command = msg
+        else:
+            btn.display_command = next(
+                (
+                    c.get('display', '')
+                    for c in _STATIC_COMMANDS
+                    if c['command'] == '__build_apk__'
+                ),
+                '',
+            )
+
     def on_commands(self, instance, commands):
         lst = self.ids.get('command_list')
         if not lst:
             return
         lst.clear_widgets()
+        self._build_apk_btn = None
         for item in commands:
             btn = CommandButton(
                 label=item['label'],
                 command=item['command'],
-                display_command=item.get('display', ''),
+                display_command=item.get('display', '')
+                or _STATIC_DISPLAY.get(item['command'], ''),
                 count=f'×{item["count"]}' if item.get('count') else '',
                 card_action_handler=self._handle_card_action,
             )
+            if item['command'] == '__build_apk__':
+                self._build_apk_btn = btn
             lst.add_widget(btn)
 
     def _handle_card_action(self, action):
+        if action == '__build_apk__':
+            if self.build_apk_handler:
+                self.build_apk_handler()
+            return
         for card in EventBus.get_cards().values():
             for qa in getattr(card, 'quick_actions', []):
                 if qa.get('command') == action:

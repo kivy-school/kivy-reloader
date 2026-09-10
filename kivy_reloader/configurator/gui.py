@@ -124,6 +124,29 @@ def run_gui(
         from kivy_reloader.compile_app import cleanup_background_processes
 
         cleanup_background_processes()
+
+        # Belt-and-suspenders: the daemon thread that runs debug_and_livestream() may have
+        # raced past the global assignment window before cleanup ran. Kill every remaining
+        # child of this process so nothing orphans in the terminal.
+        try:
+            import psutil
+
+            survivors = psutil.Process().children(recursive=True)
+            if survivors:
+                print(
+                    f'[Flightdeck] psutil sweep: found {len(survivors)} surviving child(ren) after cleanup — killing: {[(c.pid, c.name()) for c in survivors]}'
+                )
+            for child in survivors:
+                try:
+                    child.kill()
+                except psutil.NoSuchProcess:
+                    pass
+        except Exception:
+            import traceback
+
+            print('[Flightdeck] cleanup warning:')
+            traceback.print_exc()
+
         lock.close()
 
 
