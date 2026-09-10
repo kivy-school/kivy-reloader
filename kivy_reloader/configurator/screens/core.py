@@ -340,21 +340,21 @@ class CoreScreen(Screen):
         )
         try:
             # 1. Unpushed commits — upstream tracking set
-            r = subprocess.run(
+            r = subprocess.run(  # noqa: PLW1510
                 ["git", "rev-list", "--count", "HEAD@{upstream}..HEAD"],
                 capture_output=True, text=True, cwd=project_dir
             )
             if r.returncode == 0 and r.stdout.strip() not in {"0", ""}:
                 return True
             # 2. Unpushed commits — no tracking branch (git status -sb shows [ahead N])
-            r2 = subprocess.run(
+            r2 = subprocess.run(  # noqa: PLW1510
                 ["git", "status", "-sb"],
                 capture_output=True, text=True, cwd=project_dir,
             )
             if r2.returncode == 0 and "ahead" in r2.stdout:
                 return True
             # 3. Uncommitted changes to tracked files (staged or unstaged)
-            r3 = subprocess.run(
+            r3 = subprocess.run(  # noqa: PLW1510
                 ["git", "diff", "HEAD", "--quiet"],
                 capture_output=True, cwd=project_dir,
             )

@@ -379,7 +379,7 @@ def wait_for_authorization(timeout=30, status_callback=print):  # noqa: PLR0914
                         f'  WARNING: cycling USB connection for {serial} ({state}) — tap Allow quickly after this'
                     )
                     try:
-                        subprocess.run(
+                        subprocess.run(  # noqa: PLW1510
                             ['adb', '-s', serial, 'reconnect', 'offline'],
                             capture_output=True,
                             timeout=5,
