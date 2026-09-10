@@ -183,10 +183,11 @@ def _copy_to_clipboard(text: str) -> None:
 def _open_browser(url: str) -> None:
     """Open URL in default browser. In WSL, webbrowser.open() → xdg-open → no browser.
     Register cmd.exe as a GenericBrowser so webbrowser handles it uniformly."""
-    import sys, webbrowser
+    import sys
+    import webbrowser
     if sys.platform == "linux":
         try:
-            with open("/proc/version") as _f:
+            with open("/proc/version", encoding="utf-8") as _f:
                 _is_wsl = "microsoft" in _f.read().lower()
         except OSError:
             _is_wsl = False

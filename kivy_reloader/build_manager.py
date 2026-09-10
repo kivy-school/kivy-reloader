@@ -1,6 +1,5 @@
 """Trigger GitHub Actions APK build, poll status, download, and adb install."""
 
-import subprocess
 import threading
 import time
 import zipfile
@@ -127,6 +126,6 @@ def _wait_for_run(repo, timeout_s: int, poll_s: int):
     while time.time() < deadline:
         time.sleep(poll_s)
         for run in list(repo.get_workflow_runs(branch="main"))[:5]:
-            if run.id not in existing_ids and run.status in ("queued", "in_progress"):
+            if run.id not in existing_ids and run.status in {"queued", "in_progress"}:
                 return run
     return None

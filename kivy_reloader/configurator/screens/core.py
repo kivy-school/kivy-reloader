@@ -270,7 +270,7 @@ class CoreScreen(Screen):
         github_auth.ensure_auth(
             on_token=self._on_authenticated,
             on_error=lambda msg: self._set_build_status(f'Auth failed: {msg}'),
-            on_status=lambda msg: self._set_build_status(msg),
+            on_status=self._set_build_status,
         )
 
     def _on_authenticated(self, token):
@@ -278,8 +278,9 @@ class CoreScreen(Screen):
         self._start_build(token)
 
     def _start_build(self, token):
-        from kivy_reloader import build_manager
         import tomlkit
+
+        from kivy_reloader import build_manager
 
         # Read [github] section from project's kivy-reloader.toml
         repo = None
@@ -341,9 +342,9 @@ class CoreScreen(Screen):
             # 1. Unpushed commits — upstream tracking set
             r = subprocess.run(
                 ["git", "rev-list", "--count", "HEAD@{upstream}..HEAD"],
-                capture_output=True, text=True, cwd=project_dir,
+                capture_output=True, text=True, cwd=project_dir
             )
-            if r.returncode == 0 and r.stdout.strip() not in ("0", ""):
+            if r.returncode == 0 and r.stdout.strip() not in {"0", ""}:
                 return True
             # 2. Unpushed commits — no tracking branch (git status -sb shows [ahead N])
             r2 = subprocess.run(

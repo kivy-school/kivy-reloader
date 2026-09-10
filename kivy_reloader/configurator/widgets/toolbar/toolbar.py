@@ -1,6 +1,6 @@
 """Application toolbar with action buttons"""
 
-from kivy.properties import BooleanProperty, ObjectProperty, StringProperty
+from kivy.properties import BooleanProperty, ObjectProperty
 from kivy.uix.boxlayout import BoxLayout
 
 from kivy_reloader.configurator.graphics.gradients import GLGradient
@@ -80,4 +80,3 @@ class Toolbar(BoxLayout):
     def handle_toggle_dark_mode(self):
         if self.on_toggle_dark_mode:
             self.on_toggle_dark_mode()
-

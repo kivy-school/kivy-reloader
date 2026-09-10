@@ -264,7 +264,7 @@ def _terminate(proc: subprocess.Popen) -> None:
             proc.terminate()
 
 
-def wait_for_authorization(timeout=30, status_callback=print):
+def wait_for_authorization(timeout=30, status_callback=print):  # noqa: PLR0914
     start = time.time()
     reconnect_tried = set()
     prev_states = {}  # serial → state from last iteration, for change detection
@@ -345,7 +345,7 @@ def wait_for_authorization(timeout=30, status_callback=print):
                 if len(parts) < 2:
                     continue
                 serial, state = parts[0], parts[1]
-                if ':' not in serial and state in ('unauthorized', 'offline') and serial not in reconnect_tried:
+                if ':' not in serial and state in {'unauthorized', 'offline'} and serial not in reconnect_tried:
                     reconnect_tried.add(serial)
                     wifi_also = any(
                         p[1] == 'device' for p in devices if len(p) >= 2 and ':' in p[0]
@@ -362,6 +362,7 @@ def wait_for_authorization(timeout=30, status_callback=print):
                             ['adb', '-s', serial, 'reconnect', 'offline'],
                             capture_output=True,
                             timeout=5,
+                            check=False,
                         )
                     except Exception:
                         pass
@@ -372,7 +373,7 @@ def wait_for_authorization(timeout=30, status_callback=print):
                 if len(parts) < 2:
                     continue
                 serial, state = parts[0], parts[1]
-                if ':' not in serial and state in ('unauthorized', 'offline') and serial not in reconnect_tried:
+                if ':' not in serial and state in {'unauthorized', 'offline'} and serial not in reconnect_tried:
                     reconnect_tried.add(serial)
                     status_callback(
                         f'  WARNING: cycling USB connection for {serial} ({state}) — tap Allow quickly after this'
