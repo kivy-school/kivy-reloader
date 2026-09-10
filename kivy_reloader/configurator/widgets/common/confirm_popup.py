@@ -53,7 +53,9 @@ class ConfirmPopup(ModalView):
 
     def do_copy(self):
         from kivy.core.clipboard import Clipboard
+
         Clipboard.copy(self.copy_text)
         self.copy_label = 'Copied!'
         from kivy.clock import Clock
+
         Clock.schedule_once(lambda dt: setattr(self, 'copy_label', 'Copy'), 2)

@@ -142,6 +142,7 @@ def _am_start(adb_device: str) -> None:
     """Force-open the app on device. Safe whether the app is running or dead — brings it to foreground either way."""
     try:
         from kivy_reloader.compile_app import _read_ksproject_config, get_package_name
+
         ks = _read_ksproject_config()
         if ks:
             # KSProject: package lives in pyproject.toml, no buildozer.spec
@@ -152,8 +153,20 @@ def _am_start(adb_device: str) -> None:
             package = get_package_name()
             activity = 'org.kivy.android.PythonActivity'
         result = subprocess.run(
-            ['adb', '-s', adb_device, 'shell', 'am', 'start', '-n', f'{package}/{activity}'],
-            capture_output=True, text=True, timeout=10, check=False,
+            [
+                'adb',
+                '-s',
+                adb_device,
+                'shell',
+                'am',
+                'start',
+                '-n',
+                f'{package}/{activity}',
+            ],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
         )
         msg = (result.stdout + result.stderr).strip()
         print(f'{green}am start {package}/{activity}: {msg}')
@@ -191,13 +204,17 @@ async def send_app():  # noqa:PLR0914
 
         if not client_socket:
             adb_device = serial if serial else f'{IP}:{config.ADB_PORT}'
-            print(f'{yellow}Could not reach {model} ({adb_device}) — app may not be running. Launching...')
+            print(
+                f'{yellow}Could not reach {model} ({adb_device}) — app may not be running. Launching...'
+            )
             _am_start(adb_device)
             await trio.sleep(2)
             print(f'{yellow}Retrying {model}...')
             client_socket = await connect_to_server(IP, port)
             if not client_socket:
-                print(f'{yellow}Still could not reach {model} ({adb_device}) after am start — skipping')
+                print(
+                    f'{yellow}Still could not reach {model} ({adb_device}) after am start — skipping'
+                )
                 continue
 
         print(f'{yellow} Phone connected successfully: {model} ({serial or IP})')
@@ -302,7 +319,9 @@ async def send_app():  # noqa:PLR0914
         print(green + f'ACK confirmed on {acked_count} smartphone(s)')
     else:
         print(red + 'No ACKs received')
-        print(f'{yellow}No ACK — check: (1) STREAM_USING in kivy-reloader.toml matches connection type (USB/WiFi). (2) Phone is on same WiFi as desktop, not mobile data. (3) App is installed (run a full build if first time). (4) Phone screen unlocked, ADB authorized.')
+        print(
+            f'{yellow}No ACK — check: (1) STREAM_USING in kivy-reloader.toml matches connection type (USB/WiFi). (2) Phone is on same WiFi as desktop, not mobile data. (3) App is installed (run a full build if first time). (4) Phone screen unlocked, ADB authorized.'
+        )
     print('*' * 50)
 
     return 0 if acked_count > 0 else 1

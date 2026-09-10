@@ -17,7 +17,11 @@ Builder.load_file(__file__)
 _PERIODS = {'1 day': 1, '1 week': 7, '1 month': 30}
 
 _STATIC_COMMANDS = [
-    {'label': 'Build APK (GitHub)', 'command': '__build_apk__', 'display': 'GitHub Actions: build APK on GitHub servers > download APK > install + scrcpy'},
+    {
+        'label': 'Build APK (GitHub)',
+        'command': '__build_apk__',
+        'display': 'GitHub Actions: build APK on GitHub servers > download APK > install + scrcpy',
+    },
     {'label': 'Compile + deploy', 'command': 'uv run kivy-reloader run build'},
     {'label': 'Hot reload (debug+livestream)', 'command': 'uv run kivy-reloader run'},
 ]
@@ -183,10 +187,9 @@ class QuickCommandsCard(BoxLayout):
 
         # Whitelist: only surface history for commands that come from known sources.
         # Prevents buggy or accidental commands from appearing in Quick Commands.
-        allowed = (
-            {c['command'] for c in _STATIC_COMMANDS}
-            | {qa['command'] for qa in card_actions}
-        )
+        allowed = {c['command'] for c in _STATIC_COMMANDS} | {
+            qa['command'] for qa in card_actions
+        }
         top_filtered = [item for item in top if item['command'] in allowed]
         for item in top_filtered:
             if not item.get('display'):
@@ -194,7 +197,9 @@ class QuickCommandsCard(BoxLayout):
         history_cmds = {item['command'] for item in top_filtered}
 
         static = [c for c in _STATIC_COMMANDS if c['command'] not in history_cmds]
-        new_card_actions = [qa for qa in card_actions if qa['command'] not in history_cmds]
+        new_card_actions = [
+            qa for qa in card_actions if qa['command'] not in history_cmds
+        ]
         self.commands = top_filtered + static + new_card_actions
 
     def reset_history(self):
@@ -213,7 +218,11 @@ class QuickCommandsCard(BoxLayout):
             btn.display_command = msg
         else:
             btn.display_command = next(
-                (c.get('display', '') for c in _STATIC_COMMANDS if c['command'] == '__build_apk__'),
+                (
+                    c.get('display', '')
+                    for c in _STATIC_COMMANDS
+                    if c['command'] == '__build_apk__'
+                ),
                 '',
             )
 
@@ -227,7 +236,8 @@ class QuickCommandsCard(BoxLayout):
             btn = CommandButton(
                 label=item['label'],
                 command=item['command'],
-                display_command=item.get('display', '') or _STATIC_DISPLAY.get(item['command'], ''),
+                display_command=item.get('display', '')
+                or _STATIC_DISPLAY.get(item['command'], ''),
                 count=f'×{item["count"]}' if item.get('count') else '',
                 card_action_handler=self._handle_card_action,
             )

@@ -250,6 +250,7 @@ if platform != 'win':
     signal.signal(signal.SIGTERM, _sigterm_handler)
 
     import atexit
+
     atexit.register(_restore_terminal)
 else:
 
@@ -279,9 +280,7 @@ def wait_for_authorization(timeout=30, status_callback=print):  # noqa: PLR0914
             .splitlines()[1:]
         )
         devices = [line.split() for line in output if line.strip()]
-        curr_states = {
-            parts[0]: parts[1] for parts in devices if len(parts) >= 2
-        }
+        curr_states = {parts[0]: parts[1] for parts in devices if len(parts) >= 2}
 
         # Log any state transitions immediately (e.g. unauthorized → device)
         for serial, state in curr_states.items():
@@ -331,7 +330,9 @@ def wait_for_authorization(timeout=30, status_callback=print):  # noqa: PLR0914
             if len(parts) < 2:
                 continue
             serial, state = parts[0], parts[1]
-            if ':' not in serial and state == 'device':  # physical USB, confirmed authorized
+            if (
+                ':' not in serial and state == 'device'
+            ):  # physical USB, confirmed authorized
                 status_callback(f'  USB {serial} authorized ✓ Proceeding...')
                 return serial
 
@@ -345,14 +346,19 @@ def wait_for_authorization(timeout=30, status_callback=print):  # noqa: PLR0914
                 if len(parts) < 2:
                     continue
                 serial, state = parts[0], parts[1]
-                if ':' not in serial and state in {'unauthorized', 'offline'} and serial not in reconnect_tried:
+                if (
+                    ':' not in serial
+                    and state in {'unauthorized', 'offline'}
+                    and serial not in reconnect_tried
+                ):
                     reconnect_tried.add(serial)
                     wifi_also = any(
                         p[1] == 'device' for p in devices if len(p) >= 2 and ':' in p[0]
                     )
                     wifi_note = (
                         ' USB connection requested, but phone may also be connected through WiFi.'
-                        if wifi_also else ''
+                        if wifi_also
+                        else ''
                     )
                     status_callback(
                         f'  Triggering USB auth dialog for {serial} — check your phone.{wifi_note}'
@@ -373,7 +379,11 @@ def wait_for_authorization(timeout=30, status_callback=print):  # noqa: PLR0914
                 if len(parts) < 2:
                     continue
                 serial, state = parts[0], parts[1]
-                if ':' not in serial and state in {'unauthorized', 'offline'} and serial not in reconnect_tried:
+                if (
+                    ':' not in serial
+                    and state in {'unauthorized', 'offline'}
+                    and serial not in reconnect_tried
+                ):
                     reconnect_tried.add(serial)
                     status_callback(
                         f'  WARNING: cycling USB connection for {serial} ({state}) — tap Allow quickly after this'
@@ -403,7 +413,9 @@ def wait_for_authorization(timeout=30, status_callback=print):  # noqa: PLR0914
             f'[+{elapsed:0.2f}s] Flightdeck mode: {config.STREAM_USING} | {" | ".join(all_parts) if all_parts else "no devices"}'
         )
         if elapsed > 10:
-            status_callback('  No prompt on your phone? Unplug and replug the USB cable.')
+            status_callback(
+                '  No prompt on your phone? Unplug and replug the USB cable.'
+            )
         if elapsed > 20:
             status_callback(
                 '  Still no prompt? Settings → Developer Options → Revoke USB debugging authorizations, then replug.'
@@ -412,7 +424,8 @@ def wait_for_authorization(timeout=30, status_callback=print):  # noqa: PLR0914
 
     # Timed out — check if WiFi is available as fallback and explain what happened
     wifi_devices = [
-        parts[0] for parts in devices
+        parts[0]
+        for parts in devices
         if len(parts) >= 2 and ':' in parts[0] and parts[1] == 'device'
     ]
     if wifi_devices:
@@ -445,30 +458,37 @@ def _get_package_from_apk(apk_path) -> str | None:
     pos = 8
     try:
         header_size = struct.unpack_from('<H', data, pos + 2)[0]
-        str_count   = struct.unpack_from('<I', data, pos + 8)[0]
-        flags       = struct.unpack_from('<I', data, pos + 16)[0]
-        str_offset  = struct.unpack_from('<I', data, pos + 20)[0]
+        str_count = struct.unpack_from('<I', data, pos + 8)[0]
+        flags = struct.unpack_from('<I', data, pos + 16)[0]
+        str_offset = struct.unpack_from('<I', data, pos + 20)[0]
     except struct.error:
         return None
 
-    is_utf8      = bool(flags & 0x100)
+    is_utf8 = bool(flags & 0x100)
     offsets_base = pos + header_size
-    string_base  = pos + str_offset
-    pkg_pattern  = re.compile(r'^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$')
+    string_base = pos + str_offset
+    pkg_pattern = re.compile(r'^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$')
 
     for i in range(str_count):
         try:
             off = struct.unpack_from('<I', data, offsets_base + i * 4)[0]
-            p   = string_base + off
+            p = string_base + off
             if is_utf8:
-                clen = data[p]; p += 1
-                if clen & 0x80: clen = ((clen & 0x7f) << 8) | data[p]; p += 1
-                blen = data[p]; p += 1
-                if blen & 0x80: blen = ((blen & 0x7f) << 8) | data[p]; p += 1
-                s = data[p:p + blen].decode('utf-8', errors='replace')
+                clen = data[p]
+                p += 1
+                if clen & 0x80:
+                    clen = ((clen & 0x7F) << 8) | data[p]
+                    p += 1
+                blen = data[p]
+                p += 1
+                if blen & 0x80:
+                    blen = ((blen & 0x7F) << 8) | data[p]
+                    p += 1
+                s = data[p : p + blen].decode('utf-8', errors='replace')
             else:
-                clen = struct.unpack_from('<H', data, p)[0]; p += 2
-                s = data[p:p + clen * 2].decode('utf-16-le', errors='replace')
+                clen = struct.unpack_from('<H', data, p)[0]
+                p += 2
+                s = data[p : p + clen * 2].decode('utf-16-le', errors='replace')
         except Exception:
             continue
 
@@ -1275,8 +1295,13 @@ def debug_and_livestream(buildozer_compiled: Event = None) -> None:
     logging.info(f'[debug_and_livestream] am start on {len(devices)} device(s)')
     try:
         from kivy_reloader.send_app_to_phone import _am_start
+
         for device in devices:
-            adb_device = device['serial'] if device.get('transport') == 'usb' else f"{device['wifi_ip']}:{config.ADB_PORT}"
+            adb_device = (
+                device['serial']
+                if device.get('transport') == 'usb'
+                else f'{device["wifi_ip"]}:{config.ADB_PORT}'
+            )
             _am_start(adb_device)
     except Exception as e:
         logging.warning(f'[debug_and_livestream] am start failed (non-fatal): {e}')
@@ -1289,7 +1314,9 @@ def debug_and_livestream(buildozer_compiled: Event = None) -> None:
         _ctx = get_context('spawn')
         adb_logcat_ready = _ctx.Event()
         adb_logcat = _ctx.Process(target=debug, args=(adb_logcat_ready,))
-        adb_logcat.daemon = True  # dies when parent exits, not just when cleanup is called
+        adb_logcat.daemon = (
+            True  # dies when parent exits, not just when cleanup is called
+        )
         logging.info('LIVESTREAM RAN!!')
         scrcpy = _ctx.Process(target=livestream, args=(adb_logcat_ready,))
         scrcpy.daemon = True
@@ -1297,11 +1324,15 @@ def debug_and_livestream(buildozer_compiled: Event = None) -> None:
         global _debug_proc, _scrcpy_proc  # noqa:PLW0603
         _debug_proc = adb_logcat
         _scrcpy_proc = scrcpy
-        logging.info('[debug_and_livestream] globals set (pre-start) — cleanup can now find these processes')
+        logging.info(
+            '[debug_and_livestream] globals set (pre-start) — cleanup can now find these processes'
+        )
 
         adb_logcat.start()
         scrcpy.start()
-        logging.info(f'[debug_and_livestream] processes started: logcat pid={adb_logcat.pid} scrcpy pid={scrcpy.pid} daemon={adb_logcat.daemon}')
+        logging.info(
+            f'[debug_and_livestream] processes started: logcat pid={adb_logcat.pid} scrcpy pid={scrcpy.pid} daemon={adb_logcat.daemon}'
+        )
         try:
             adb_logcat.join()
             scrcpy.join()

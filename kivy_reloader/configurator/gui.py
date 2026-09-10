@@ -130,9 +130,12 @@ def run_gui(
         # child of this process so nothing orphans in the terminal.
         try:
             import psutil
+
             survivors = psutil.Process().children(recursive=True)
             if survivors:
-                print(f'[Flightdeck] psutil sweep: found {len(survivors)} surviving child(ren) after cleanup — killing: {[(c.pid, c.name()) for c in survivors]}')
+                print(
+                    f'[Flightdeck] psutil sweep: found {len(survivors)} surviving child(ren) after cleanup — killing: {[(c.pid, c.name()) for c in survivors]}'
+                )
             for child in survivors:
                 try:
                     child.kill()
@@ -140,6 +143,7 @@ def run_gui(
                     pass
         except Exception:
             import traceback
+
             print('[Flightdeck] cleanup warning:')
             traceback.print_exc()
 

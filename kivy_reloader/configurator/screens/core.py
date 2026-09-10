@@ -233,6 +233,7 @@ class CoreScreen(Screen):
             return False
         try:
             import tomlkit
+
             data = tomlkit.parse(pyproject.read_text(encoding='utf-8'))
             return bool(data.get('tool', {}).get('kivy-school', {}).get('app_name'))
         except Exception:
@@ -254,6 +255,7 @@ class CoreScreen(Screen):
             popup.open()
             return
         from kivy_reloader import github_auth
+
         token = github_auth.get_stored_token()
         if token:
             self._start_build(token)
@@ -266,7 +268,8 @@ class CoreScreen(Screen):
 
     def _start_oauth(self):
         from kivy_reloader import github_auth
-        self._set_build_status("Connecting GitHub...")
+
+        self._set_build_status('Connecting GitHub...')
         github_auth.ensure_auth(
             on_token=self._on_authenticated,
             on_error=lambda msg: self._set_build_status(f'Auth failed: {msg}'),
@@ -274,7 +277,7 @@ class CoreScreen(Screen):
         )
 
     def _on_authenticated(self, token):
-        self._set_build_status("")
+        self._set_build_status('')
         self._start_build(token)
 
     def _start_build(self, token):
@@ -284,15 +287,15 @@ class CoreScreen(Screen):
 
         # Read [github] section from project's kivy-reloader.toml
         repo = None
-        workflow = "build-apk.yml"
+        workflow = 'build-apk.yml'
         if self.config_model and self.config_model.config_path:
             try:
                 raw = tomlkit.parse(
-                    self.config_model.config_path.read_text(encoding="utf-8")
+                    self.config_model.config_path.read_text(encoding='utf-8')
                 )
-                github_cfg = raw.get("github", {})
-                repo = (github_cfg.get("repo") or "").strip().rstrip("/") or None
-                workflow = github_cfg.get("workflow", workflow)
+                github_cfg = raw.get('github', {})
+                repo = (github_cfg.get('repo') or '').strip().rstrip('/') or None
+                workflow = github_cfg.get('workflow', workflow)
             except Exception:
                 pass
 
@@ -316,7 +319,7 @@ class CoreScreen(Screen):
                 message=(
                     'You have local changes not yet on GitHub.\n\n'
                     'GitHub Actions builds from the remote — '
-                    'your uncommitted or unpushed changes won\'t be included.\n\n'
+                    "your uncommitted or unpushed changes won't be included.\n\n"
                     'Commit and push first, or continue to build the current remote version.'
                 ),
                 confirm_text='Build anyway',
@@ -333,6 +336,7 @@ class CoreScreen(Screen):
     def _has_unsynced_changes(self):
         """True if local has commits or file changes not yet on GitHub."""
         import subprocess
+
         project_dir = (
             str(self.config_model.config_path.parent)
             if self.config_model and self.config_model.config_path
@@ -341,22 +345,27 @@ class CoreScreen(Screen):
         try:
             # 1. Unpushed commits — upstream tracking set
             r = subprocess.run(  # noqa: PLW1510
-                ["git", "rev-list", "--count", "HEAD@{upstream}..HEAD"],
-                capture_output=True, text=True, cwd=project_dir
+                ['git', 'rev-list', '--count', 'HEAD@{upstream}..HEAD'],
+                capture_output=True,
+                text=True,
+                cwd=project_dir,
             )
-            if r.returncode == 0 and r.stdout.strip() not in {"0", ""}:
+            if r.returncode == 0 and r.stdout.strip() not in {'0', ''}:
                 return True
             # 2. Unpushed commits — no tracking branch (git status -sb shows [ahead N])
             r2 = subprocess.run(  # noqa: PLW1510
-                ["git", "status", "-sb"],
-                capture_output=True, text=True, cwd=project_dir,
+                ['git', 'status', '-sb'],
+                capture_output=True,
+                text=True,
+                cwd=project_dir,
             )
-            if r2.returncode == 0 and "ahead" in r2.stdout:
+            if r2.returncode == 0 and 'ahead' in r2.stdout:
                 return True
             # 3. Uncommitted changes to tracked files (staged or unstaged)
             r3 = subprocess.run(  # noqa: PLW1510
-                ["git", "diff", "HEAD", "--quiet"],
-                capture_output=True, cwd=project_dir,
+                ['git', 'diff', 'HEAD', '--quiet'],
+                capture_output=True,
+                cwd=project_dir,
             )
             if r3.returncode != 0:
                 return True
@@ -365,7 +374,9 @@ class CoreScreen(Screen):
         return False
 
     def _show_github_config_popup(self):
-        TUTORIAL_URL = "https://github.com/kivy-school/kivy-reloader#build-apk-via-github-actions"
+        TUTORIAL_URL = (
+            'https://github.com/kivy-school/kivy-reloader#build-apk-via-github-actions'
+        )
         TOML_SNIPPET = '[github]\nrepo = "owner/your-repo"\nworkflow = "build-apk.yml"'
         popup = ConfirmPopup(
             title='GitHub Config Missing',

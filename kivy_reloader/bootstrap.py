@@ -532,7 +532,10 @@ def scaffold_hello_world():
         project_root / 'hello_world' / 'screens' / 'main_screen.kv': MAIN_SCREEN_KV,
         project_root / 'kivy-reloader.toml': _toml('hello_world'),
         project_root / 'main.py': _main_py('hello_world', 'HelloWorld'),
-        project_root / '.github' / 'workflows' / 'build-apk.yml': BUILD_APK_WORKFLOW_YML,
+        project_root
+        / '.github'
+        / 'workflows'
+        / 'build-apk.yml': BUILD_APK_WORKFLOW_YML,
     }
 
     for path, content in files.items():
